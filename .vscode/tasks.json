@@ -362,6 +362,106 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Start development server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Start dev server on port 3002",
+			"type": "shell",
+			"command": "npx next dev -p 3002",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Pull latest changes",
+			"type": "shell",
+			"command": "git pull origin main",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Run TypeScript fix",
+			"type": "shell",
+			"command": "node fix-typescript-final.js",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check current directory",
+			"type": "shell",
+			"command": "pwd",
+			"group": "build"
+		},
+		{
+			"label": "Check Git remote",
+			"type": "shell",
+			"command": "git remote -v",
+			"group": "build"
+		},
+		{
+			"label": "Clean start with casing fix",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Ultimate TypeScript fix",
+			"type": "shell",
+			"command": "PowerShell -ExecutionPolicy Bypass -File ultimate-fix.ps1",
+			"group": "build"
+		},
+		{
+			"label": "Clean start after folder rename",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Replace globals.css with clean version",
+			"type": "shell",
+			"command": "Copy-Item 'src\\app\\globals-clean.css' 'src\\app\\globals.css' -Force",
+			"group": "build"
+		},
+		{
+			"label": "Clean start with fixed CSS",
+			"type": "shell",
+			"command": "Remove-Item 'src\\app\\globals-clean.css' -Force; Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Delete problematic CSS file",
+			"type": "shell",
+			"command": "Remove-Item 'src\\app\\globals.css' -Force",
+			"group": "build"
+		},
+		{
+			"label": "Clean restart with new CSS",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Clean restart after fixing Tailwind config",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Test minimal CSS",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Deep cache clean",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force %APPDATA%\\npm-cache -ErrorAction SilentlyContinue; npm run dev",
+			"group": "build"
 		}
 	]
 }
