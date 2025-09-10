@@ -44,4 +44,8 @@ export default {
     },
   },
   plugins: [],
+<<<<<<< HEAD
 } satisfies Config;
+=======
+} satisfies Config;
+>>>>>>> 9d0e21f97248f5f291dd2cbf944f86ed979f8186
