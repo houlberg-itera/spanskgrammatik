@@ -30,6 +30,7 @@ export default function LevelPage() {
     
     checkAuth();
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]);
 
   // Refresh data when the page becomes visible (user returns from an exercise)
@@ -61,6 +62,7 @@ export default function LevelPage() {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('pageshow', handleRouteChange);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuth = async () => {

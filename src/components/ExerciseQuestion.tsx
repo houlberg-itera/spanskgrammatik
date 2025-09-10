@@ -84,6 +84,7 @@ export default function ExerciseQuestion({
     if (showResult && selectedAnswer && enableAiFeedback && !isCorrect()) {
       generateAiFeedback();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showResult, selectedAnswer]);
 
   const getResultClass = () => {

@@ -32,7 +32,7 @@ export default function Home() {
             <div className="text-3xl mb-4">🎯</div>
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Niveau A1</h2>
             <p className="text-gray-600">
-              Begynder niveau med grundlæggende grammatik, verbum "ser" og "estar", samt grundlæggende substantiver.
+              Begynder niveau med grundlæggende grammatik, verbum &ldquo;ser&rdquo; og &ldquo;estar&rdquo;, samt grundlæggende substantiver.
             </p>
           </div>
           <div className="bg-white p-8 rounded-lg shadow-md">

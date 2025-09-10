@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { User, Level, UserLevelProgress } from '@/types/database';
 import { useRouter } from 'next/navigation';
@@ -20,9 +20,10 @@ export default function Dashboard() {
   useEffect(() => {
     checkUser();
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkUser = async () => {
+  const checkUser = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       router.push('/auth');
@@ -38,9 +39,9 @@ export default function Dashboard() {
     if (userData) {
       setUser(userData);
     }
-  };
+  }, [router, supabase]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch levels
       const { data: levelsData } = await supabase
@@ -69,7 +70,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
                 exerciseTitle: exercise.title_da,
                 score,
                 passed: score >= 70,
-                savedProgress: result.data[0] // Get the first result
+                savedProgress: result.data?.[0] // Get the first result with null check
             },
             troubleshooting: {
                 rpcFunctionBypass: 'Successfully bypassed problematic RPC function',

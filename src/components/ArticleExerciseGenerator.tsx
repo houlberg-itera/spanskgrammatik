@@ -138,7 +138,7 @@ export default function ArticleExerciseGenerator({ level }: ArticleExerciseGener
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-blue-900 mb-4">🎯 Bestemt Artikel (el/la)</h3>
             <p className="text-blue-700 mb-4">
-              Øv brugen af "el" og "la" - svarer til danske "-en/-et"
+              Øv brugen af &ldquo;el&rdquo; og &ldquo;la&rdquo; - svarer til danske &ldquo;-en/-et&rdquo;
             </p>
             <div className="space-y-2">
               <button
@@ -165,7 +165,7 @@ export default function ArticleExerciseGenerator({ level }: ArticleExerciseGener
           <div className="bg-green-50 border border-green-200 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-green-900 mb-4">📝 Ubestemt Artikel (un/una)</h3>
             <p className="text-green-700 mb-4">
-              Øv brugen af "un" og "una" - svarer til danske "en/et"
+              Øv brugen af &ldquo;un&rdquo; og &ldquo;una&rdquo; - svarer til danske &ldquo;en/et&rdquo;
             </p>
             <div className="space-y-2">
               <button

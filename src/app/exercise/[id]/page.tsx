@@ -25,6 +25,7 @@ export default function ExercisePage() {
     
     checkAuth();
     fetchExercise();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
 
   const checkAuth = async () => {

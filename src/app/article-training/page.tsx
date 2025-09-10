@@ -5,6 +5,9 @@ import { Database } from '@/types/database';
 import ArticleTrainer from '@/components/ArticleTrainer';
 import ArticleExerciseGenerator from '@/components/ArticleExerciseGenerator';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
 export default async function ArticlePage() {
   const supabase = await createClient();
   

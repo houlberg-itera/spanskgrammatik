@@ -29,7 +29,7 @@ export async function GET() {
         // First check if user already exists
         const { data: existingUsers, error: checkError } = await supabaseAdmin.auth.admin.listUsers()
         
-        const userAlreadyExists = existingUsers?.users?.find(u => u.email === testUser.email)
+        const userAlreadyExists = existingUsers?.users?.find((u: any) => u.email === testUser.email)
         
         if (userAlreadyExists) {
             return NextResponse.json({

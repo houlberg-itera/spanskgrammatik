@@ -249,9 +249,9 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                   <div className="border-l-4 border-green-400 pl-4">
                     <h5 className="font-medium text-green-800">🆕 UBESTEMT (første gang nævnt):</h5>
                     <div className="text-sm space-y-1 mt-2">
-                      <p><strong>Dansk:</strong> "Jeg ser <em>en hund</em>"</p>
-                      <p><strong>Spansk:</strong> "Veo <em>___ perro (en hund)</em>"</p>
-                      <p><strong>Svar:</strong> "Veo <em>un perro</em>"</p>
+                      <p><strong>Dansk:</strong> &ldquo;Jeg ser <em>en hund</em>&rdquo;</p>
+                      <p><strong>Spansk:</strong> &ldquo;Veo <em>___ perro (en hund)</em>&rdquo;</p>
+                      <p><strong>Svar:</strong> &ldquo;Veo <em>un perro</em>&rdquo;</p>
                       <p className="text-green-700">→ Hvilken som helst hund, første gang nævnt</p>
                     </div>
                   </div>
@@ -259,9 +259,9 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                   <div className="border-l-4 border-purple-400 pl-4">
                     <h5 className="font-medium text-purple-800">🎯 BESTEMT (specifik/kendt):</h5>
                     <div className="text-sm space-y-1 mt-2">
-                      <p><strong>Dansk:</strong> "<em>Hunden</em> er stor"</p>
-                      <p><strong>Spansk:</strong> "<em>___ perro (hunden)</em> es grande"</p>
-                      <p><strong>Svar:</strong> "<em>El perro</em> es grande"</p>
+                      <p><strong>Dansk:</strong> &ldquo;<em>Hunden</em> er stor&rdquo;</p>
+                      <p><strong>Spansk:</strong> &ldquo;<em>___ perro (hunden)</em> es grande&rdquo;</p>
+                      <p><strong>Svar:</strong> &ldquo;<em>El perro</em> es grande&rdquo;</p>
                       <p className="text-purple-700">→ Den specifikke hund vi taler om</p>
                     </div>
                   </div>
@@ -275,17 +275,17 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                     <h5 className="font-medium text-green-800 mb-1">Brug UBESTEMT (un/una):</h5>
                     <ul className="text-green-700 space-y-1">
                       <li>• Første gang du nævner noget</li>
-                      <li>• "Der er <em>en</em> hund i haven"</li>
-                      <li>• "Jeg vil have <em>et</em> æble"</li>
-                      <li>• Generelt: "hvad som helst"</li>
+                      <li>• &ldquo;Der er <em>en</em> hund i haven&rdquo;</li>
+                      <li>• &ldquo;Jeg vil have <em>et</em> æble&rdquo;</li>
+                      <li>• Generelt: &ldquo;hvad som helst&rdquo;</li>
                     </ul>
                   </div>
                   <div>
                     <h5 className="font-medium text-purple-800 mb-1">Brug BESTEMT (el/la):</h5>
                     <ul className="text-purple-700 space-y-1">
                       <li>• Når du refererer til noget specifikt</li>
-                      <li>• "<em>Hunden</em> (som vi talte om) løber"</li>
-                      <li>• "<em>Æblet</em> (på bordet) er rødt"</li>
+                      <li>• &ldquo;<em>Hunden</em> (som vi talte om) løber&rdquo;</li>
+                      <li>• &ldquo;<em>Æblet</em> (på bordet) er rødt&rdquo;</li>
                       <li>• Når begge kender hvad der tales om</li>
                     </ul>
                   </div>
@@ -294,7 +294,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
 
               <div className="bg-gray-100 p-3 rounded-lg">
                 <p className="text-sm text-gray-700">
-                  <strong>💭 Trick:</strong> Spørg dig selv: "Taler jeg om EN HVILKEN SOM HELST hund/æble, eller taler jeg om DEN SPECIFIKKE hund/æble?"
+                  <strong>💭 Trick:</strong> Spørg dig selv: &ldquo;Taler jeg om EN HVILKEN SOM HELST hund/æble, eller taler jeg om DEN SPECIFIKKE hund/æble?&rdquo;
                 </p>
               </div>
             </div>

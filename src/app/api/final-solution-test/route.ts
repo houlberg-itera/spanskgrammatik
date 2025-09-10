@@ -112,7 +112,7 @@ export async function GET() {
                     Math.round(allProgress.reduce((sum, p) => sum + (p.score || 0), 0) / allProgress.length) : 0,
                 recentCompletions: allProgress?.slice(0, 5).map(p => ({
                     exerciseId: p.exercise_id,
-                    title: p.exercises?.title_da,
+                    title: (p.exercises as any)?.title_da,
                     score: p.score,
                     completed: p.completed,
                     attempts: p.attempts,

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🧪 Running comprehensive system test...')
     
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Test 1: Authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()

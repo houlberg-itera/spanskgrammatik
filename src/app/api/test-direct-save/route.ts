@@ -129,7 +129,7 @@ export async function GET() {
                 recentEntries: allProgress?.slice(0, 3).map(p => ({
                     id: p.id,
                     exerciseId: p.exercise_id,
-                    exerciseTitle: p.exercises?.title_da,
+                    exerciseTitle: (p.exercises as any)?.title_da,
                     score: p.score,
                     completed: p.completed,
                     attempts: p.attempts

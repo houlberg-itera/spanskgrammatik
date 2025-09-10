@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Type definitions for progress entries
+interface Exercise {
+  id: number;
+  title_da: string;
+  level: string;
+}
+
+interface ProgressEntry {
+  id: number;
+  user_id: string;
+  exercise_id: number;
+  score: number;
+  completed: boolean;
+  attempts: number;
+  completed_at: string | null;
+  exercises?: Exercise;
+}
+
 export async function GET() {
     try {
         console.log('=== FINAL SYSTEM VERIFICATION ===')
@@ -45,7 +63,7 @@ export async function GET() {
                 completed_at,
                 exercises (id, title_da, level)
             `)
-            .order('id')
+            .order('id') as { data: ProgressEntry[] | null, error: any }
         
         // Calculate summary stats
         const completedExercises = progressEntries?.filter(p => p.completed) || []
@@ -99,7 +117,7 @@ export async function GET() {
                     id: p.id,
                     userId: p.user_id?.substring(0, 8) + '...',
                     exerciseId: p.exercise_id,
-                    exerciseTitle: p.exercises?.title_da,
+                    exerciseTitle: (p.exercises as any)?.title_da,
                     score: p.score,
                     completed: p.completed,
                     attempts: p.attempts,
@@ -121,7 +139,7 @@ export async function GET() {
                 evidence: {
                     usersCanRegister: allUsers?.users?.length > 0,
                     progressCanBeSaved: totalAttempts > 0,
-                    exercisesAvailable: exercises?.length >= 5
+                    exercisesAvailable: (exercises?.length || 0) >= 5
                 }
             },
             nextSteps: [

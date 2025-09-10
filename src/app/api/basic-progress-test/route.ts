@@ -130,7 +130,7 @@ export async function GET() {
                 completedExercises: allProgress?.filter(p => p.completed)?.length || 0,
                 exercises: allProgress?.map(p => ({
                     exerciseId: p.exercise_id,
-                    title: p.exercises?.title_da,
+                    title: (p.exercises as any)?.title_da,
                     score: p.score,
                     completed: p.completed,
                     attempts: p.attempts
