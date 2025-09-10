@@ -250,6 +250,52 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Git Commit Changes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"commit",
+				"-m",
+				"Update gitignore and tasks"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Pull After Commit",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"pull",
+				"origin",
+				"main",
+				"--allow-unrelated-histories"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Status After Merge",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Add All After Conflict Resolution",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"."
+			],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }

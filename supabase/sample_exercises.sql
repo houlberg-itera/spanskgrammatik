@@ -306,4 +306,8 @@ INSERT INTO public.exercises (topic_id, level, type, title_da, title_es, descrip
       "points": 1
     }
   ]
+<<<<<<< HEAD
 }', false);
+=======
+}', false);
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c

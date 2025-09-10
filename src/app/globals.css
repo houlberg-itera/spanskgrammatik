@@ -9,8 +9,13 @@
   --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 3.9%;
+<<<<<<< HEAD
   --primary: 240 9% 89%;
   --primary-foreground: 240 5.9% 10%;
+=======
+  --primary: 240 9% 17%;
+  --primary-foreground: 0 0% 98%;
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c
   --secondary: 240 4.8% 95.9%;
   --secondary-foreground: 240 5.9% 10%;
   --muted: 240 4.8% 95.9%;
@@ -65,3 +70,15 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+<<<<<<< HEAD
+=======
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c

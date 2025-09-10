@@ -24,8 +24,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
+<<<<<<< HEAD
 .env
 .env*.local
+=======
+.env*.local
+.env
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c
 
 # Vercel
 .vercel
@@ -35,7 +40,11 @@ yarn-error.log*
 next-env.d.ts
 
 # IDE
+<<<<<<< HEAD
 .vscode/settings.json
+=======
+.vscode/
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c
 .idea/
 *.swp
 *.swo
@@ -55,6 +64,7 @@ tmp/
 
 # OS generated files
 Thumbs.db
+<<<<<<< HEAD
 ehthumbs.db
 
 # Development
@@ -63,3 +73,6 @@ SETUP_GIT_REPO.md
 setup-git.ps1
 setup-git.bat
 node_modules
+=======
+ehthumbs.db
+>>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c
