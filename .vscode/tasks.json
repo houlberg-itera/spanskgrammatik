@@ -2,466 +2,50 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Create Next.js App",
+			"label": "npm run dev",
 			"type": "shell",
-			"command": "npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --turbopack --use-npm",
-			"group": "build"
+			"command": "npm",
+			"args": ["run", "dev"],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"isBackground": true
 		},
 		{
-			"label": "Install Dependencies",
+			"label": "npm run build",
 			"type": "shell",
-			"command": "npm install",
-			"group": "build"
+			"command": "npm",
+			"args": ["run", "build"],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
 		},
 		{
-			"label": "Install SSR Package",
+			"label": "npm install",
 			"type": "shell",
-			"command": "npm install @supabase/ssr",
-			"group": "build"
+			"command": "npm",
+			"args": ["install"],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
 		},
 		{
-			"label": "Build Project",
+			"label": "Stage all changes for commit",
 			"type": "shell",
-			"command": "npm run build",
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Start Development Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"group": "build"
-		},
-		{
-			"label": "Build Project Fixed",
-			"type": "shell",
-			"command": "npm run build",
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Install Dependencies",
-			"type": "shell",
-			"command": "npm install",
-			"group": "build"
-		},
-		{
-			"label": "Install Autoprefixer",
-			"type": "shell",
-			"command": "npm install autoprefixer",
-			"group": "build"
-		},
-		{
-			"label": "Build Project",
-			"type": "shell",
-			"command": "npm run build",
-			"group": "build"
-		},
-		{
-			"label": "Start Development Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"group": "dev"
-		},
-		{
-			"label": "Start Dev Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"group": "dev"
-		},
-		{
-			"label": "Run Development Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Clean .next directory",
-			"type": "shell",
-			"command": "Remove-Item -Recurse -Force .next",
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Clean .next contents",
-			"type": "shell",
-			"command": "Get-ChildItem .next | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue",
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Run Development Server (No Turbopack)",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Restart Development Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Kill Node Processes",
-			"type": "shell",
-			"command": "taskkill /F /IM node.exe",
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Clean .next directory",
-			"type": "shell",
-			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue",
-			"isBackground": false,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Start Fresh Development Server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"problemMatcher": [],
-			"group": "build"
-		},
-		{
-			"label": "Initialize Git Repository",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"init"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Add Git Remote",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"remote",
-				"add",
-				"origin",
-				"https://github.com/houlberg-itera/spanskgrammatik.git"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Set Main Branch",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"branch",
-				"-M",
-				"main"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Status",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"status"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Add All",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"add",
-				"."
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Initial Commit",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"commit",
-				"-m",
-				"Initial commit - Spanish Learning App setup"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Push to GitHub",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"push",
-				"-u",
-				"origin",
-				"main"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Status Check",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"status"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Pull Remote Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"pull",
-				"origin",
-				"main",
-				"--allow-unrelated-histories"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Add Current Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"add",
-				"."
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Commit Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"commit",
-				"-m",
-				"Update gitignore and tasks"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Pull After Commit",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"pull",
-				"origin",
-				"main",
-				"--allow-unrelated-histories"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Status After Merge",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"status"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Add All After Conflict Resolution",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"add",
-				"."
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Commit Merge",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"commit",
-				"-m",
-				"Merge with remote repository - resolve conflicts"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Push",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"push"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Git Push Set Upstream",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"push",
-				"--set-upstream",
-				"origin",
-				"main"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Final Git Status",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"status"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Check Git Status",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"status"
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Add Latest Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"add",
-				"."
-			],
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Start development server",
-			"type": "shell",
-			"command": "npm run dev",
-			"isBackground": true,
-			"group": "build"
-		},
-		{
-			"label": "Start dev server on port 3002",
-			"type": "shell",
-			"command": "npx next dev -p 3002",
-			"isBackground": true,
-			"group": "build"
-		},
-		{
-			"label": "Pull latest changes",
-			"type": "shell",
-			"command": "git pull origin main",
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Run TypeScript fix",
-			"type": "shell",
-			"command": "node fix-typescript-final.js",
-			"isBackground": false,
-			"group": "build"
-		},
-		{
-			"label": "Check current directory",
-			"type": "shell",
-			"command": "pwd",
-			"group": "build"
-		},
-		{
-			"label": "Check Git remote",
-			"type": "shell",
-			"command": "git remote -v",
-			"group": "build"
-		},
-		{
-			"label": "Clean start with casing fix",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Ultimate TypeScript fix",
-			"type": "shell",
-			"command": "PowerShell -ExecutionPolicy Bypass -File ultimate-fix.ps1",
-			"group": "build"
-		},
-		{
-			"label": "Clean start after folder rename",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Replace globals.css with clean version",
-			"type": "shell",
-			"command": "Copy-Item 'src\\app\\globals-clean.css' 'src\\app\\globals.css' -Force",
-			"group": "build"
-		},
-		{
-			"label": "Clean start with fixed CSS",
-			"type": "shell",
-			"command": "Remove-Item 'src\\app\\globals-clean.css' -Force; Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Delete problematic CSS file",
-			"type": "shell",
-			"command": "Remove-Item 'src\\app\\globals.css' -Force",
-			"group": "build"
-		},
-		{
-			"label": "Clean restart with new CSS",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Clean restart after fixing Tailwind config",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Test minimal CSS",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
-		},
-		{
-			"label": "Deep cache clean",
-			"type": "shell",
-			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force %APPDATA%\\npm-cache -ErrorAction SilentlyContinue; npm run dev",
-			"group": "build"
+			"command": "git add .",
+			"group": "git"
 		}
 	]
 }
