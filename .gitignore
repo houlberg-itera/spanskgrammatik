@@ -62,3 +62,4 @@ PROBLEM_RESOLUTION_COMPLETE.md
 SETUP_GIT_REPO.md
 setup-git.ps1
 setup-git.bat
+node_modules

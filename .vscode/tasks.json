@@ -191,6 +191,65 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Git Initial Commit",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"commit",
+				"-m",
+				"Initial commit - Spanish Learning App setup"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Push to GitHub",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"push",
+				"-u",
+				"origin",
+				"main"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Pull Remote Changes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"pull",
+				"origin",
+				"main",
+				"--allow-unrelated-histories"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Add Current Changes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"."
+			],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }
