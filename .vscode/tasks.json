@@ -296,6 +296,72 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Git Commit Merge",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"commit",
+				"-m",
+				"Merge with remote repository - resolve conflicts"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Push",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"push"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Push Set Upstream",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"push",
+				"--set-upstream",
+				"origin",
+				"main"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Final Git Status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check Git Status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Add Latest Changes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"."
+			],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }
