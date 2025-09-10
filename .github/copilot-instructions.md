@@ -1,4 +1,16 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+
+## GitHub MCP Server Instructions
+- **ALWAYS use GitHub MCP server tools when available** for all repository operations including:
+  - Creating, updating, and managing files via `mcp_github_create_or_update_file`
+  - Pushing multiple files with `mcp_github_push_files`
+  - Managing pull requests, issues, and repository settings
+  - Resolving merge conflicts and managing branches
+  - Any Git operations that can be performed through the GitHub API
+- Prefer GitHub MCP tools over local file operations when working with repository content
+- Use GitHub MCP for synchronization between local and remote repository states
+
+## Project Checklist
 - [x] Verify that the copilot-instructions.md file in the .github directory is created.
 
 - [x] Clarify Project Requirements
