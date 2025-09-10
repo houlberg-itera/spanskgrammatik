@@ -2,50 +2,99 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "npm run dev",
+			"label": "Create Next.js App",
 			"type": "shell",
-			"command": "npm",
-			"args": ["run", "dev"],
-			"group": "build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": false,
-				"panel": "shared"
-			},
-			"isBackground": true
+			"command": "npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --turbopack --use-npm",
+			"group": "build"
 		},
 		{
-			"label": "npm run build",
+			"label": "Install Dependencies",
 			"type": "shell",
-			"command": "npm",
-			"args": ["run", "build"],
-			"group": "build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": false,
-				"panel": "shared"
-			}
+			"command": "npm install",
+			"group": "build"
 		},
 		{
-			"label": "npm install",
+			"label": "Install SSR Package",
 			"type": "shell",
-			"command": "npm",
-			"args": ["install"],
-			"group": "build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": false,
-				"panel": "shared"
-			}
+			"command": "npm install @supabase/ssr",
+			"group": "build"
 		},
 		{
-			"label": "Stage all changes for commit",
+			"label": "Build Project",
 			"type": "shell",
-			"command": "git add .",
-			"group": "git"
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Build Project Fixed",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "npm install",
+			"group": "build"
+		},
+		{
+			"label": "Install Autoprefixer",
+			"type": "shell",
+			"command": "npm install autoprefixer",
+			"group": "build"
+		},
+		{
+			"label": "Build Project",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "dev"
+		},
+		{
+			"label": "Start Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "dev"
+		},
+		{
+			"label": "Run Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean .next directory",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean .next contents",
+			"type": "shell",
+			"command": "Get-ChildItem .next | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
