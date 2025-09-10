@@ -3,7 +3,7 @@
 # This script renames the folder from Spanskgrammatik to spanskgrammatik
 
 Write-Host "🔧 FIXING FOLDER CASING ISSUE" -ForegroundColor Cyan
-Write-Host "===============================" -ForegroundColor Cyan
+Write-Host "==============================" -ForegroundColor Cyan
 
 $currentPath = "C:\source\repos\Spanskgrammatik"
 $correctPath = "C:\source\repos\spanskgrammatik"
