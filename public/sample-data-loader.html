@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Load Sample Data Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; }
+        #result { margin-top: 20px; padding: 20px; background: #f5f5f5; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .loading { background: #e3f2fd; }
+        .success { background: #e8f5e8; }
+        .error { background: #ffebee; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Database Sample Data Loader</h1>
+    
+    <div>
+        <button onclick="checkCurrentData()">📊 Check Current Data</button>
+        <button onclick="loadSampleData()" id="loadBtn">📥 Load Sample Exercises</button>
+        <button onclick="testDatabase()">🧪 Test Database</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        async function checkCurrentData() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'loading';
+            resultDiv.textContent = 'Checking current data...';
+            
+            try {
+                const response = await fetch('/api/load-sample-data', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.textContent = '📊 CURRENT DATA:\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ Error: ' + error.message;
+            }
+        }
+        
+        async function loadSampleData() {
+            const resultDiv = document.getElementById('result');
+            const loadBtn = document.getElementById('loadBtn');
+            
+            resultDiv.className = 'loading';
+            resultDiv.textContent = 'Loading sample data...';
+            loadBtn.disabled = true;
+            loadBtn.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/load-sample-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.textContent = '📥 LOAD RESULT:\n\n' + JSON.stringify(data, null, 2);
+                
+                if (response.ok && data.success > 0) {
+                    resultDiv.textContent += '\n\n✅ Success! ' + data.success + ' exercises loaded.\n❌ Errors: ' + data.errors;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ Error: ' + error.message;
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.textContent = '📥 Load Sample Exercises';
+            }
+        }
+        
+        async function testDatabase() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'loading';
+            resultDiv.textContent = 'Testing database connection...';
+            
+            try {
+                const response = await fetch('/api/test-database?v=' + Date.now());
+                const data = await response.json();
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.textContent = '🧪 DATABASE TEST:\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ Error: ' + error.message;
+            }
+        }
+        
+        // Auto-check data on page load
+        window.onload = checkCurrentData;
+    </script>
+</body>
+</html>

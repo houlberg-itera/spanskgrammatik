@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔐 Authentication Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .result { margin-top: 15px; padding: 15px; border-radius: 5px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-size: 13px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        h1, h2 { color: #333; }
+        .status-indicator { padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; display: inline-block; }
+        .status-success { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Authentication Flow Test</h1>
+        
+        <div class="section">
+            <h2>📊 Current Status</h2>
+            <button class="button btn-primary" onclick="checkStatus()">🔍 Check System Status</button>
+            <div id="statusIndicator" class="status-indicator status-error">Status Unknown</div>
+            <div id="statusResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>➕ User Registration Test</h2>
+            <div class="form-group">
+                <label for="regEmail">Email:</label>
+                <input type="email" id="regEmail" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Password:</label>
+                <input type="password" id="regPassword" value="password123">
+            </div>
+            <div class="form-group">
+                <label for="regName">Full Name:</label>
+                <input type="text" id="regName" value="Test User">
+            </div>
+            <div class="quick-actions">
+                <button class="button btn-success" onclick="registerUser()">➕ Register User</button>
+                <button class="button btn-warning" onclick="testSignupAPI()">🧪 Test Signup API</button>
+            </div>
+            <div id="registerResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔑 Login Test</h2>
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" value="password123">
+            </div>
+            <div class="quick-actions">
+                <button class="button btn-primary" onclick="loginUser()">🔑 Login User</button>
+                <button class="button btn-warning" onclick="testAuthAPI()">🧪 Test Auth API</button>
+            </div>
+            <div id="loginResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>💾 Progress Saving Test</h2>
+            <p>This section will be enabled after successful login.</p>
+            <div class="form-group">
+                <label for="testExerciseId">Exercise ID:</label>
+                <input type="number" id="testExerciseId" value="14" min="1">
+            </div>
+            <div class="form-group">
+                <label for="testScore">Test Score (0-100):</label>
+                <input type="number" id="testScore" value="85" min="0" max="100">
+            </div>
+            <div class="quick-actions">
+                <button class="button btn-success" onclick="testProgressSaving()" id="progressBtn" disabled>💾 Test Progress Saving</button>
+                <button class="button btn-warning" onclick="testExerciseFlow()">🎯 Test Exercise Flow</button>
+            </div>
+            <div id="progressResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🚀 App Navigation</h2>
+            <div class="quick-actions">
+                <button class="button btn-primary" onclick="openAuth()">🔐 Open Auth Page</button>
+                <button class="button btn-success" onclick="openDashboard()">🏠 Open Dashboard</button>
+                <button class="button btn-warning" onclick="openLevel()">📚 Open A1 Level</button>
+                <button class="button btn-danger" onclick="clearData()">🗑️ Clear Test Results</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isAuthenticated = false;
+        
+        function showResult(id, content, type = 'info') {
+            const element = document.getElementById(id);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        function updateStatus(text, isGood = false) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.textContent = text;
+            indicator.className = `status-indicator ${isGood ? 'status-success' : 'status-error'}`;
+        }
+
+        async function checkStatus() {
+            showResult('statusResult', 'Checking system status...', 'info');
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                isAuthenticated = data.currentSession.authenticated;
+                document.getElementById('progressBtn').disabled = !isAuthenticated;
+                
+                let statusText = `Users: ${data.systemUsers.count}, Exercises: ${data.exercises.count}, Progress: ${data.progress.count}`;
+                if (isAuthenticated) {
+                    statusText = `✅ ${statusText} - Authenticated`;
+                    updateStatus(statusText, true);
+                } else {
+                    statusText = `❌ ${statusText} - Not Authenticated`;
+                    updateStatus(statusText, false);
+                }
+                
+                showResult('statusResult', '📊 SYSTEM STATUS:\\n\\n' + JSON.stringify(data, null, 2), 'info');
+                
+            } catch (error) {
+                showResult('statusResult', '❌ Error: ' + error.message, 'error');
+                updateStatus('❌ Status Check Failed', false);
+            }
+        }
+
+        async function registerUser() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const fullName = document.getElementById('regName').value;
+            
+            showResult('registerResult', 'Registering user...', 'info');
+            
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, fullName })
+                });
+                
+                const data = await response.json();
+                
+                let resultText = '➕ REGISTRATION RESULT:\\n\\n';
+                resultText += JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    resultText += '\\n\\n✅ Registration successful!';
+                    if (data.requiresManualConfirmation) {
+                        resultText += '\\n⚠️ Manual confirmation might be required.';
+                    }
+                    showResult('registerResult', resultText, 'success');
+                    
+                    // Auto-check status after registration
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    showResult('registerResult', resultText, 'error');
+                }
+                
+            } catch (error) {
+                showResult('registerResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testSignupAPI() {
+            showResult('registerResult', 'Testing signup API directly...', 'info');
+            
+            try {
+                // First test the API without registration
+                const response = await fetch('/api/auth-debug');
+                const data = await response.json();
+                
+                showResult('registerResult', '🧪 SIGNUP API TEST:\\n\\n' + JSON.stringify(data, null, 2), 'info');
+                
+            } catch (error) {
+                showResult('registerResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            showResult('loginResult', 'Logging in user...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', email, password })
+                });
+                
+                const data = await response.json();
+                
+                let resultText = '🔑 LOGIN RESULT:\\n\\n';
+                resultText += JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    resultText += '\\n\\n✅ Login successful!';
+                    isAuthenticated = true;
+                    document.getElementById('progressBtn').disabled = false;
+                    updateStatus('✅ User Authenticated', true);
+                    showResult('loginResult', resultText, 'success');
+                    
+                    // Auto-check status after login
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    showResult('loginResult', resultText, 'error');
+                }
+                
+            } catch (error) {
+                showResult('loginResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testAuthAPI() {
+            showResult('loginResult', 'Testing auth API...', 'info');
+            
+            try {
+                const response = await fetch('/api/auth-test');
+                const data = await response.json();
+                
+                showResult('loginResult', '🧪 AUTH API TEST:\\n\\n' + JSON.stringify(data, null, 2), 'info');
+                
+            } catch (error) {
+                showResult('loginResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testProgressSaving() {
+            const exerciseId = parseInt(document.getElementById('testExerciseId').value);
+            const score = parseInt(document.getElementById('testScore').value);
+            
+            showResult('progressResult', 'Testing progress saving...', 'info');
+            
+            try {
+                const response = await fetch('/api/test-progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exerciseId, score })
+                });
+                
+                const data = await response.json();
+                
+                let resultText = '💾 PROGRESS SAVING TEST:\\n\\n';
+                resultText += JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    resultText += '\\n\\n✅ Progress saved successfully!';
+                    showResult('progressResult', resultText, 'success');
+                } else {
+                    resultText += '\\n\\n❌ Progress saving failed.';
+                    showResult('progressResult', resultText, 'error');
+                }
+                
+            } catch (error) {
+                showResult('progressResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testExerciseFlow() {
+            showResult('progressResult', 'Testing full exercise flow...', 'info');
+            
+            try {
+                // Check if exercises are available and if user can access them
+                const statusResponse = await fetch('/api/status');
+                const statusData = await statusResponse.json();
+                
+                let resultText = '🎯 EXERCISE FLOW TEST:\\n\\n';
+                resultText += `Available exercises: ${statusData.exercises.count}\\n`;
+                resultText += `User authenticated: ${statusData.currentSession.authenticated}\\n\\n`;
+                
+                if (!statusData.currentSession.authenticated) {
+                    resultText += '⚠️ User not authenticated - exercise completion will fail\\n';
+                    resultText += 'Please register and login first.\\n';
+                    showResult('progressResult', resultText, 'warning');
+                    return;
+                }
+                
+                if (statusData.exercises.count === 0) {
+                    resultText += '⚠️ No exercises available - cannot test exercise flow\\n';
+                    showResult('progressResult', resultText, 'warning');
+                    return;
+                }
+                
+                resultText += '✅ Prerequisites met for exercise flow testing\\n';
+                resultText += 'You can now navigate to the app and complete exercises.\\n';
+                resultText += 'Progress should save successfully.';
+                
+                showResult('progressResult', resultText, 'success');
+                
+            } catch (error) {
+                showResult('progressResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Navigation functions
+        function openAuth() {
+            window.open('/auth', '_blank');
+        }
+
+        function openDashboard() {
+            window.open('/dashboard', '_blank');
+        }
+
+        function openLevel() {
+            window.open('/level/a1', '_blank');
+        }
+
+        function clearData() {
+            ['statusResult', 'registerResult', 'loginResult', 'progressResult'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            updateStatus('Status Unknown', false);
+        }
+
+        // Auto-check status on load
+        window.onload = function() {
+            checkStatus();
+        };
+    </script>
+</body>
+</html>

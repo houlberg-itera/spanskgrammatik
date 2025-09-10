@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Quick Data Load Test</title></head>
+<body>
+    <h1>Quick Sample Data Load</h1>
+    <button onclick="loadData()">Load Sample Data</button>
+    <div id="result" style="margin-top: 20px; padding: 20px; background: #f5f5f5; white-space: pre-wrap;"></div>
+
+    <script>
+        async function loadData() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/load-sample-data-simple', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Also test the current state
+                const checkResponse = await fetch('/api/load-sample-data');
+                const checkData = await checkResponse.json();
+                resultDiv.textContent += '\n\n=== CURRENT STATE ===\n' + JSON.stringify(checkData, null, 2);
+                
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Auto-load on page open
+        window.onload = loadData;
+    </script>
+</body>
+</html>

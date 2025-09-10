@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 Full App Testing Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .button-group { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .primary { background: #007bff; color: white; }
+        .primary:hover { background: #0056b3; }
+        .success { background: #28a745; color: white; }
+        .success:hover { background: #1e7e34; }
+        .warning { background: #ffc107; color: #212529; }
+        .warning:hover { background: #e0a800; }
+        .danger { background: #dc3545; color: white; }
+        .danger:hover { background: #c82333; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-size: 12px; }
+        .loading { background: #e3f2fd; border: 1px solid #2196f3; }
+        .success-result { background: #e8f5e8; border: 1px solid #4caf50; }
+        .error-result { background: #ffebee; border: 1px solid #f44336; }
+        .auth-form { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+        .auth-form input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #666; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .status-success { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Spanish Learning App - Test Dashboard</h1>
+        
+        <!-- Database Section -->
+        <div class="section">
+            <h2>📊 Database Management</h2>
+            <div class="button-group">
+                <button class="primary" onclick="checkDatabase()">🔍 Check Database</button>
+                <button class="success" onclick="loadSampleData()">📥 Load Sample Data</button>
+                <button class="warning" onclick="testDatabaseConnection()">🧪 Test Connection</button>
+            </div>
+            <div id="dbResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Authentication Section -->
+        <div class="section">
+            <h2>🔐 Authentication Testing</h2>
+            
+            <div>
+                <h3>Current Status:</h3>
+                <button class="primary" onclick="checkAuthStatus()">🔍 Check Auth Status</button>
+                <span id="authStatusBadge" class="status-badge status-warning">Unknown</span>
+            </div>
+            
+            <div class="auth-form">
+                <input type="email" id="testEmail" placeholder="test@example.com" value="test@example.com">
+                <input type="password" id="testPassword" placeholder="password123" value="password123">
+                <button class="success" onclick="registerTestUser()">➕ Register</button>
+                <button class="primary" onclick="loginTestUser()">🔑 Login</button>
+            </div>
+            
+            <div id="authResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Exercise Testing Section -->
+        <div class="section">
+            <h2>🎯 Exercise Testing</h2>
+            
+            <div class="button-group">
+                <button class="primary" onclick="listExercises()">📋 List Exercises</button>
+                <button class="warning" onclick="testExerciseAccess()">🔓 Test Access</button>
+                <button class="success" onclick="testProgressSaving()">💾 Test Progress</button>
+            </div>
+            
+            <div class="button-group">
+                <button class="primary" onclick="openLevelA1()">🌟 Open A1 Level</button>
+                <button class="primary" onclick="openDashboard()">🏠 Open Dashboard</button>
+                <button class="primary" onclick="openAuthPage()">🔐 Open Auth Page</button>
+            </div>
+            
+            <div id="exerciseResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+            <h2>⚡ Quick Actions</h2>
+            <div class="button-group">
+                <button class="success" onclick="fullSystemTest()">🚀 Full System Test</button>
+                <button class="danger" onclick="clearAllResults()">🗑️ Clear Results</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility functions
+        function showResult(elementId, content, type = 'loading') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}-result`;
+            element.textContent = content;
+        }
+
+        function updateAuthStatus(status, type = 'warning') {
+            const badge = document.getElementById('authStatusBadge');
+            badge.textContent = status;
+            badge.className = `status-badge status-${type}`;
+        }
+
+        // Database functions
+        async function checkDatabase() {
+            showResult('dbResult', 'Checking database...', 'loading');
+            try {
+                const response = await fetch('/api/load-sample-data');
+                const data = await response.json();
+                showResult('dbResult', '📊 DATABASE STATE:\\n\\n' + JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                showResult('dbResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function loadSampleData() {
+            showResult('dbResult', 'Loading sample data...', 'loading');
+            try {
+                const response = await fetch('/api/load-sample-data', { method: 'POST' });
+                const data = await response.json();
+                const resultText = '📥 SAMPLE DATA LOADED:\\n\\n' + JSON.stringify(data, null, 2);
+                showResult('dbResult', resultText, response.ok ? 'success' : 'error');
+                
+                if (response.ok && data.success > 0) {
+                    showResult('dbResult', resultText + '\\n\\n✅ Success! ' + data.success + ' exercises loaded.\\n❌ Errors: ' + data.errors, 'success');
+                }
+            } catch (error) {
+                showResult('dbResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testDatabaseConnection() {
+            showResult('dbResult', 'Testing database connection...', 'loading');
+            try {
+                const response = await fetch('/api/test-database?v=' + Date.now());
+                const data = await response.json();
+                showResult('dbResult', '🧪 CONNECTION TEST:\\n\\n' + JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                showResult('dbResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Authentication functions
+        async function checkAuthStatus() {
+            showResult('authResult', 'Checking authentication...', 'loading');
+            try {
+                const response = await fetch('/api/auth-test');
+                const data = await response.json();
+                showResult('authResult', '🔍 AUTH STATUS:\\n\\n' + JSON.stringify(data, null, 2), 'success');
+                
+                if (data.authentication.hasUser) {
+                    updateAuthStatus('✅ Logged In', 'success');
+                } else {
+                    updateAuthStatus('❌ Not Logged In', 'error');
+                }
+            } catch (error) {
+                showResult('authResult', '❌ Error: ' + error.message, 'error');
+                updateAuthStatus('❌ Error', 'error');
+            }
+        }
+
+        async function registerTestUser() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            showResult('authResult', 'Registering test user...', 'loading');
+            try {
+                const response = await fetch('/api/auth-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'register', email, password })
+                });
+                const data = await response.json();
+                showResult('authResult', '➕ REGISTRATION:\\n\\n' + JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResult('authResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function loginTestUser() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            showResult('authResult', 'Logging in test user...', 'loading');
+            try {
+                const response = await fetch('/api/auth-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', email, password })
+                });
+                const data = await response.json();
+                showResult('authResult', '🔑 LOGIN:\\n\\n' + JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (data.success) {
+                    updateAuthStatus('✅ Logged In', 'success');
+                    setTimeout(checkAuthStatus, 1000); // Refresh auth status
+                } else {
+                    updateAuthStatus('❌ Login Failed', 'error');
+                }
+            } catch (error) {
+                showResult('authResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Exercise functions
+        async function listExercises() {
+            showResult('exerciseResult', 'Listing exercises...', 'loading');
+            try {
+                const response = await fetch('/api/load-sample-data');
+                const data = await response.json();
+                showResult('exerciseResult', '📋 EXERCISES:\\n\\n' + JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                showResult('exerciseResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testExerciseAccess() {
+            showResult('exerciseResult', 'Testing exercise access...', 'loading');
+            try {
+                const response = await fetch('/level/a1');
+                showResult('exerciseResult', '🔓 ACCESS TEST:\\n\\nStatus: ' + response.status + '\\nOK: ' + response.ok, response.ok ? 'success' : 'error');
+            } catch (error) {
+                showResult('exerciseResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testProgressSaving() {
+            showResult('exerciseResult', 'Testing progress saving...', 'loading');
+            try {
+                // This would require being logged in and having a valid exercise
+                showResult('exerciseResult', '💾 PROGRESS TEST:\\n\\nThis test requires authentication and valid exercise data.\\nPlease login first and ensure sample data is loaded.', 'warning');
+            } catch (error) {
+                showResult('exerciseResult', '❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // Navigation functions
+        function openLevelA1() {
+            window.open('/level/a1', '_blank');
+        }
+
+        function openDashboard() {
+            window.open('/dashboard', '_blank');
+        }
+
+        function openAuthPage() {
+            window.open('/auth', '_blank');
+        }
+
+        // System test
+        async function fullSystemTest() {
+            showResult('dbResult', 'Running full system test...', 'loading');
+            showResult('authResult', 'Running full system test...', 'loading');
+            showResult('exerciseResult', 'Running full system test...', 'loading');
+            
+            try {
+                // Test 1: Database
+                await checkDatabase();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Test 2: Load sample data if needed
+                const dbResponse = await fetch('/api/load-sample-data');
+                const dbData = await dbResponse.json();
+                if (dbData.totalExercises < 5) {
+                    await loadSampleData();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                // Test 3: Authentication
+                await checkAuthStatus();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Test 4: Exercises
+                await listExercises();
+                
+                showResult('exerciseResult', '🚀 FULL SYSTEM TEST COMPLETED!\\n\\nAll tests have been run. Check individual sections for results.', 'success');
+                
+            } catch (error) {
+                showResult('exerciseResult', '❌ System test failed: ' + error.message, 'error');
+            }
+        }
+
+        function clearAllResults() {
+            ['dbResult', 'authResult', 'exerciseResult'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            updateAuthStatus('Unknown', 'warning');
+        }
+
+        // Auto-run on page load
+        window.onload = function() {
+            checkAuthStatus();
+            checkDatabase();
+        };
+    </script>
+</body>
+</html>

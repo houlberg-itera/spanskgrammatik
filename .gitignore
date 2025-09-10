@@ -1,0 +1,64 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Supabase
+.supabase/
+supabase/.env
+
+# AI and temp files
+.ai/
+temp/
+tmp/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Development
+PROBLEM_RESOLUTION_COMPLETE.md
+SETUP_GIT_REPO.md
+setup-git.ps1
+setup-git.bat

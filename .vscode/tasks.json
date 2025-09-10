@@ -1,0 +1,196 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Create Next.js App",
+			"type": "shell",
+			"command": "npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --turbopack --use-npm",
+			"group": "build"
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "npm install",
+			"group": "build"
+		},
+		{
+			"label": "Install SSR Package",
+			"type": "shell",
+			"command": "npm install @supabase/ssr",
+			"group": "build"
+		},
+		{
+			"label": "Build Project",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Build Project Fixed",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "npm install",
+			"group": "build"
+		},
+		{
+			"label": "Install Autoprefixer",
+			"type": "shell",
+			"command": "npm install autoprefixer",
+			"group": "build"
+		},
+		{
+			"label": "Build Project",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "dev"
+		},
+		{
+			"label": "Start Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "dev"
+		},
+		{
+			"label": "Run Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean .next directory",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean .next contents",
+			"type": "shell",
+			"command": "Get-ChildItem .next | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Development Server (No Turbopack)",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Restart Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Kill Node Processes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean .next directory",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Fresh Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Initialize Git Repository",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"init"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Add Git Remote",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"remote",
+				"add",
+				"origin",
+				"https://github.com/houlberg-itera/spanskgrammatik.git"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Set Main Branch",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"branch",
+				"-M",
+				"main"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Git Add All",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"."
+			],
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}
