@@ -134,6 +134,15 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
   const [userAnswer, setUserAnswer] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [practiceSession, setPracticeSession] = useState<{
+    wordsCompleted: Set<number>;
+    sessionComplete: boolean;
+    totalWords: number;
+  }>({
+    wordsCompleted: new Set(),
+    sessionComplete: false,
+    totalWords: practiceWords.length
+  });
 
   const currentWord = practiceWords[currentWordIndex];
   const correctArticle = practiceMode === 'definite' 
@@ -150,9 +159,50 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
   };
 
   const nextWord = () => {
-    setCurrentWordIndex((prev) => (prev + 1) % practiceWords.length);
+    // Mark current word as completed
+    setPracticeSession(prev => {
+      const newCompleted = new Set(prev.wordsCompleted);
+      newCompleted.add(currentWordIndex);
+      
+      // Check if all words are completed
+      const isSessionComplete = newCompleted.size >= practiceWords.length;
+      
+      return {
+        ...prev,
+        wordsCompleted: newCompleted,
+        sessionComplete: isSessionComplete
+      };
+    });
+
+    // Find next uncompleted word or complete the session
+    if (practiceSession.wordsCompleted.size < practiceWords.length - 1) {
+      let nextIndex = currentWordIndex;
+      do {
+        nextIndex = (nextIndex + 1) % practiceWords.length;
+      } while (practiceSession.wordsCompleted.has(nextIndex));
+      
+      setCurrentWordIndex(nextIndex);
+    }
+    
     setUserAnswer('');
     setShowAnswer(false);
+  };
+
+  const resetPracticeSession = () => {
+    setPracticeSession({
+      wordsCompleted: new Set(),
+      sessionComplete: false,
+      totalWords: practiceWords.length
+    });
+    setCurrentWordIndex(0);
+    setScore({ correct: 0, total: 0 });
+    setUserAnswer('');
+    setShowAnswer(false);
+  };
+
+  const switchPracticeMode = (newMode: 'definite' | 'indefinite') => {
+    setPracticeMode(newMode);
+    resetPracticeSession();
   };
 
   const getDanishExample = () => {
@@ -351,7 +401,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
           {/* Practice Mode Toggle */}
           <div className="flex justify-center space-x-4 mb-6">
             <button
-              onClick={() => setPracticeMode('definite')}
+              onClick={() => switchPracticeMode('definite')}
               className={`px-6 py-2 rounded-md transition-colors ${
                 practiceMode === 'definite'
                   ? 'bg-green-600 text-white'
@@ -361,7 +411,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
               Bestemt (el/la)
             </button>
             <button
-              onClick={() => setPracticeMode('indefinite')}
+              onClick={() => switchPracticeMode('indefinite')}
               className={`px-6 py-2 rounded-md transition-colors ${
                 practiceMode === 'indefinite'
                   ? 'bg-blue-600 text-white'
@@ -393,8 +443,8 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
             </p>
           </div>
 
-          {/* Score */}
-          <div className="text-center mb-6">
+          {/* Progress and Score */}
+          <div className="text-center mb-6 space-y-3">
             <div className="text-lg">
               Score: <span className="font-bold text-green-600">{score.correct}</span> / {score.total}
               {score.total > 0 && (
@@ -403,39 +453,72 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                 </span>
               )}
             </div>
+            
+            {/* Progress Indicator */}
+            <div className="bg-gray-200 rounded-full h-3 w-full max-w-md mx-auto">
+              <div 
+                className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${(practiceSession.wordsCompleted.size / practiceSession.totalWords) * 100}%` 
+                }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Fremgang: {practiceSession.wordsCompleted.size} af {practiceSession.totalWords} ord gennemgået
+            </p>
           </div>
 
-          {/* Practice Question */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+          {/* Session Complete State */}
+          {practiceSession.sessionComplete ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
+              <h3 className="text-2xl font-bold text-green-800 mb-4">🎉 Godt klaret!</h3>
+              <p className="text-lg text-green-700 mb-4">
+                Du har gennemgået alle {practiceWords.length} ord for {practiceMode === 'definite' ? 'bestemt artikel' : 'ubestemt artikel'}!
+              </p>
+              <div className="mb-6">
+                <div className="text-xl">
+                  Slutresultat: <span className="font-bold text-green-600">{score.correct}</span> / {score.total}
+                  {score.total > 0 && (
+                    <span className="ml-2 text-green-600">
+                      ({Math.round((score.correct / score.total) * 100)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={resetPracticeSession}
+                  className="block w-full sm:w-auto mx-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  🔄 Træn Igen ({practiceMode === 'definite' ? 'Bestemt' : 'Ubestemt'})
+                </button>
+                
+                <button
+                  onClick={() => switchPracticeMode(practiceMode === 'definite' ? 'indefinite' : 'definite')}
+                  className="block w-full sm:w-auto mx-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  ➡️ Skift til {practiceMode === 'definite' ? 'Ubestemt (un/una)' : 'Bestemt (el/la)'}
+                </button>
+                
+                <button
+                  onClick={() => setCurrentSection('rules')}
+                  className="block w-full sm:w-auto mx-auto px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  📚 Gennemgå Regler
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Practice Question */
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
             <div className="mb-6">
               <h3 className="text-lg text-gray-700 mb-4">
                 {practiceMode === 'definite' ? 'Skriv den bestemte artikel:' : 'Skriv den ubestemte artikel:'}
               </h3>
               
-              {/* Context sentence */}
-              <div className="bg-white p-4 rounded-lg mb-4">
-                <div className="text-lg text-gray-800 mb-2">
-                  <strong>Sammenhæng:</strong>
-                </div>
-                <div className="text-gray-600 mb-2">
-                  🇩🇰 {getContextExample().danish}
-                </div>
-                <div className="text-gray-800">
-                  🇪🇸 {getContextExample().spanish}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {getContextExample().explanation}
-                </div>
-              </div>
-
-              <div className="text-3xl font-bold text-gray-900 mb-2">
-                ___ {currentWord.spanish} {getDanishContextForExercise()}
-              </div>
-              <div className="text-lg text-gray-600">
-                ({getDanishExample()})
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                Dansk ord: {currentWord.danish}
+              <div className="text-3xl font-bold text-gray-900 mb-6">
+                Skriv den {practiceMode === 'definite' ? 'bestemte' : 'ubestemte'} artikel af {currentWord.spanish}
               </div>
             </div>
 
@@ -485,9 +568,6 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                         : 'Vi bruger ubestemt artikel fordi vi introducerer eller taler om en HVILKEN SOM HELST ' + currentWord.danish + '.'
                       }
                     </p>
-                    <p className="text-blue-600">
-                      <strong>Fuld sætning:</strong> {getContextExample().spanish.replace('___', correctArticle)}
-                    </p>
                   </div>
                 </div>
 
@@ -500,6 +580,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
               </div>
             )}
           </div>
+          )}
 
           {/* Gender Pattern Hints */}
           <div className="bg-gray-50 p-4 rounded-lg">

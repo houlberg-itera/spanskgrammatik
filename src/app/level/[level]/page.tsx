@@ -146,38 +146,39 @@ export default function LevelPage() {
     return progressPercent;
   };
 
-  const generateAIExercise = async (topicId: number, exerciseType: string) => {
-    setGeneratingExercise(topicId);
-    try {
-      const response = await fetch('/api/generate-exercise', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topicId,
-          exerciseType,
-        }),
-      });
+  // AI Exercise generation removed for end users - now admin-only
+  // const generateAIExercise = async (topicId: number, exerciseType: string) => {
+  //   setGeneratingExercise(topicId);
+  //   try {
+  //     const response = await fetch('/api/generate-exercise', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         topicId,
+  //         exerciseType,
+  //       }),
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate exercise');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to generate exercise');
+  //     }
 
-      const data = await response.json();
+  //     const data = await response.json();
       
-      // Refresh exercises to include the new one
-      await fetchData();
+  //     // Refresh exercises to include the new one
+  //     await fetchData();
       
-      // Navigate to the new exercise
-      router.push(`/exercise/${data.exercise.id}`);
-    } catch (error) {
-      console.error('Error generating AI exercise:', error);
-      alert('Kunne ikke generere AI-øvelse. Prøv igen senere.');
-    } finally {
-      setGeneratingExercise(null);
-    }
-  };
+  //     // Navigate to the new exercise
+  //     router.push(`/exercise/${data.exercise.id}`);
+  //   } catch (error) {
+  //     console.error('Error generating AI exercise:', error);
+  //     alert('Kunne ikke generere AI-øvelse. Prøv igen senere.');
+  //   } finally {
+  //     setGeneratingExercise(null);
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -313,33 +314,6 @@ export default function LevelPage() {
                     <p className="text-sm mt-2">Generer AI-øvelser nedenfor!</p>
                   </div>
                 )}
-                
-                {/* AI Exercise Generation */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">🤖 Generer AI-øvelser</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {['grammar', 'vocabulary', 'conjugation', 'sentence_structure'].map((exerciseType) => (
-                      <button
-                        key={exerciseType}
-                        onClick={() => generateAIExercise(topic.id, exerciseType)}
-                        disabled={generatingExercise === topic.id}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
-                      >
-                        {generatingExercise === topic.id ? (
-                          'Genererer...'
-                        ) : (
-                          exerciseType === 'grammar' ? 'Grammatik' :
-                          exerciseType === 'vocabulary' ? 'Ordforråd' :
-                          exerciseType === 'conjugation' ? 'Verbumsbøjning' :
-                          'Sætningsstruktur'
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    AI genererer personliggjorte øvelser baseret på dit niveau og emne
-                  </p>
-                </div>
               </div>
             );
           })}

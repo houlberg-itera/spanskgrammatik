@@ -27,3 +27,21 @@ export const createClient = async () => {
     }
   );
 };
+
+// Admin client with service role key for admin operations
+export const createAdminClient = () => {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return [];
+        },
+        setAll() {
+          // No cookies needed for service role
+        },
+      },
+    }
+  );
+};

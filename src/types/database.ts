@@ -64,6 +64,8 @@ export interface Question {
   explanation_da?: string;
   explanation_es?: string;
   points?: number;
+  proficiency_indicator?: string;
+  difficulty_level?: string;
 }
 
 export interface UserProgress {

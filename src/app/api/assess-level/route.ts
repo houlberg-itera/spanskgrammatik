@@ -141,10 +141,10 @@ Giv en vurdering på dansk der:
 Vær konstruktiv og realistisk. Kræv mindst 70% gennemførelse og 75% gennemsnitlig score for godkendelse.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-5',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1000,
+      temperature: 1,  // GPT-5 only supports temperature: 1
+      max_completion_tokens: 1000,
     });
 
     const aiAssessment = completion.choices[0].message.content || 'Kunne ikke generere vurdering.';
