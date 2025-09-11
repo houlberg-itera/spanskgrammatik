@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Test regular client
+    // Test regular client only (no admin client to avoid recursion)
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
@@ -18,16 +18,8 @@ export async function GET(request: NextRequest) {
     const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
     const isAdmin = adminEmails.includes(user.email || '');
 
-    // Test admin client
-    const adminSupabase = createAdminClient();
-    
-    // Try to fetch topics with both clients
+    // Try to fetch topics with regular client only
     const { data: topicsRegular, error: topicsRegularError } = await supabase
-      .from('topics')
-      .select('*')
-      .limit(1);
-
-    const { data: topicsAdmin, error: topicsAdminError } = await adminSupabase
       .from('topics')
       .select('*')
       .limit(1);
@@ -38,18 +30,14 @@ export async function GET(request: NextRequest) {
         id: user.id
       },
       isAdmin,
-      adminEmails,
+      adminEmailsCount: adminEmails.length,
       tests: {
         regularClient: {
           success: !topicsRegularError,
           error: topicsRegularError?.message,
           dataCount: topicsRegular?.length || 0
         },
-        adminClient: {
-          success: !topicsAdminError,
-          error: topicsAdminError?.message,
-          dataCount: topicsAdmin?.length || 0
-        }
+        note: 'Admin client test removed to prevent infinite recursion'
       }
     });
 
