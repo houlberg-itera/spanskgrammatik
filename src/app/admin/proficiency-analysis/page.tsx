@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface UserProfile {
-  user_id: string;
+  id: string;  // Changed from 'user_id' to 'id'
   email: string;
   current_level: string;
   created_at: string;
@@ -56,8 +56,8 @@ export default function ProficiencyAnalysis() {
     setSearching(true);
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select('user_id, email, current_level, created_at')
+        .from('users')  // Changed from 'user_profiles' to 'users'
+        .select('id, email, current_level, created_at')  // Changed 'user_id' to 'id'
         .ilike('email', `%${searchEmail}%`)
         .limit(10);
 
@@ -82,7 +82,7 @@ export default function ProficiencyAnalysis() {
     setProficiencyData(null);
 
     try {
-      const response = await fetch(`/api/proficiency-analysis?userId=${user.user_id}&recommendations=true`);
+      const response = await fetch(`/api/proficiency-analysis?userId=${user.id}&recommendations=true`);
       
       if (!response.ok) {
         throw new Error('Failed to analyze user');
@@ -154,9 +154,9 @@ export default function ProficiencyAnalysis() {
                 <div className="max-h-60 overflow-y-auto">
                   {users.map(user => (
                     <div
-                      key={user.user_id}
+                      key={user.id}
                       className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                        selectedUser?.user_id === user.user_id ? 'bg-blue-50 border-blue-200' : ''
+                        selectedUser?.id === user.id ? 'bg-blue-50 border-blue-200' : ''
                       }`}
                       onClick={() => analyzeUser(user)}
                     >
@@ -186,7 +186,7 @@ export default function ProficiencyAnalysis() {
                   Analyserer: {selectedUser.email}
                 </h2>
                 <div className="text-sm text-gray-600">
-                  Bruger ID: {selectedUser.user_id} • Nuværende niveau: {selectedUser.current_level}
+                  Bruger ID: {selectedUser.id} • Nuværende niveau: {selectedUser.current_level}
                 </div>
               </div>
 

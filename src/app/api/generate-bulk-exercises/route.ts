@@ -245,7 +245,6 @@ export async function POST(request: NextRequest) {
               difficulty: diffLevel,
               generated_at: new Date().toISOString(),
               ai_generated: true,
-              generated_by: user.id,
               request_id: requestId
             }
           },

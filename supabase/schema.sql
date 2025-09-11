@@ -18,6 +18,7 @@ CREATE TABLE public.users (
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   current_level spanish_level DEFAULT 'A1',
+  role TEXT DEFAULT 'user', -- Added role field for permissions
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

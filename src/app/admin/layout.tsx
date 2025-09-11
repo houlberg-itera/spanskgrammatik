@@ -50,34 +50,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <div className="text-center min-w-[200px] p-4 rounded-lg border-2 border-transparent hover:border-blue-200 hover:bg-blue-50 transition-all">
                     <div className="text-lg mb-2">{page.label}</div>
                     <div className="text-xs text-gray-600 group-hover:text-blue-700">
-                      {page.description}
-                    </div>
+                    {page.description}
                   </div>
-                </Link>
-              ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Admin Content */}
+      <main className="flex-1">
+        {children}
+      </main>
+
+      {/* Admin Footer */}
+      <footer className="bg-white border-t mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex justify-between items-center text-sm text-gray-500">
+            <div>
+              Spanskgrammatik Admin Panel - AI-drevet spansk læring for danske talere
+            </div>
+            <div>
+              Udviklet med Next.js, Supabase og OpenAI
             </div>
           </div>
         </div>
-
-        {/* Admin Content */}
-        <main className="flex-1">
-          {children}
-        </main>
-
-        {/* Admin Footer */}
-        <footer className="bg-white border-t mt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <div>
-                Spanskgrammatik Admin Panel - AI-drevet spansk læring for danske talere
-              </div>
-              <div>
-                Udviklet med Next.js, Supabase og OpenAI
-              </div>
-            </div>
-          </div>
-        </footer>
-      </div>
+      </footer>
+    </div>
     </AdminGuard>
   );
 }
