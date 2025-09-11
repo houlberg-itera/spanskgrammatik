@@ -181,6 +181,17 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
     }
   };
 
+  const getDanishContextForExercise = () => {
+    const word = currentWord;
+    if (practiceMode === 'definite') {
+      // Show the definite form in Danish
+      return `(${word.danish}en)`;
+    } else {
+      // Show the indefinite form in Danish
+      return `(en ${word.danish})`;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <div className="mb-6">
@@ -401,27 +412,8 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                 {practiceMode === 'definite' ? 'Skriv den bestemte artikel:' : 'Skriv den ubestemte artikel:'}
               </h3>
               
-              {/* Context sentence */}
-              <div className="bg-white p-4 rounded-lg mb-4">
-                <div className="text-lg text-gray-800 mb-2">
-                  <strong>Sammenhæng:</strong>
-                </div>
-                <div className="text-gray-600 mb-2">
-                  🇩🇰 {getContextExample().danish}
-                </div>
-                <div className="text-gray-800">
-                  🇪🇸 {getContextExample().spanish}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {getContextExample().explanation}
-                </div>
-              </div>
-
-              <div className="text-3xl font-bold text-gray-900 mb-2">
+              <div className="text-3xl font-bold text-gray-900 mb-6">
                 Skriv den {practiceMode === 'definite' ? 'bestemte' : 'ubestemte'} artikel af {currentWord.spanish}
-              </div>
-              <div className="text-lg text-gray-600">
-                Dette er bare et eksempel
               </div>
             </div>
 
@@ -470,9 +462,6 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                         ? 'Vi bruger bestemt artikel fordi vi taler om en SPECIFIK ' + currentWord.danish + ' som begge kender.'
                         : 'Vi bruger ubestemt artikel fordi vi introducerer eller taler om en HVILKEN SOM HELST ' + currentWord.danish + '.'
                       }
-                    </p>
-                    <p className="text-blue-600">
-                      <strong>Fuld sætning:</strong> {getContextExample().spanish.replace('___', correctArticle)}
                     </p>
                   </div>
                 </div>
