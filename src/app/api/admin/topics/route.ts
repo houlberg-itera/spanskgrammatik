@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
 
-    const supabase = createAdminClient();
+    // Simple admin check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const isAdmin = ADMIN_EMAILS.includes(user.email || '');
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
     
     console.log('Admin Topics API: Fetching topics for level:', level);
 
