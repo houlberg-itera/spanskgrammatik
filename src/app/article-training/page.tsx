@@ -36,7 +36,7 @@ export default async function ArticlePage() {
             📝 Spansk Artikel Træning
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Mestre brugen af spanske artikler (el, la, un, una) med dansk sammenligning og AI-drevne øvelser
+            Mestre brugen af spanske artikler (el, la, un, una) med dansk sammenligning og systematisk træning
           </p>
           <div className="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium">
             Dit niveau: {userLevel}
@@ -68,38 +68,22 @@ export default async function ArticlePage() {
           </div>
         </div>
 
-        {/* Navigation between learning modes */}
+        {/* Learning approach */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">📚 Læringsmetoder</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                🎯 Interaktiv Træning
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Lær grundreglerne og øv med foruddefinerede ord og mønstre
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                <li>• Detaljerede grammatikregler</li>
-                <li>• Systematisk øvelse</li>
-                <li>• Danske forklaringer</li>
-                <li>• Undtagelser og tips</li>
-              </ul>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                🤖 AI-Genererede Øvelser
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Få personaliserede øvelser genereret af AI baseret på dit niveau
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                <li>• Tilpasset dit niveau</li>
-                <li>• Varierede øvelsestyper</li>
-                <li>• Kontekstuelle forklaringer</li>
-                <li>• Uendelige variationer</li>
-              </ul>
-            </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">📚 Interaktiv Artikel Træning</h2>
+          <div className="border border-gray-200 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              🎯 Lær Spanske Artikler Step-by-Step
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Mestre brugen af el, la, un, una med systematisk træning og danske forklaringer
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1 mb-4">
+              <li>• Detaljerede grammatikregler med dansk sammenligning</li>
+              <li>• Systematisk øvelse med øjeblikkelig feedback</li>
+              <li>• Fokus på almindelige mønstre og vigtige undtagelser</li>
+              <li>• Praktisk træning med høj-frekvens ord</li>
+            </ul>
           </div>
         </div>
 
