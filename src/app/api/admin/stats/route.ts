@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
 
 export async function GET() {
   try {
-    const supabase = createAdminClient();
+    // Simple admin check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const isAdmin = ADMIN_EMAILS.includes(user.email || '');
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
     
     console.log('Admin Stats API: Fetching database statistics');
 
-    // Get all topics
+    // Get all topics with regular client (no admin bypass needed)
     const { data: topics, error: topicsError } = await supabase
       .from('topics')
       .select('*');
@@ -17,7 +30,7 @@ export async function GET() {
       return NextResponse.json({ error: topicsError.message }, { status: 500 });
     }
 
-    // Get all exercises
+    // Get all exercises with regular client
     const { data: exercises, error: exercisesError } = await supabase
       .from('exercises')
       .select('topic_id, level');
