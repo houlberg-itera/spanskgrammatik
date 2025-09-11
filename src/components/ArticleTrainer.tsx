@@ -522,7 +522,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                 </div>
               </div>
 
-            {!showAnswer ? (
+              {!showAnswer ? (
               <div className="space-y-4">
                 <input
                   type="text"
