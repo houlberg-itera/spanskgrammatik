@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateAdvancedExercise } from '@/lib/openai-advanced';
 import { SpanishLevel } from '@/types/database';
-import { getUserPermissions, ensureUserProfile } from '@/lib/auth/permissions';
-import { checkRateLimit } from '@/lib/utils/rate-limit';
-import { AppError, createPermissionError, createRateLimitError, createValidationError } from '@/lib/utils/error-handling';
-import { safeQuery, validateDatabaseSchema } from '@/lib/database/safe-queries';
 
+// Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
+
+// Constants
+const VALID_LEVELS: SpanishLevel[] = ['A1', 'A2', 'B1'];
+const VALID_DIFFICULTIES = ['easy', 'medium', 'hard'];
+const VALID_EXERCISE_TYPES = ['multiple_choice', 'fill_blank', 'translation', 'conjugation', 'sentence_structure'];
+const MAX_QUESTIONS_PER_REQUEST = 5;
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
 
 // Map question types to exercise types according to database schema
 function getExerciseTypeFromQuestionType(questionType: string): string {
@@ -21,70 +25,66 @@ function getExerciseTypeFromQuestionType(questionType: string): string {
   return mapping[questionType] || 'grammar';
 }
 
+interface RequestBody {
+  topicId: number;
+  exerciseType: string;
+  count: number;
+  difficulty?: string;
+  level: SpanishLevel;
+  topicName: string;
+  topicDescription?: string;
+  difficultyDistribution?: Record<string, number>;
+}
+
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substr(2, 9);
-  console.log(`🚀 [SOPHISTICATED] Starting bulk exercise generation request [${requestId}]...`);
+  console.log(`🚀 [${requestId}] Starting simple exercise generation...`);
   
   try {
-    // Step 1: Database Schema Validation
-    console.log(`🔧 [${requestId}] Step 1: Validating database schema...`);
-    const schemaValidation = await validateDatabaseSchema();
-    if (!schemaValidation.isValid) {
-      console.warn(`⚠️ [${requestId}] Database schema issues detected:`, schemaValidation.issues);
-    }
-
-    // Step 2: Supabase Client Creation
-    console.log(`📡 [${requestId}] Step 2: Creating Supabase client...`);
+    // Simple authentication check
+    console.log(`🔐 [${requestId}] Checking authentication...`);
     const supabase = await createClient();
-    
-    // Step 3: Authentication Check
-    console.log(`🔐 [${requestId}] Step 3: Checking authentication...`);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
     if (authError || !user) {
       console.error(`❌ [${requestId}] Authentication failed:`, authError);
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'Authentication required',
+        message: 'Please log in to generate exercises'
+      }, { status: 401 });
     }
-    
-    // Step 4: User Profile Management
-    console.log(`👤 [${requestId}] Step 4: Managing user profile for ${user.email}...`);
-    await ensureUserProfile(user.id, user.email || '');
-    
-    // Step 5: Permission Validation
-    console.log(`🔍 [${requestId}] Step 5: Validating user permissions...`);
-    const permissions = await getUserPermissions(user.id);
-    
-    if (!permissions.canGenerateExercises) {
-      console.log(`❌ [${requestId}] Permission denied for ${user.email} - role: ${permissions.role}`);
-      const permissionError = createPermissionError('EXERCISE_GENERATION_DENIED', {
-        userEmail: user.email,
-        userRole: permissions.role,
-        requiredRole: 'admin'
-      });
-      return NextResponse.json(permissionError, { status: 403 });
-    }
-    
-    console.log(`✅ [${requestId}] Permission granted - role: ${permissions.role}, admin: ${permissions.isAdmin}`);
 
-    // Step 6: Rate Limiting
-    console.log(`⏱️ [${requestId}] Step 6: Checking rate limits...`);
-    const rateLimitCheck = await checkRateLimit(user.id, 'exercise_generation');
+    // Simple admin check
+    console.log(`🔑 [${requestId}] Checking admin permissions...`);
+    const isAdmin = ADMIN_EMAILS.includes(user.email || '');
     
-    if (!rateLimitCheck.allowed) {
-      console.log(`⚠️ [${requestId}] Rate limit exceeded for ${user.email}`);
-      const rateLimitError = createRateLimitError('EXERCISE_GENERATION_LIMIT', {
-        limit: rateLimitCheck.limit,
-        remaining: rateLimitCheck.remaining,
-        resetTime: rateLimitCheck.resetTime
-      });
-      return NextResponse.json(rateLimitError, { status: 429 });
+    if (!isAdmin) {
+      console.log(`❌ [${requestId}] Access denied for user: ${user.email}`);
+      return NextResponse.json({ 
+        error: 'Access denied',
+        message: 'Only administrators can generate exercises'
+      }, { status: 403 });
     }
-    
-    console.log(`✅ [${requestId}] Rate limit check passed - remaining: ${rateLimitCheck.remaining}/${rateLimitCheck.limit}`);
 
-    // Step 7: Request Body Parsing & Validation
-    console.log(`📝 [${requestId}] Step 7: Parsing and validating request...`);
-    const body = await request.json();
+    console.log(`✅ [${requestId}] Admin access granted for: ${user.email}`);
+
+    // Parse request body
+    console.log(`📝 [${requestId}] Parsing request body...`);
+    let body: RequestBody;
     
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error(`❌ [${requestId}] JSON parsing failed:`, parseError);
+      return NextResponse.json({ 
+        error: 'Invalid JSON',
+        message: 'Request body must be valid JSON'
+      }, { status: 400 });
+    }
+
+    console.log(`📦 [${requestId}] Request:`, JSON.stringify(body, null, 2));
+
+    // Simple validation
     const { 
       topicId, 
       exerciseType, 
@@ -96,172 +96,130 @@ export async function POST(request: NextRequest) {
       difficultyDistribution
     } = body;
 
-    // Enhanced validation with sophisticated error messages
-    const validationErrors = [];
-    
-    if (!topicId || typeof topicId !== 'number') {
-      validationErrors.push('topicId must be a valid number');
-    }
-    if (!exerciseType || typeof exerciseType !== 'string') {
-      validationErrors.push('exerciseType must be a valid string');
-    }
-    if (!count || typeof count !== 'number' || count < 1 || count > 20) {
-      validationErrors.push('count must be a number between 1 and 20');
-    }
-    if (!difficulty && !difficultyDistribution) {
-      validationErrors.push('either difficulty or difficultyDistribution is required');
-    }
-    if (!level || !['A1', 'A2', 'B1'].includes(level)) {
-      validationErrors.push('level must be one of: A1, A2, B1');
-    }
-    if (!topicName || typeof topicName !== 'string' || topicName.trim().length < 2) {
-      validationErrors.push('topicName must be a valid string with at least 2 characters');
+    // Validate required fields
+    if (!topicId) {
+      return NextResponse.json({ 
+        error: 'Missing topicId',
+        message: 'topicId is required'
+      }, { status: 400 });
     }
 
-    if (validationErrors.length > 0) {
-      console.error(`❌ [${requestId}] Validation errors:`, validationErrors);
-      const validationError = createValidationError('INVALID_REQUEST_DATA', {
-        errors: validationErrors,
-        received: body
-      });
-      return NextResponse.json(validationError, { status: 400 });
+    if (!exerciseType || !VALID_EXERCISE_TYPES.includes(exerciseType)) {
+      return NextResponse.json({ 
+        error: 'Invalid exerciseType',
+        message: `exerciseType must be one of: ${VALID_EXERCISE_TYPES.join(', ')}`
+      }, { status: 400 });
     }
 
-    // Step 8: Advanced Parameter Processing
-    console.log(`⚙️ [${requestId}] Step 8: Processing advanced parameters...`);
-    
-    // Smart count adjustment based on user permissions
-    const maxQuestionsPerGeneration = permissions.isAdmin ? 20 : 5;
-    const actualCount = Math.min(count, maxQuestionsPerGeneration);
-    
-    if (count > maxQuestionsPerGeneration) {
-      console.log(`⚠️ [${requestId}] Adjusted count from ${count} to ${actualCount} based on user permissions`);
+    if (!count || count <= 0) {
+      return NextResponse.json({ 
+        error: 'Invalid count',
+        message: 'count must be a positive number'
+      }, { status: 400 });
     }
 
-    // Process difficulty distribution with sophisticated algorithms
+    if (!level || !VALID_LEVELS.includes(level)) {
+      return NextResponse.json({ 
+        error: 'Invalid level',
+        message: `level must be one of: ${VALID_LEVELS.join(', ')}`
+      }, { status: 400 });
+    }
+
+    if (!topicName) {
+      return NextResponse.json({ 
+        error: 'Missing topicName',
+        message: 'topicName is required'
+      }, { status: 400 });
+    }
+
+    // Apply request limits
+    const actualCount = Math.min(count, MAX_QUESTIONS_PER_REQUEST);
+    if (count > MAX_QUESTIONS_PER_REQUEST) {
+      console.log(`⚠️ [${requestId}] Requested ${count} questions, limiting to ${MAX_QUESTIONS_PER_REQUEST}`);
+    }
+
+    console.log(`✅ [${requestId}] All validations passed`);
+
+    // Generate exercises with OpenAI
+    console.log(`🤖 [${requestId}] Starting AI generation...`);
+    
     const difficulties = difficultyDistribution 
       ? Object.entries(difficultyDistribution).filter(([_, percentage]) => (percentage as number) > 0)
       : [[difficulty || 'medium', 100]];
 
-    // Step 9: Duplicate Prevention Analysis
-    console.log(`🔍 [${requestId}] Step 9: Analyzing existing exercises for duplicate prevention...`);
-    
-    const existingExercisesResult = await safeQuery(
-      () => supabase
-        .from('exercises')
-        .select('content')
-        .eq('topic_id', topicId)
-        .eq('type', getExerciseTypeFromQuestionType(exerciseType)),
-      'Failed to fetch existing exercises for duplicate prevention'
-    );
-
-    const existingQuestions = existingExercisesResult.data?.flatMap(ex => 
-      ex.content?.questions?.map((q: any) => q.question_da) || []
-    ) || [];
-
-    console.log(`📊 [${requestId}] Found ${existingQuestions.length} existing questions for duplicate analysis`);
-
-    // Step 10: Advanced AI Exercise Generation
-    console.log(`🤖 [${requestId}] Step 10: Initiating advanced AI exercise generation...`);
-    
     const allGeneratedExercises = [];
     let totalQuestions = 0;
-    let generationMetrics = {
-      totalRequested: actualCount,
-      totalGenerated: 0,
-      byDifficulty: {} as Record<string, number>,
-      processingTime: Date.now()
-    };
 
     for (const [difficultyLevel, percentage] of difficulties) {
       const difficultyCount = Math.ceil((actualCount * (percentage as number)) / 100);
       
       if (difficultyCount <= 0) continue;
 
-      console.log(`🎯 [${requestId}] Generating ${difficultyCount} ${difficultyLevel} exercises with advanced AI...`);
+      console.log(`🎯 [${requestId}] Generating ${difficultyCount} ${difficultyLevel} questions...`);
 
       try {
         const exerciseContent = await generateAdvancedExercise({
           level: level as SpanishLevel,
           topic: topicName,
           topicDescription: topicDescription || '',
-          exerciseType,
+          exerciseType: exerciseType as 'multiple_choice' | 'fill_blank' | 'translation' | 'conjugation' | 'sentence_structure',
           questionCount: difficultyCount,
-          difficulty: difficultyLevel,
-          existingQuestions,
+          difficulty: difficultyLevel as 'easy' | 'medium' | 'hard',
+          existingQuestions: [], // Simplified - no duplicate checking
           generateVariations: true,
           includeExplanations: true,
           targetProficiency: true
         });
 
-        // Sophisticated content validation
-        if (!exerciseContent?.questions?.length) {
-          console.warn(`⚠️ [${requestId}] Empty content generated for ${difficultyLevel}, skipping...`);
+        if (!exerciseContent?.questions || exerciseContent.questions.length === 0) {
+          console.warn(`⚠️ [${requestId}] No questions generated for ${difficultyLevel} difficulty`);
           continue;
         }
 
-        // Advanced quality filtering
+        // Simple validation
         const validQuestions = exerciseContent.questions.filter(q => {
-          const qualityScore = [
-            q.question_da?.trim().length > 10,
-            q.correct_answer && (Array.isArray(q.correct_answer) ? q.correct_answer.length > 0 : q.correct_answer.trim().length > 0),
-            q.explanation_da?.trim().length > 20,
-            q.options?.length >= 2 || exerciseType !== 'multiple_choice'
-          ].filter(Boolean).length;
-          
-          return qualityScore >= 3; // Require at least 3 out of 4 quality criteria
+          return q.question_da && q.correct_answer && q.explanation_da;
         });
 
-        if (validQuestions.length > 0) {
-          allGeneratedExercises.push({
-            difficulty: difficultyLevel,
-            questions: validQuestions.map(q => ({ ...q, difficulty: difficultyLevel })),
-            metadata: exerciseContent.metadata
-          });
-          
-          const validCount = validQuestions.length;
-          totalQuestions += validCount;
-          generationMetrics.byDifficulty[difficultyLevel] = validCount;
-          
-          console.log(`✅ [${requestId}] Generated ${validCount} high-quality ${difficultyLevel} questions`);
+        if (validQuestions.length === 0) {
+          console.warn(`⚠️ [${requestId}] No valid questions for ${difficultyLevel} difficulty`);
+          continue;
         }
 
-      } catch (aiError: any) {
-        console.error(`❌ [${requestId}] AI generation failed for ${difficultyLevel}:`, aiError.message);
-        
-        // Sophisticated error handling based on error type
-        if (aiError.message?.includes('rate_limit')) {
-          const rateLimitError = createRateLimitError('AI_SERVICE_LIMIT', {
-            service: 'OpenAI',
-            suggestion: 'Try again in 2-5 minutes'
-          });
-          return NextResponse.json(rateLimitError, { status: 429 });
-        }
-        
-        // Continue with other difficulties even if one fails
-        continue;
+        const questionsWithDifficulty = validQuestions.map(q => ({
+          ...q,
+          difficulty: difficultyLevel
+        }));
+
+        allGeneratedExercises.push({
+          difficulty: difficultyLevel,
+          questions: questionsWithDifficulty,
+          metadata: exerciseContent.metadata
+        });
+
+        totalQuestions += validQuestions.length;
+        console.log(`✅ [${requestId}] Generated ${validQuestions.length} valid ${difficultyLevel} questions`);
+
+      } catch (openaiError: any) {
+        console.error(`❌ [${requestId}] AI generation failed for ${difficultyLevel}:`, openaiError);
+        return NextResponse.json({ 
+          error: 'AI generation failed',
+          message: `Failed to generate ${difficultyLevel} exercises: ${openaiError.message || 'Unknown error'}`
+        }, { status: 500 });
       }
     }
 
-    generationMetrics.totalGenerated = totalQuestions;
-    generationMetrics.processingTime = Date.now() - generationMetrics.processingTime;
-
-    // Step 11: Quality Assurance Check
-    console.log(`🔬 [${requestId}] Step 11: Quality assurance validation...`);
-    
     if (allGeneratedExercises.length === 0 || totalQuestions === 0) {
-      console.error(`❌ [${requestId}] Quality check failed - no valid exercises generated`);
       return NextResponse.json({ 
-        error: 'Quality assurance failed - no exercises met quality standards',
-        generationMetrics
+        error: 'No exercises generated',
+        message: 'AI service did not generate any valid exercises'
       }, { status: 500 });
     }
 
-    console.log(`✅ [${requestId}] Quality check passed - ${totalQuestions} high-quality questions generated`);
+    console.log(`🎉 [${requestId}] Generated ${totalQuestions} total questions`);
 
-    // Step 12: Database Storage with Transaction Safety
-    console.log(`💾 [${requestId}] Step 12: Sophisticated database storage...`);
-    
+    // Save to database with simple approach
+    console.log(`💾 [${requestId}] Saving to database...`);
     const exercisesToCreate = [];
     let exerciseCounter = 1;
     
@@ -278,8 +236,8 @@ export async function POST(request: NextRequest) {
           type: getExerciseTypeFromQuestionType(exerciseType),
           title_da: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
           title_es: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
-          description_da: `Avanceret AI-genereret ${diffLevel} øvelse om ${topicName} med ${questionsSlice.length} spørgsmål`,
-          description_es: `Ejercicio ${diffLevel} avanzado generado por IA sobre ${topicName} con ${questionsSlice.length} preguntas`,
+          description_da: `AI-genereret ${diffLevel} øvelse om ${topicName} med ${questionsSlice.length} spørgsmål`,
+          description_es: `Ejercicio ${diffLevel} generado por IA sobre ${topicName} con ${questionsSlice.length} preguntas`,
           content: {
             instructions_da: `Besvar følgende spørgsmål om ${topicName}. Sværhedsgrad: ${diffLevel}`,
             questions: questionsSlice,
@@ -287,11 +245,8 @@ export async function POST(request: NextRequest) {
               difficulty: diffLevel,
               generated_at: new Date().toISOString(),
               ai_generated: true,
-              generation_id: requestId,
-              quality_score: 'high',
-              topic_coverage: metadata?.topic_coverage || [],
-              proficiency_indicators: metadata?.proficiency_indicators || [],
-              generation_metrics: generationMetrics
+              generated_by: user.id,
+              request_id: requestId
             }
           },
           ai_generated: true,
@@ -302,72 +257,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Safe database insertion with retry logic
-    const insertResult = await safeQuery(
-      () => supabase
-        .from('exercises')
-        .insert(exercisesToCreate)
-        .select(),
-      'Failed to save sophisticated exercises to database'
-    );
+    // Direct database insert without sophisticated wrappers
+    console.log(`💾 [${requestId}] Creating ${exercisesToCreate.length} exercises...`);
+    const { data: newExercises, error: insertError } = await supabase
+      .from('exercises')
+      .insert(exercisesToCreate)
+      .select();
 
-    if (!insertResult.success || !insertResult.data) {
-      console.error(`❌ [${requestId}] Database insertion failed:`, insertResult.error);
+    if (insertError) {
+      console.error(`❌ [${requestId}] Database save failed:`, insertError);
       return NextResponse.json({ 
-        error: 'Failed to save exercises to database',
-        details: insertResult.error
+        error: 'Database save failed',
+        message: `Failed to save exercises: ${insertError.message}`
       }, { status: 500 });
     }
 
-    // Step 13: Success Response with Comprehensive Metrics
-    console.log(`🎉 [${requestId}] Step 13: Generating success response...`);
-    
-    const successResponse = {
+    console.log(`🎉 [${requestId}] Successfully created ${newExercises?.length || 0} exercises`);
+
+    return NextResponse.json({
       success: true,
       requestId,
-      exercisesCreated: insertResult.data.length,
-      questionsGenerated: totalQuestions,
-      generationMetrics,
-      qualityAssurance: {
-        duplicatesAvoided: existingQuestions.length,
-        qualityFiltered: true,
-        processingTimeMs: generationMetrics.processingTime
-      },
-      exercises: insertResult.data,
-      metadata: {
-        totalQuestions,
-        difficultiesGenerated: allGeneratedExercises.map(e => e.difficulty),
-        topicCoverage: allGeneratedExercises.flatMap(e => e.metadata?.topic_coverage || []),
-        proficiencyIndicators: allGeneratedExercises.flatMap(e => e.metadata?.proficiency_indicators || []),
-        permissions: {
-          userRole: permissions.role,
-          isAdmin: permissions.isAdmin,
-          maxQuestionsAllowed: maxQuestionsPerGeneration
-        }
-      }
-    };
+      exercisesCreated: newExercises?.length || 0,
+      exercises: newExercises,
+      totalQuestions,
+      message: `Successfully generated ${totalQuestions} questions in ${newExercises?.length || 0} exercises`
+    });
 
-    console.log(`✅ [${requestId}] SOPHISTICATED GENERATION COMPLETE: ${totalQuestions} questions in ${generationMetrics.processingTime}ms`);
+  } catch (error) {
+    console.error(`❌ [${requestId}] Unexpected error:`, error);
     
-    return NextResponse.json(successResponse);
-
-  } catch (error: any) {
-    console.error(`💥 [${requestId}] Sophisticated system error:`, error);
-    
-    // Sophisticated error response
-    const sophisticatedError = {
-      error: 'Sophisticated exercise generation system encountered an error',
-      requestId,
-      details: error instanceof Error ? error.message : 'Unknown system error',
-      type: 'SYSTEM_ERROR',
-      timestamp: new Date().toISOString(),
-      troubleshooting: {
-        suggestion: 'Please try again in a few minutes',
-        contactSupport: 'If the issue persists, contact technical support',
-        errorCode: 'SOPH_SYS_ERR_001'
-      }
-    };
-    
-    return NextResponse.json(sophisticatedError, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'An unexpected error occurred'
+    }, { status: 500 });
   }
 }
