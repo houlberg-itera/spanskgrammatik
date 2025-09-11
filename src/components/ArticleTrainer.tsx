@@ -181,17 +181,6 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
     }
   };
 
-  const getDanishContextForExercise = () => {
-    const word = currentWord;
-    if (practiceMode === 'definite') {
-      // Show the definite form in Danish
-      return `(${word.danish}en)`;
-    } else {
-      // Show the indefinite form in Danish
-      return `(en ${word.danish})`;
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <div className="mb-6">
@@ -429,13 +418,10 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
               </div>
 
               <div className="text-3xl font-bold text-gray-900 mb-2">
-                ___ {currentWord.spanish} {getDanishContextForExercise()}
+                Skriv den {practiceMode === 'definite' ? 'bestemte' : 'ubestemte'} artikel af {currentWord.spanish}
               </div>
               <div className="text-lg text-gray-600">
-                ({getDanishExample()})
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                Dansk ord: {currentWord.danish}
+                Dette er bare et eksempel
               </div>
             </div>
 
