@@ -8,6 +8,30 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { session } } = await supabase.auth.getSession();
 
+  // Admin routes that require admin authentication
+  const adminPaths = ['/admin'];
+  const isAdminPath = adminPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  // Check admin access for admin routes
+  if (isAdminPath) {
+    if (!session) {
+      const redirectUrl = new URL('/auth?message=Admin access requires authentication', request.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Check if user is admin
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
+    const userEmail = session.user?.email;
+    
+    if (!userEmail || !adminEmails.includes(userEmail)) {
+      // Create access denied response
+      const accessDeniedUrl = new URL('/access-denied', request.url);
+      return NextResponse.redirect(accessDeniedUrl);
+    }
+  }
+
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/level', '/exercise'];
   const isProtectedPath = protectedPaths.some(path => 
