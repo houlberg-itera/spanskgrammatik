@@ -510,17 +510,17 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
               </div>
             </div>
           ) : (
-            /* Practice Question */
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-            <div className="mb-6">
-              <h3 className="text-lg text-gray-700 mb-4">
-                {practiceMode === 'definite' ? 'Skriv den bestemte artikel:' : 'Skriv den ubestemte artikel:'}
-              </h3>
+              {/* Practice Question */}
+              <div className="mb-6">
+                <h3 className="text-lg text-gray-700 mb-4">
+                  {practiceMode === 'definite' ? 'Skriv den bestemte artikel:' : 'Skriv den ubestemte artikel:'}
+                </h3>
               
-              <div className="text-3xl font-bold text-gray-900 mb-6">
-                Skriv den {practiceMode === 'definite' ? 'bestemte' : 'ubestemte'} artikel af {currentWord.spanish}
+                <div className="text-3xl font-bold text-gray-900 mb-6">
+                  Skriv den {practiceMode === 'definite' ? 'bestemte' : 'ubestemte'} artikel af {currentWord.spanish}
+                </div>
               </div>
-            </div>
 
             {!showAnswer ? (
               <div className="space-y-4">
@@ -579,7 +579,7 @@ export default function ArticleTrainer({ level }: ArticleTrainerProps) {
                 </button>
               </div>
             )}
-          </div>
+            </div>
           )}
 
           {/* Gender Pattern Hints */}
