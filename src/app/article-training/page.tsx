@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Database } from '@/types/database';
 import ArticleTrainer from '@/components/ArticleTrainer';
-import ArticleExerciseGenerator from '@/components/ArticleExerciseGenerator';
 
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
@@ -107,11 +106,6 @@ export default async function ArticlePage() {
         {/* Interactive Trainer */}
         <div className="mb-8">
           <ArticleTrainer level={userLevel} />
-        </div>
-
-        {/* AI Exercise Generator */}
-        <div className="mb-8">
-          <ArticleExerciseGenerator level={userLevel} />
         </div>
 
         {/* Quick Reference Card */}
