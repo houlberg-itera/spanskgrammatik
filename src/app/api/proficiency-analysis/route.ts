@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
       recommendations = await generateAdaptiveExerciseRecommendations(userId);
     }
 
-    // Get additional user context
+    // Get additional user context - using 'users' table instead of 'user_profiles'
     const { data: userProfile } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)  // Changed from 'user_id' to 'id' to match schema
       .single();
 
     const { data: recentProgress } = await supabase
@@ -99,11 +99,11 @@ export async function POST(request: NextRequest) {
     if (action === 'update_level') {
       const { newLevel } = body;
       
-      // Update user's level based on proficiency analysis
+      // Update user's level based on proficiency analysis - using 'users' table
       const { error: updateError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .update({ current_level: newLevel })
-        .eq('user_id', userId);
+        .eq('id', userId);  // Changed from 'user_id' to 'id'
 
       if (updateError) {
         throw updateError;

@@ -61,10 +61,10 @@ export default function AdminDashboard() {
   };
 
   const loadUserProficiencies = async () => {
-    // Get all users
+    // Get all users - using 'users' table instead of 'user_profiles'
     const { data: allUsers } = await supabase
-      .from('user_profiles')
-      .select('user_id, email, current_level')
+      .from('users')
+      .select('id, email, current_level')  // Changed 'user_id' to 'id'
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -75,11 +75,11 @@ export default function AdminDashboard() {
     
     for (const user of allUsers) {
       try {
-        const response = await fetch(`/api/proficiency-analysis?userId=${user.user_id}&recommendations=true`);
+        const response = await fetch(`/api/proficiency-analysis?userId=${user.id}&recommendations=true`);
         if (response.ok) {
           const data = await response.json();
           userProficiencies.push({
-            userId: user.user_id,
+            userId: user.id,  // Changed from user.user_id to user.id
             email: user.email || 'Unknown',
             currentLevel: data.analysis.currentLevel,
             confidenceScore: data.analysis.confidenceScore,
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
           });
         }
       } catch (error) {
-        console.error(`Error analyzing user ${user.user_id}:`, error);
+        console.error(`Error analyzing user ${user.id}:`, error);  // Changed from user.user_id to user.id
       }
     }
 
