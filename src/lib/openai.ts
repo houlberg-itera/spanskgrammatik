@@ -1,9 +1,44 @@
 import OpenAI from 'openai';
-import { ExerciseContent, QuestionType, SpanishLevel } from '@/types/database';
+import { ExerciseContent, ExerciseType, SpanishLevel } from '@/types/database';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Retry function with exponential backoff for API rate limiting
+// Optimized for GPT-5 with high rate limits (500 RPM, 500K TPM)
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 8,  // Increased from 5 to 8 retries for rate limits
+  baseDelay: number = 2000  // Increased from 500ms to 2000ms for rate limit recovery
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      // Check if this is a rate limit error or "Too Many Requests"
+      const isRateLimit = error?.status === 429 || 
+                         error?.code === 'rate_limit_exceeded' ||
+                         error?.message?.includes('Too Many Requests') ||
+                         error?.message?.includes('rate_limit_exceeded') ||
+                         error?.message?.includes('Rate limit');
+      
+      // If this is the last attempt or not a rate limit error, throw
+      if (attempt === maxRetries || !isRateLimit) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff and jitter for rate limits
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 2000;  // More jitter for rate limits
+      console.log(`Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error('Max retries exceeded');
+}
 
 export interface GenerateExerciseParams {
   level: SpanishLevel;
@@ -119,14 +154,16 @@ Eksempel på ${exerciseType} øvelse:`;
   };
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt + '\n\n' + examples[exerciseType] },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
+    const completion = await retryWithBackoff(async () => {
+      return await openai.chat.completions.create({
+        model: 'gpt-5',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt + '\n\n' + examples[exerciseType] },
+        ],
+        temperature: 1,  // GPT-5 only supports temperature: 1
+        max_completion_tokens: 2000,
+      });
     });
 
     const content = completion.choices[0].message.content;
@@ -144,7 +181,7 @@ Eksempel på ${exerciseType} øvelse:`;
     return exerciseContent;
   } catch (error) {
     console.error('Error generating exercise:', error);
-    throw new Error('Failed to generate exercise');
+    throw new Error('Failed to generate exercise: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }
 
@@ -169,11 +206,13 @@ Giv feedback på dansk der:
 Hold feedbacken kort (max 2-3 sætninger) og på begyndervenligt sprog.`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.5,
-      max_tokens: 200,
+    const completion = await retryWithBackoff(async () => {
+      return await openai.chat.completions.create({
+        model: 'gpt-5',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 1,  // GPT-5 only supports temperature: 1
+        max_completion_tokens: 200,
+      });
     });
 
     return completion.choices[0].message.content || 'Feedback kunne ikke genereres.';

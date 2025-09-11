@@ -15,14 +15,14 @@ export async function GET() {
 
     // Test with a simple completion
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5",
       messages: [
         {
           role: "user",
-          content: "Respond with exactly: OpenAI connection test successful"
+          content: "Respond with exactly: OpenAI GPT-5 connection test successful"
         }
       ],
-      max_tokens: 20,
+      max_completion_tokens: 20,
     });
 
     return NextResponse.json({ 

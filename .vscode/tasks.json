@@ -462,6 +462,1077 @@
 			"label": "Start Spanish Learning App",
 			"type": "shell",
 			"command": "npm run dev"
+		},
+		{
+			"label": "Start development server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean and start dev server",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Force restart dev server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean project",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue",
+			"group": "build"
+		},
+		{
+			"label": "Install dependencies",
+			"type": "shell",
+			"command": "npm install",
+			"group": "build"
+		},
+		{
+			"label": "Force clean install",
+			"type": "shell",
+			"command": "powershell -Command \"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Remove-Item -Path '.next' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'node_modules' -Recurse -Force -ErrorAction SilentlyContinue; npm cache clean --force; npm install --no-optional --force\"",
+			"group": "build"
+		},
+		{
+			"label": "Start development server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Install with Yarn",
+			"type": "shell",
+			"command": "yarn install",
+			"group": "build"
+		},
+		{
+			"label": "Clean yarn cache and reinstall",
+			"type": "shell",
+			"command": "yarn cache clean; Remove-Item -Path 'node_modules' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'yarn.lock' -Force -ErrorAction SilentlyContinue; yarn install --network-timeout 100000",
+			"group": "build"
+		},
+		{
+			"label": "Start development server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Next.js dev server",
+			"type": "shell",
+			"command": "npx next dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Install pnpm and dependencies",
+			"type": "shell",
+			"command": "npm install -g pnpm; Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue; pnpm install",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Start dev server with pnpm",
+			"type": "shell",
+			"command": "pnpm run dev",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Start Next.js dev server",
+			"type": "shell",
+			"command": "pnpm run dev",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Fix corrupted component",
+			"type": "shell",
+			"command": "copy \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator_fixed.tsx\" \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator.tsx\"",
+			"group": "build"
+		},
+		{
+			"label": "Cleanup temp file",
+			"type": "shell",
+			"command": "Remove-Item \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator_fixed.tsx\" -Force",
+			"group": "build"
+		},
+		{
+			"label": "Restart Next.js Server",
+			"type": "shell",
+			"command": "npx next dev",
+			"isBackground": true
+		},
+		{
+			"label": "Restart Next.js with Updated Admin Email",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe; npx next dev",
+			"isBackground": true
+		},
+		{
+			"label": "Clean and Start Next.js",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npx next dev",
+			"isBackground": true
+		},
+		{
+			"label": "Clean Rebuild Next.js",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe 2>$null; Remove-Item -Recurse -Force .next, node_modules -ErrorAction SilentlyContinue; npm install; npx next dev",
+			"isBackground": true
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "npm install"
+		},
+		{
+			"label": "Full Clean Install",
+			"type": "shell",
+			"command": "cd /d C:\\; cd /d C:\\source\\repos\\Spanskgrammatik; taskkill /F /IM node.exe 2>NUL; rd /s /q .next node_modules 2>NUL; del package-lock.json yarn.lock 2>NUL; npm cache clean --force; npm install"
+		},
+		{
+			"label": "PowerShell Clean Install",
+			"type": "shell",
+			"command": "Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Remove-Item -Path .next, node_modules, package-lock.json, yarn.lock -Recurse -Force -ErrorAction SilentlyContinue; npm cache clean --force; npm install"
+		},
+		{
+			"label": "Start Clean Next Server",
+			"type": "shell",
+			"command": "npx next dev",
+			"isBackground": true
+		},
+		{
+			"label": "Start Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Build Next.js App",
+			"type": "shell",
+			"command": "npx next build"
+		},
+		{
+			"label": "Remove TS Config",
+			"type": "shell",
+			"command": "del next.config.ts"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Clean Rebuild Application",
+			"type": "shell",
+			"command": "Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Remove-Item -Path .next -Recurse -Force -ErrorAction SilentlyContinue; npm run build"
+		},
+		{
+			"label": "Start Dev Server Simple",
+			"type": "shell",
+			"command": "npx next dev --port 3002",
+			"isBackground": true
+		},
+		{
+			"label": "Clean Install Dependencies",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force node_modules, package-lock.json, yarn.lock -ErrorAction SilentlyContinue; npm cache clean --force; npm install --legacy-peer-deps"
+		},
+		{
+			"label": "Start Next.js Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Clean and Rebuild Next.js",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Force Clean and Build",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Path '.next' -Recurse -Force -ErrorAction SilentlyContinue; if (Test-Path '.next') { Get-ChildItem '.next' -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue }; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Restart Development Server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 3; npm run dev",
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Production Build",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Clean Production Build",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Debug Production Build",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; $env:DEBUG=\"*\"; npx next build --debug",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Simple Production Build",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Start Production Server",
+			"type": "shell",
+			"command": "npm run start",
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Debug Exercise Error",
+			"type": "shell",
+			"command": "node debug-exercise-error.js"
+		},
+		{
+			"label": "Rebuild with Error Fixes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build"
+		},
+		{
+			"label": "Final Rebuild with Frontend Fix",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build"
+		},
+		{
+			"label": "Rebuild with GPT-5",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build"
+		},
+		{
+			"label": "Simple Build Check",
+			"type": "shell",
+			"command": "npm run build"
+		},
+		{
+			"label": "Start GPT-5 Server",
+			"type": "shell",
+			"command": "npm run start"
+		},
+		{
+			"label": "Cleanup Debug Files",
+			"type": "shell",
+			"command": "Remove-Item debug-exercise-error.js -ErrorAction SilentlyContinue; Remove-Item test-api-data.js -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Rebuild with GPT-5 Fixed Parameters",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build"
+		},
+		{
+			"label": "Start Fixed GPT-5 Server",
+			"type": "shell",
+			"command": "npm run start"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev"
+		},
+		{
+			"label": "Force Clean and Dev Start",
+			"type": "shell",
+			"command": "cmd /c \"rmdir /s /q .next & npm run dev\""
+		},
+		{
+			"label": "Test GPT-5 Direct",
+			"type": "shell",
+			"command": "node test-gpt5.mjs"
+		},
+		{
+			"label": "Test GPT-5 with ENV",
+			"type": "shell",
+			"command": "node test-gpt5.mjs"
+		},
+		{
+			"label": "Cleanup Test File",
+			"type": "shell",
+			"command": "Remove-Item test-gpt5.mjs -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Test GPT-5 API",
+			"type": "shell",
+			"command": "curl http://localhost:3000/api/test-openai"
+		},
+		{
+			"label": "Test GPT-5 Exercise Generation",
+			"type": "shell",
+			"command": "curl \"http://localhost:3000/api/generate-exercise?topic=present_tense&level=A1&question_type=multiple_choice\""
+		},
+		{
+			"label": "Test GPT-5 Exercise Generation",
+			"type": "shell",
+			"command": "Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-exercise?topic=present_tense&level=A1&question_type=multiple_choice'"
+		},
+		{
+			"label": "Test GPT-5 Again",
+			"type": "shell",
+			"command": "$response = Invoke-WebRequest -Uri 'http://localhost:3000/api/test-openai'; $response.Content"
+		},
+		{
+			"label": "Build with Debugging",
+			"type": "shell",
+			"command": "npm run build"
+		},
+		{
+			"label": "Start Dev Server with Debugging",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Kill Node Processes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2"
+		},
+		{
+			"label": "Clean Build Cache",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Start Clean Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Test Server Response",
+			"type": "shell",
+			"command": "Start-Sleep 5; Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 10"
+		},
+		{
+			"label": "TypeScript Check",
+			"type": "shell",
+			"command": "npx tsc --noEmit"
+		},
+		{
+			"label": "Lint Check",
+			"type": "shell",
+			"command": "npx next lint --file src/app/api/generate-bulk-exercises/route.ts --file src/lib/openai-advanced.ts"
+		},
+		{
+			"label": "Start Dev Server Sync",
+			"type": "shell",
+			"command": "npm run dev"
+		},
+		{
+			"label": "Clean Everything",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm cache clean --force"
+		},
+		{
+			"label": "TypeScript Check",
+			"type": "shell",
+			"command": "npx tsc --noEmit"
+		},
+		{
+			"label": "TypeScript Check Fixed",
+			"type": "shell",
+			"command": "npx tsc --noEmit"
+		},
+		{
+			"label": "TypeScript Check Skip Lib",
+			"type": "shell",
+			"command": "npx tsc --noEmit --skipLibCheck"
+		},
+		{
+			"label": "Kill Node Processes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2"
+		},
+		{
+			"label": "Restart Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Restart Production Server",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"./restart-production.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Restart Production Server Clean",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"./restart-production.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build Production",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Production Batch",
+			"type": "shell",
+			"command": "./restart-production.bat",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build and Start Production",
+			"type": "shell",
+			"command": "npm run build && npm run start",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "PowerShell Build and Start",
+			"type": "shell",
+			"command": "npm run build; if ($LASTEXITCODE -eq 0) { npm run start }",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean Build",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "serve"
+		},
+		{
+			"label": "Fix Permissions and Restart",
+			"type": "shell",
+			"command": "./fix-permissions-restart.bat",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server (Clean)",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "serve"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "serve"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Next.js Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Production",
+			"type": "shell",
+			"command": "npm run build",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Production Build",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Start Production Server",
+			"type": "shell",
+			"command": "npm run start",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean Build Production",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Direct Build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Final Build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "npm run build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm run start",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"start"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm run build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm run start (production)",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"start"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm install",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean lock files and node_modules",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item package-lock.json -Force -ErrorAction SilentlyContinue; Remove-Item pnpm-lock.yaml -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse node_modules -Force -ErrorAction SilentlyContinue"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm install fresh",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm install without frozen lockfile",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"install",
+				"--frozen-lockfile=false"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Check pnpm and install",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"pnpm --version; pnpm install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Test build with pnpm",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm run build",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean reinstall with pnpm",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item -Recurse node_modules -Force -ErrorAction SilentlyContinue; pnpm install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm install and build",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"pnpm install; pnpm run build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "pnpm build only",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm install",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm run build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Clean npm install",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item pnpm-lock.yaml -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse node_modules -Force -ErrorAction SilentlyContinue; npm install"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm build test",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm run build test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"npm run build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm build final",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "npm-build-final",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "test-build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build with npm",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Simple Build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "BuildNpm",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "npm build now",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "Build app with npm",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build with npm now",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "npm-build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build Test",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "Stage vercel config and package-lock",
+			"type": "shell",
+			"command": "git add vercel.json package-lock.json"
+		},
+		{
+			"label": "Stage Vercel Config Files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"vercel.json",
+				"package-lock.json"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Stage Vercel Config Files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"vercel.json",
+				"package-lock.json"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git status",
+			"group": "build"
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git status",
+			"group": "build"
+		},
+		{
+			"label": "Check Git Status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			]
+		},
+		{
+			"label": "Git status and stage",
+			"type": "shell",
+			"command": "powershell -Command \"git status; git add vercel.json package-lock.json; git status\""
+		},
+		{
+			"label": "Git Status Check",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status"
+			]
+		},
+		{
+			"label": "Start Development Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

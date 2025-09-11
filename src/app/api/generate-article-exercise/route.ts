@@ -36,20 +36,22 @@ EXERCISE REQUIREMENTS:
 
 ${type === 'multiple_choice' ? `
 FORMAT: Multiple choice with 4 options each
-- Question in Danish asking for correct article
-- Spanish sentence with blank: "Jeg så ___ hund i parken" → "Vi ___ perro en el parque"
+- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
 - Options: A) el, B) la, C) un, D) una
 - Explanation in Danish why the answer is correct
+- NO parentheses with Danish translations in the question
 ` : type === 'fill_blank' ? `
 FORMAT: Fill in the blank
-- Spanish sentence with missing article
+- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
 - Student types the correct article (el/la/un/una)
 - Immediate feedback in Danish explaining the grammar rule
+- NO parentheses with Danish translations in the question
 ` : `
 FORMAT: Translation exercise
-- Danish sentence to translate to Spanish
+- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
 - Focus on getting the article + noun correct
 - Include context about definiteness (bestemt/ubestemt)
+- NO parentheses with Danish translations in the question
 `}
 
 VOCABULARY GUIDELINES:
@@ -80,25 +82,28 @@ Generate the exercise as a JSON object with:
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-5',
       messages: [
         {
           role: 'system',
           content: `You are a Spanish grammar expert who specializes in teaching Spanish articles to Danish speakers. You understand the key differences between Danish and Spanish article systems and can explain them clearly in Danish.
 
 Key points to remember:
-- Danish: en/et (indefinite), -en/-et (definite) - no gender distinction
+- Danish: en/et (indefinite), -en/-et (definite) - no gender distinction  
 - Spanish: un/una (indefinite), el/la (definite) - with gender distinction
 - Always explain in Danish why specific articles are used
-- Focus on practical learning with clear comparisons`
+- Focus on practical learning with clear comparisons
+- IMPORTANT: Questions should be formatted as "Skriv den bestemte artikel af [spanish_word]" or "Skriv den ubestemte artikel af [spanish_word]"
+- NEVER include Danish translations in parentheses like "(håndet/en)" or "(problemet/en)" in the question text
+- Keep questions clean and simple without hints that may contain grammatical errors`
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 1500,
+      temperature: 1,  // GPT-5 only supports temperature: 1
+      max_completion_tokens: 1500,
     });
 
     const response = completion.choices[0]?.message?.content;
