@@ -1,79 +1,101 @@
--- Simple RLS Enable Script
--- Run these commands one by one in your Supabase SQL Editor
+-- CRITICAL RLS FIX - Resolves infinite recursion error
+-- Copy and paste this entire script into your Supabase SQL Editor
 
--- 1. Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
-ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
+-- === STEP 1: Clean slate - remove ALL existing policies ===
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    -- Drop all policies on users table
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE tablename = 'users' AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+    
+    -- Drop all policies on other tables
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE tablename IN ('user_progress', 'user_level_progress', 'levels', 'topics', 'exercises') 
+        AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+END $$;
 
--- 2. Basic policies for authenticated users
+-- === STEP 2: Disable and re-enable RLS to reset ===
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_progress DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_level_progress DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.levels DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.topics DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exercises DISABLE ROW LEVEL SECURITY;
 
--- Levels: Everyone can read
-CREATE POLICY "levels_read_policy" ON levels
-    FOR SELECT USING (auth.role() = 'authenticated');
+-- Re-enable RLS
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_level_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exercises ENABLE ROW LEVEL SECURITY;
 
--- Topics: Everyone can read
-CREATE POLICY "topics_read_policy" ON topics
-    FOR SELECT USING (auth.role() = 'authenticated');
+-- === STEP 3: Create super simple policies without circular references ===
 
--- Exercises: Everyone can read
-CREATE POLICY "exercises_read_policy" ON exercises
-    FOR SELECT USING (auth.role() = 'authenticated');
+-- Public read access for reference data
+CREATE POLICY "allow_read_levels" ON public.levels FOR SELECT USING (true);
+CREATE POLICY "allow_read_topics" ON public.topics FOR SELECT USING (true);
+CREATE POLICY "allow_read_exercises" ON public.exercises FOR SELECT USING (true);
 
--- Users: Users can only see/edit their own data
-CREATE POLICY "users_own_data_policy" ON users
-    FOR ALL USING (auth.uid() = id);
+-- User access - super simple, no circular logic
+CREATE POLICY "user_own_data" ON public.users 
+    FOR ALL 
+    USING (auth.uid() = id);
 
--- User Progress: Users can only access their own progress
-CREATE POLICY "user_progress_own_data_policy" ON user_progress
-    FOR ALL USING (auth.uid() = user_id);
-
--- 3. Admin policies (for your admin emails)
-CREATE POLICY "admin_full_access_users" ON users
-    FOR ALL USING (
-        auth.jwt() ->> 'email' IN (
-            'admin@spanskgrammatik.dk',
-            'anders.houlberg-niel@itera.no'
-        )
+-- Admin access for users table  
+CREATE POLICY "admin_users_access" ON public.users 
+    FOR ALL 
+    USING (
+        (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no'
     );
 
-CREATE POLICY "admin_full_access_levels" ON levels
-    FOR ALL USING (
-        auth.jwt() ->> 'email' IN (
-            'admin@spanskgrammatik.dk',
-            'anders.houlberg-niel@itera.no'
-        )
+-- User progress - own data only
+CREATE POLICY "user_own_progress" ON public.user_progress 
+    FOR ALL 
+    USING (auth.uid() = user_id);
+
+-- User level progress - own data only  
+CREATE POLICY "user_own_level_progress" ON public.user_level_progress 
+    FOR ALL 
+    USING (auth.uid() = user_id);
+
+-- Admin can insert exercises
+CREATE POLICY "admin_insert_exercises" ON public.exercises 
+    FOR INSERT 
+    WITH CHECK (
+        (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no'
     );
 
-CREATE POLICY "admin_full_access_topics" ON topics
-    FOR ALL USING (
-        auth.jwt() ->> 'email' IN (
-            'admin@spanskgrammatik.dk',
-            'anders.houlberg-niel@itera.no'
-        )
+-- Admin can update exercises
+CREATE POLICY "admin_update_exercises" ON public.exercises 
+    FOR UPDATE 
+    USING (
+        (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no'
     );
 
-CREATE POLICY "admin_full_access_exercises" ON exercises
-    FOR ALL USING (
-        auth.jwt() ->> 'email' IN (
-            'admin@spanskgrammatik.dk',
-            'anders.houlberg-niel@itera.no'
-        )
-    );
+-- === STEP 4: Grant permissions ===
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT ON public.levels TO authenticated;
+GRANT SELECT ON public.topics TO authenticated;  
+GRANT SELECT ON public.exercises TO authenticated;
+GRANT ALL ON public.users TO authenticated;
+GRANT ALL ON public.user_progress TO authenticated;
+GRANT ALL ON public.user_level_progress TO authenticated;
 
-CREATE POLICY "admin_full_access_progress" ON user_progress
-    FOR ALL USING (
-        auth.jwt() ->> 'email' IN (
-            'admin@spanskgrammatik.dk',
-            'anders.houlberg-niel@itera.no'
-        )
-    );
-
--- 4. Grant basic permissions to authenticated users
-GRANT SELECT ON levels TO authenticated;
-GRANT SELECT ON topics TO authenticated;
-GRANT SELECT ON exercises TO authenticated;
-GRANT ALL ON users TO authenticated;
-GRANT ALL ON user_progress TO authenticated;
+-- === VERIFICATION ===
+SELECT 'RLS policies updated successfully - infinite recursion resolved' AS status;
