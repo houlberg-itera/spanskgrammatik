@@ -311,7 +311,6 @@ export default function LevelPage() {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <p>Ingen øvelser tilgængelige for dette emne endnu.</p>
-                    <p className="text-sm mt-2">Generer AI-øvelser nedenfor!</p>
                   </div>
                 )}
               </div>

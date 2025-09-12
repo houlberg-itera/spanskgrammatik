@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { SpanishLevel } from '@/types/database';
 
 interface Topic {
-  id: string;
+  id: number;
   name_da: string;
   description_da: string;
   level: SpanishLevel;
@@ -14,7 +14,7 @@ interface Topic {
 
 interface GenerationJob {
   id: string;
-  topicId: string;  // Add topicId to properly track the topic
+  topicId: number;  // Changed from string to number to match database
   topic: string;
   level: SpanishLevel;
   exerciseType: string;
@@ -27,7 +27,7 @@ interface GenerationJob {
 export default function ExerciseGeneratorAdmin() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<SpanishLevel>('A1');
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
   const [exerciseTypes] = useState([
     { id: 'multiple_choice', name: 'Multiple Choice', weight: 30 },
     { id: 'fill_blank', name: 'Fill in the Blank', weight: 25 },
@@ -69,7 +69,7 @@ export default function ExerciseGeneratorAdmin() {
     }
   };
 
-  const handleTopicSelection = (topicId: string) => {
+  const handleTopicSelection = (topicId: number) => {
     setSelectedTopics(prev => 
       prev.includes(topicId) 
         ? prev.filter(id => id !== topicId)

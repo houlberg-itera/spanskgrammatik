@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const VALID_LEVELS: SpanishLevel[] = ['A1', 'A2', 'B1'];
 const VALID_DIFFICULTIES = ['easy', 'medium', 'hard'];
 const VALID_EXERCISE_TYPES = ['multiple_choice', 'fill_blank', 'translation', 'conjugation', 'sentence_structure'];
-const MAX_QUESTIONS_PER_REQUEST = 5;
+const MAX_QUESTIONS_PER_REQUEST = 50; // Increased from 5 to 50 to allow bulk generation
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
 
 // Map question types to exercise types according to database schema
@@ -132,11 +132,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Apply request limits
-    const actualCount = Math.min(count, MAX_QUESTIONS_PER_REQUEST);
-    if (count > MAX_QUESTIONS_PER_REQUEST) {
-      console.log(`⚠️ [${requestId}] Requested ${count} questions, limiting to ${MAX_QUESTIONS_PER_REQUEST}`);
+    // Apply request limits - count now refers to exercises, not questions
+    const actualExerciseCount = Math.min(count, Math.floor(MAX_QUESTIONS_PER_REQUEST / 6)); // Assume ~6 questions per exercise
+    if (count > Math.floor(MAX_QUESTIONS_PER_REQUEST / 6)) {
+      console.log(`⚠️ [${requestId}] Requested ${count} exercises, limiting to ${actualExerciseCount} to stay within question limit`);
     }
+
+    console.log(`✅ [${requestId}] Will generate ${actualExerciseCount} exercises (targeting 5-8 questions each)`);
 
     console.log(`✅ [${requestId}] All validations passed`);
 
@@ -149,64 +151,79 @@ export async function POST(request: NextRequest) {
 
     const allGeneratedExercises = [];
     let totalQuestions = 0;
+    let totalExercisesGenerated = 0;
 
     for (const [difficultyLevel, percentage] of difficulties) {
-      const difficultyCount = Math.ceil((actualCount * (percentage as number)) / 100);
+      const exerciseCount = Math.ceil((actualExerciseCount * (percentage as number)) / 100);
       
-      if (difficultyCount <= 0) continue;
+      if (exerciseCount <= 0) continue;
 
-      console.log(`🎯 [${requestId}] Generating ${difficultyCount} ${difficultyLevel} questions...`);
+      console.log(`🎯 [${requestId}] Generating ${exerciseCount} ${difficultyLevel} exercises...`);
 
-      try {
-        const exerciseContent = await generateAdvancedExercise({
-          level: level as SpanishLevel,
-          topic: topicName,
-          topicDescription: topicDescription || '',
-          exerciseType: exerciseType as 'multiple_choice' | 'fill_blank' | 'translation' | 'conjugation' | 'sentence_structure',
-          questionCount: difficultyCount,
-          difficulty: difficultyLevel as 'easy' | 'medium' | 'hard',
-          existingQuestions: [], // Simplified - no duplicate checking
-          generateVariations: true,
-          includeExplanations: true,
-          targetProficiency: true
-        });
+      // Generate in optimized batches for GPT-4o speed and reliability
+      const questionsNeeded = exerciseCount * 4; // 4 questions per exercise
+      const batchSize = 8; // Optimized batch size for GPT-4o speed (reduced from 12)
+      const batches = Math.ceil(questionsNeeded / batchSize);
+      
+      const allQuestionsForDifficulty = [];
+      
+      for (let batch = 0; batch < batches; batch++) {
+        const questionsInThisBatch = Math.min(batchSize, questionsNeeded - (batch * batchSize));
+        
+        console.log(`🔄 [${requestId}] Batch ${batch + 1}/${batches}: generating ${questionsInThisBatch} ${difficultyLevel} questions...`);
+        
+        try {
+          const exerciseContent = await generateAdvancedExercise({
+            level: level as SpanishLevel,
+            topic: topicName,
+            topicDescription: topicDescription || '',
+            exerciseType: exerciseType as 'multiple_choice' | 'fill_blank' | 'translation' | 'conjugation' | 'sentence_structure',
+            questionCount: questionsInThisBatch,
+            difficulty: difficultyLevel as 'easy' | 'medium' | 'hard',
+            existingQuestions: [], // Simplified - no duplicate checking
+            generateVariations: true,
+            includeExplanations: true,
+            targetProficiency: true
+          });
 
-        if (!exerciseContent?.questions || exerciseContent.questions.length === 0) {
-          console.warn(`⚠️ [${requestId}] No questions generated for ${difficultyLevel} difficulty`);
-          continue;
+          if (!exerciseContent?.questions || exerciseContent.questions.length === 0) {
+            console.warn(`⚠️ [${requestId}] No questions generated for ${difficultyLevel} difficulty, batch ${batch + 1}`);
+            continue;
+          }
+
+          // Simple validation
+          const validQuestions = exerciseContent.questions.filter(q => {
+            return q.question_da && q.correct_answer && q.explanation_da;
+          });
+
+          if (validQuestions.length > 0) {
+            const questionsWithDifficulty = validQuestions.map(q => ({
+              ...q,
+              difficulty: difficultyLevel
+            }));
+            
+            allQuestionsForDifficulty.push(...questionsWithDifficulty);
+            console.log(`✅ [${requestId}] Batch ${batch + 1}: Generated ${validQuestions.length} valid ${difficultyLevel} questions`);
+          }
+          
+        } catch (batchError: any) {
+          console.error(`❌ [${requestId}] Batch ${batch + 1} failed for ${difficultyLevel}:`, batchError);
+          // Continue with other batches instead of failing completely
         }
-
-        // Simple validation
-        const validQuestions = exerciseContent.questions.filter(q => {
-          return q.question_da && q.correct_answer && q.explanation_da;
-        });
-
-        if (validQuestions.length === 0) {
-          console.warn(`⚠️ [${requestId}] No valid questions for ${difficultyLevel} difficulty`);
-          continue;
-        }
-
-        const questionsWithDifficulty = validQuestions.map(q => ({
-          ...q,
-          difficulty: difficultyLevel
-        }));
-
+      }
+      
+      if (allQuestionsForDifficulty.length > 0) {
         allGeneratedExercises.push({
           difficulty: difficultyLevel,
-          questions: questionsWithDifficulty,
-          metadata: exerciseContent.metadata
+          questions: allQuestionsForDifficulty,
+          metadata: { requestId, generated_at: new Date().toISOString() }
         });
 
-        totalQuestions += validQuestions.length;
-        console.log(`✅ [${requestId}] Generated ${validQuestions.length} valid ${difficultyLevel} questions`);
-
-      } catch (openaiError: any) {
-        console.error(`❌ [${requestId}] AI generation failed for ${difficultyLevel}:`, openaiError);
-        return NextResponse.json({ 
-          error: 'AI generation failed',
-          message: `Failed to generate ${difficultyLevel} exercises: ${openaiError.message || 'Unknown error'}`
-        }, { status: 500 });
+        totalQuestions += allQuestionsForDifficulty.length;
+        totalExercisesGenerated += exerciseCount;
+        console.log(`✅ [${requestId}] Generated ${allQuestionsForDifficulty.length} total ${difficultyLevel} questions across all batches`);
       }
+
     }
 
     if (allGeneratedExercises.length === 0 || totalQuestions === 0) {
@@ -218,42 +235,56 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 [${requestId}] Generated ${totalQuestions} total questions`);
 
-    // Save to database with simple approach
+    // Save to database - create exactly the requested number of exercises
     console.log(`💾 [${requestId}] Saving to database...`);
     const exercisesToCreate = [];
     let exerciseCounter = 1;
     
-    for (const difficultyExercises of allGeneratedExercises) {
-      const { difficulty: diffLevel, questions, metadata } = difficultyExercises;
-      const questionsPerExercise = Math.min(8, Math.max(5, Math.ceil(questions.length / Math.ceil(questions.length / 8))));
+    // Distribute questions evenly across the requested number of exercises
+    const allQuestions = allGeneratedExercises.flatMap(ex => ex.questions);
+    const questionsPerExercise = Math.max(3, Math.ceil(allQuestions.length / actualExerciseCount));
+    
+    for (let i = 0; i < actualExerciseCount && i * questionsPerExercise < allQuestions.length; i++) {
+      const startIndex = i * questionsPerExercise;
+      const endIndex = Math.min(startIndex + questionsPerExercise, allQuestions.length);
+      const questionsSlice = allQuestions.slice(startIndex, endIndex);
       
-      for (let i = 0; i < questions.length; i += questionsPerExercise) {
-        const questionsSlice = questions.slice(i, i + questionsPerExercise);
-        
-        const exerciseData = {
-          topic_id: topicId,
-          level: level,
-          type: getExerciseTypeFromQuestionType(exerciseType),
-          title_da: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
-          title_es: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
-          description_da: `AI-genereret ${diffLevel} øvelse om ${topicName} med ${questionsSlice.length} spørgsmål`,
-          description_es: `Ejercicio ${diffLevel} generado por IA sobre ${topicName} con ${questionsSlice.length} preguntas`,
-          content: {
-            instructions_da: `Besvar følgende spørgsmål om ${topicName}. Sværhedsgrad: ${diffLevel}`,
-            questions: questionsSlice,
-            metadata: {
-              difficulty: diffLevel,
-              generated_at: new Date().toISOString(),
-              ai_generated: true,
-              request_id: requestId
-            }
-          },
-          ai_generated: true,
-        };
+      if (questionsSlice.length === 0) break; // No more questions to assign
+      
+      // Determine predominant difficulty level for this exercise
+      const difficultyMap = new Map();
+      questionsSlice.forEach(q => {
+        const diff = q.difficulty || 'medium';
+        difficultyMap.set(diff, (difficultyMap.get(diff) || 0) + 1);
+      });
+      const predominantDifficulty = Array.from(difficultyMap.entries())
+        .reduce((a, b) => a[1] > b[1] ? a : b)[0];
+      
+      const exerciseData = {
+        topic_id: topicId,
+        level: level,
+        type: getExerciseTypeFromQuestionType(exerciseType),
+        title_da: `${topicName} - ${exerciseType} (${predominantDifficulty.toUpperCase()}) #${exerciseCounter}`,
+        title_es: `${topicName} - ${exerciseType} (${predominantDifficulty.toUpperCase()}) #${exerciseCounter}`,
+        description_da: `AI-genereret ${predominantDifficulty} øvelse om ${topicName} med ${questionsSlice.length} spørgsmål`,
+        description_es: `Ejercicio ${predominantDifficulty} generado por IA sobre ${topicName} con ${questionsSlice.length} preguntas`,
+        content: {
+          instructions_da: `Besvar følgende spørgsmål om ${topicName}. Sværhedsgrad: ${predominantDifficulty}`,
+          questions: questionsSlice,
+          metadata: {
+            difficulty: predominantDifficulty,
+            generated_at: new Date().toISOString(),
+            ai_generated: true,
+            request_id: requestId,
+            exercise_number: exerciseCounter,
+            total_exercises: actualExerciseCount
+          }
+        },
+        ai_generated: true,
+      };
 
-        exercisesToCreate.push(exerciseData);
-        exerciseCounter++;
-      }
+      exercisesToCreate.push(exerciseData);
+      exerciseCounter++;
     }
 
     // Direct database insert without sophisticated wrappers
