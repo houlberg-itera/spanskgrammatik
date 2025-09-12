@@ -2088,6 +2088,31 @@
 			"label": "Force add all files",
 			"type": "shell",
 			"command": "git add -A"
+		},
+		{
+			"label": "Complete the merge commit",
+			"type": "shell",
+			"command": "git commit"
+		},
+		{
+			"label": "Complete merge with message",
+			"type": "shell",
+			"command": "echo 'Merge commit with architectural improvements' | git commit -F -"
+		},
+		{
+			"label": "Check git status after merge",
+			"type": "shell",
+			"command": "git status"
+		},
+		{
+			"label": "Commit remaining changes and push",
+			"type": "shell",
+			"command": "git add .vscode/tasks.json && git commit -m 'Update tasks.json with latest build configurations' && git push origin FixVercelErrors"
+		},
+		{
+			"label": "Commit and push with PowerShell syntax",
+			"type": "shell",
+			"command": "git add .vscode/tasks.json; git commit -m 'Update tasks.json with latest build configurations'; git push origin FixVercelErrors"
 		}
 	]
 }
