@@ -43,6 +43,33 @@ BEGIN
 END $$;
 
 -- === STEP 2: COMPLETELY DISABLE RLS EVERYWHERE ===
+
+-- === STEP 1: Clean slate - remove ALL existing policies ===
+DO $$ 
+DECLARE
+    pol RECORD;
+BEGIN
+    -- Drop all policies on users table
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE tablename = 'users' AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+    
+    -- Drop all policies on other tables
+    FOR pol IN 
+        SELECT schemaname, tablename, policyname 
+        FROM pg_policies 
+        WHERE tablename IN ('user_progress', 'user_level_progress', 'levels', 'topics', 'exercises') 
+        AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+END $$;
+
+-- === STEP 2: Disable and re-enable RLS to reset ===
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_progress DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_level_progress DISABLE ROW LEVEL SECURITY;

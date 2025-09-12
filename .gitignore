@@ -24,8 +24,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
-.env*.local
 .env
+.env*.local
 
 # Vercel
 .vercel
@@ -35,7 +35,7 @@ yarn-error.log*
 next-env.d.ts
 
 # IDE
-.vscode/
+.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -62,7 +62,4 @@ PROBLEM_RESOLUTION_COMPLETE.md
 SETUP_GIT_REPO.md
 setup-git.ps1
 setup-git.bat
-
-# SQL scripts and VS Code tasks
-*.sql
-.vscode/tasks.json
+node_modules

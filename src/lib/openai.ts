@@ -6,13 +6,12 @@ const openai = new OpenAI({
 });
 
 // Retry function with exponential backoff for API rate limiting
-// Uses dynamic configuration for retry settings
+// Optimized for GPT-5 with high rate limits (500 RPM, 500K TPM)
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  retryConfig: { maxRetries: number; baseDelay: number }
+  maxRetries: number = 8,  // Increased from 5 to 8 retries for rate limits
+  baseDelay: number = 2000  // Increased from 500ms to 2000ms for rate limit recovery
 ): Promise<T> {
-  const { maxRetries, baseDelay } = retryConfig;
-  
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -157,15 +156,15 @@ Eksempel på ${exerciseType} øvelse:`;
   try {
     const completion = await retryWithBackoff(async () => {
       return await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt + '\n\n' + examples[exerciseType] },
         ],
-        temperature: 0.7,  // Optimized for consistency and speed
-        max_completion_tokens: 1500,  // Reduced for faster generation
+        temperature: 1,  // GPT-5 only supports temperature: 1
+        max_completion_tokens: 2000,
       });
-    }, { maxRetries: 3, baseDelay: 1000 });
+    });
 
     const content = completion.choices[0].message.content;
     if (!content) {
@@ -209,12 +208,12 @@ Hold feedbacken kort (max 2-3 sætninger) og på begyndervenligt sprog.`;
   try {
     const completion = await retryWithBackoff(async () => {
       return await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,  // Optimized for consistency
-        max_completion_tokens: 150,  // Reduced for faster feedback generation
+        temperature: 1,  // GPT-5 only supports temperature: 1
+        max_completion_tokens: 200,
       });
-    }, { maxRetries: 3, baseDelay: 1000 });
+    });
 
     return completion.choices[0].message.content || 'Feedback kunne ikke genereres.';
   } catch (error) {

@@ -18,7 +18,6 @@ CREATE TABLE public.users (
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   current_level spanish_level DEFAULT 'A1',
-  role TEXT DEFAULT 'user', -- Added role field for permissions
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -92,77 +91,12 @@ INSERT INTO public.levels (name, description_da, description_es, order_index) VA
   ('A2', 'Elementær - Udvidet grammatik og kommunikation', 'Elemental - Gramática ampliada y comunicación', 2),
   ('B1', 'Mellem - Avanceret grammatik og komplekse strukturer', 'Intermedio - Gramática avanzada y estructuras complejas', 3);
 
--- Create AI configuration table for dynamic prompts and models
-CREATE TABLE public.ai_configurations (
-  id SERIAL PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL, -- e.g., 'exercise_generation', 'feedback_generation', 'bulk_generation'
-  description TEXT,
-  model_name TEXT NOT NULL DEFAULT 'gpt-4o',
-  temperature DECIMAL(3,2) DEFAULT 0.7,
-  max_tokens INTEGER DEFAULT 1500,
-  system_prompt TEXT,
-  user_prompt_template TEXT,
-  examples JSONB, -- Store examples for different exercise types
-  retry_config JSONB DEFAULT '{"maxRetries": 3, "baseDelay": 1000}',
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create prompt templates table for organized prompt management
-CREATE TABLE public.prompt_templates (
-  id SERIAL PRIMARY KEY,
-  ai_config_id INTEGER REFERENCES public.ai_configurations(id) ON DELETE CASCADE,
-  exercise_type TEXT NOT NULL, -- 'grammar', 'vocabulary', 'conjugation', 'sentence_structure'
-  level spanish_level,
-  template_content TEXT NOT NULL,
-  variables JSONB, -- Store template variables and their descriptions
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Insert default topics for A1 level
 INSERT INTO public.topics (level, name_da, name_es, description_da, description_es, order_index) VALUES
   ('A1', 'Substantiver og artikler', 'Sustantivos y artículos', 'Grundlæggende substantiver og bestemte/ubestemte artikler', 'Sustantivos básicos y artículos definidos/indefinidos', 1),
   ('A1', 'Verbum "ser" og "estar"', 'Verbos "ser" y "estar"', 'Forskellen mellem de to verbum "at være"', 'La diferencia entre los dos verbos "ser" y "estar"', 2),
   ('A1', 'Grundlæggende navneord bøjning', 'Flexión básica de sustantivos', 'Ental og flertal af navneord', 'Singular y plural de sustantivos', 3),
   ('A1', 'Præsens af regelmæssige verbum', 'Presente de verbos regulares', 'Nutid af -ar, -er, -ir verbum', 'Presente de verbos -ar, -er, -ir', 4);
-
--- Insert default AI configurations
-INSERT INTO public.ai_configurations (name, description, model_name, temperature, max_tokens, system_prompt, user_prompt_template, examples, retry_config) VALUES
-(
-  'exercise_generation',
-  'Configuration for generating individual exercises',
-  'gpt-4o',
-  0.7,
-  1500,
-  'Du er en ekspert spansklærer for danske studerende. Opret øvelser på {{level}} niveau for emnet "{{topic}}" ({{topicDescription}}). Fokuser på {{exerciseType}} øvelser. Alle instruktioner, spørgsmål og forklaringer skal være på dansk. Svar altid i valid JSON format.',
-  'Opret {{questionCount}} {{exerciseType}} spørgsmål om "{{topic}}" på {{level}} niveau. Svar i valid JSON format med denne struktur:\n\n{\n  "instructions_da": "Instruktioner på dansk",\n  "questions": [\n    {\n      "id": "unique_id",\n      "type": "question_type",\n      "question_da": "Spørgsmål på dansk",\n      "options": ["mulighed1", "mulighed2", "mulighed3", "mulighed4"],\n      "correct_answer": "korrekte svar",\n      "explanation_da": "Forklaring på dansk med spansk eksempel",\n      "points": 1\n    }\n  ]\n}',
-  '{"grammar": {"instructions_da": "Vælg den korrekte form af verbum ''ser'' eller ''estar''", "questions": [{"id": "q1", "type": "multiple_choice", "question_da": "María ___ lærer (hun er lærer som profession)", "options": ["es", "está", "son", "están"], "correct_answer": "es", "explanation_da": "Vi bruger ''ser'' (es) for permanente egenskaber som profession.", "points": 1}]}}',
-  '{"maxRetries": 3, "baseDelay": 1000}'
-),
-(
-  'feedback_generation', 
-  'Configuration for generating exercise feedback',
-  'gpt-4o',
-  0.7,
-  150,
-  'Som spansklærer for danske studerende på {{level}} niveau, giv konstruktiv feedback på denne besvarelse.',
-  'Spørgsmål: {{question}}\nStuderendes svar: {{userAnswer}}\nKorrekte svar: {{correctAnswer}}\n\nGiv feedback på dansk der:\n1. Forklarer om svaret er korrekt eller forkert\n2. Forklarer hvorfor (grammatikregel, betydning, etc.)\n3. Giver et hjælpsomt tip til fremtiden\n4. Er opmuntrende og konstruktiv\n\nHold feedbacken kort (max 2-3 sætninger) og på begyndervenligt sprog.',
-  '{}',
-  '{"maxRetries": 3, "baseDelay": 1000}'
-),
-(
-  'bulk_generation',
-  'Configuration for bulk exercise generation',
-  'gpt-4o', 
-  0.7,
-  2500,
-  'Du er en ekspert spansklærer for danske studerende. Du skal oprette {{questionCount}} øvelser på {{level}} niveau for emnet "{{topic}}" med sværhedsgrad {{difficulty}}. Fokuser på {{exerciseType}} øvelser. Alle instruktioner og forklaringer skal være på dansk. Svar altid i valid JSON format.',
-  'Opret {{questionCount}} {{exerciseType}} spørgsmål om "{{topic}}" på {{level}} niveau med {{difficulty}} sværhedsgrad.',
-  '{}',
-  '{"maxRetries": 3, "baseDelay": 1000}'
-);
 
 -- Insert default topics for A2 level
 INSERT INTO public.topics (level, name_da, name_es, description_da, description_es, order_index) VALUES
@@ -299,8 +233,4 @@ BEGIN
     END IF;
   END IF;
 END;
-<<<<<<< HEAD
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-=======
-$$ LANGUAGE plpgsql SECURITY DEFINER;
->>>>>>> b7a9fe9a12675191bf20a1adbaf25ba95debfb4c

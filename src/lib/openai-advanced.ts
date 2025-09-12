@@ -6,11 +6,11 @@ const openai = new OpenAI({
 });
 
 // Retry function with exponential backoff for API rate limiting
-// Optimized for GPT-4o speed and reliability
+// Optimized for GPT-5 with high rate limits (500 RPM, 500K TPM)
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,  // Reduced from 8 to 3 for faster failures
-  baseDelay: number = 1000  // Reduced from 2000ms to 1000ms for faster recovery
+  maxRetries: number = 8,  // Increased from 5 to 8 retries for rate limits
+  baseDelay: number = 2000  // Increased from 500ms to 2000ms for rate limit recovery
 ): Promise<T> {
   console.log(`🔄 Starting retry function with maxRetries: ${maxRetries}, baseDelay: ${baseDelay}ms`);
   
@@ -179,13 +179,13 @@ export async function generateAdvancedExercise({
     targetProficiency
   });
 
-  // Retry logic for more reliable generation
-  const maxQuestionReductions = 2;
+  // GPT-5 reasoning token retry logic - reduce question count on reasoning token issues
+  const maxQuestionReductions = 3;
   let currentQuestionCount = questionCount;
   
   for (let reduction = 0; reduction <= maxQuestionReductions; reduction++) {
     try {
-      console.log(`🎯 Attempting generation with ${currentQuestionCount} questions (attempt ${reduction + 1})`);
+      console.log(`🎯 Attempting generation with ${currentQuestionCount} questions (reduction attempt ${reduction})`);
       
       return await generateAdvancedExerciseInternal({
         level,
@@ -201,14 +201,16 @@ export async function generateAdvancedExercise({
       });
       
     } catch (error: any) {
-      if (reduction < maxQuestionReductions) {
-        // Reduce question count and try again
-        currentQuestionCount = Math.max(1, currentQuestionCount - 2);
-        console.log(`⚠️ Generation failed. Reducing question count to ${currentQuestionCount} and retrying...`);
+      const isReasoningTokenIssue = error.isReasoningTokenIssue || error.message?.includes('GPT-5 used reasoning tokens but returned no content');
+      
+      if (isReasoningTokenIssue && reduction < maxQuestionReductions) {
+        // Reduce question count by half and try again
+        currentQuestionCount = Math.max(1, Math.floor(currentQuestionCount / 2));
+        console.log(`⚠️ GPT-5 reasoning token issue detected. Reducing question count to ${currentQuestionCount} and retrying...`);
         continue;
       }
       
-      // If we've exhausted retries, throw the error
+      // If not a reasoning token issue or we've exhausted retries, throw the error
       throw error;
     }
   }
@@ -348,17 +350,17 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
   console.log('📝 User prompt length:', userPrompt.length);
 
   try {
-    console.log('🌐 Making OpenAI API call with model: gpt-4o (optimized for speed and reliability)');
+    console.log('🌐 Making OpenAI API call with model: gpt-5');
     const completion = await retryWithBackoff(async () => {
       console.log('🔄 Attempting OpenAI API call...');
       return await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.7,  // Optimized for consistency and speed
-        max_completion_tokens: 2500,  // Reduced for faster generation
+        temperature: 1,  // GPT-5 only supports temperature: 1
+        max_completion_tokens: 4000,  // Increased from 3000 for better GPT-5 utilization
       });
     });
 
@@ -367,7 +369,7 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
 
     const responseContent = completion.choices[0]?.message?.content;
     
-    // Handle empty response
+    // Handle case where GPT-5 uses reasoning tokens but returns empty content
     if (!responseContent || responseContent.trim().length === 0) {
       console.error('❌ No response content from OpenAI');
       console.error('📊 Completion details:', {
@@ -375,6 +377,14 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
         finish_reason: completion.choices[0]?.finish_reason,
         usage: completion.usage
       });
+      
+      // If this used reasoning tokens but no content, it might be a GPT-5 issue
+      if (completion.usage?.completion_tokens_details?.reasoning_tokens > 0) {
+        console.error('⚠️ GPT-5 used reasoning tokens but returned no content - this may be a model issue');
+        const error = new Error('GPT-5 used reasoning tokens but returned no content. Try reducing prompt complexity or question count.');
+        (error as any).isReasoningTokenIssue = true;  // Add flag for wrapper to detect
+        throw error;
+      }
       
       throw new Error('No response from OpenAI');
     }

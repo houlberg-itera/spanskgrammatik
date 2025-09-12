@@ -18,7 +18,7 @@ interface UserProficiency {
 }
 
 interface ExerciseGeneration {
-  topicId: number;
+  topicId: string;
   topicName: string;
   level: SpanishLevel;
   currentCount: number;
@@ -30,11 +30,8 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserProficiency[]>([]);
   const [exerciseGenerations, setExerciseGenerations] = useState<ExerciseGeneration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generatingTopicId, setGeneratingTopicId] = useState<number | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'users' | 'exercises' | 'analytics' | 'exercise-details'>('users');
-  const [selectedTopicExercises, setSelectedTopicExercises] = useState<any[]>([]);
-  const [selectedTopicName, setSelectedTopicName] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'users' | 'exercises' | 'analytics'>('users');
   const [analytics, setAnalytics] = useState({
     totalUsers: 0,
     averageProgress: 0,
@@ -64,10 +61,10 @@ export default function AdminDashboard() {
   };
 
   const loadUserProficiencies = async () => {
-    // Get all users - using 'users' table instead of 'user_profiles'
+    // Get all users
     const { data: allUsers } = await supabase
-      .from('users')
-      .select('id, email, current_level')  // Changed 'user_id' to 'id'
+      .from('user_profiles')
+      .select('user_id, email, current_level')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -78,11 +75,11 @@ export default function AdminDashboard() {
     
     for (const user of allUsers) {
       try {
-        const response = await fetch(`/api/proficiency-analysis?userId=${user.id}&recommendations=true`);
+        const response = await fetch(`/api/proficiency-analysis?userId=${user.user_id}&recommendations=true`);
         if (response.ok) {
           const data = await response.json();
           userProficiencies.push({
-            userId: user.id,  // Changed from user.user_id to user.id
+            userId: user.user_id,
             email: user.email || 'Unknown',
             currentLevel: data.analysis.currentLevel,
             confidenceScore: data.analysis.confidenceScore,
@@ -95,7 +92,7 @@ export default function AdminDashboard() {
           });
         }
       } catch (error) {
-        console.error(`Error analyzing user ${user.id}:`, error);  // Changed from user.user_id to user.id
+        console.error(`Error analyzing user ${user.user_id}:`, error);
       }
     }
 
@@ -177,57 +174,28 @@ export default function AdminDashboard() {
     });
   };
 
-  const generateExercisesForTopic = async (generation: ExerciseGeneration, count: number) => {
-    setGeneratingTopicId(generation.topicId);
-    
+  const generateExercisesForTopic = async (topicId: string, count: number) => {
     try {
       const response = await fetch('/api/generate-bulk-exercises', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topicId: generation.topicId,
+          topicId,
           exerciseType: 'multiple_choice',
           count,
-          difficulty: 'medium',
-          level: generation.level,
-          topicName: generation.topicName,
-          topicDescription: generation.topicName // Use topicName as description fallback
+          difficulty: 'medium'
         })
       });
 
       if (response.ok) {
-        const result = await response.json();
-        const actualCount = result.exercisesCreated || 0;
-        const totalQuestions = result.totalQuestions || 0;
-        alert(`Successfully generated ${actualCount} exercises with ${totalQuestions} questions!`);
+        alert(`Successfully generated ${count} exercises!`);
         loadExerciseGenerationNeeds(); // Refresh
       } else {
-        const errorData = await response.json();
-        alert(`Failed to generate exercises: ${errorData.message || 'Unknown error'}`);
+        alert('Failed to generate exercises');
       }
     } catch (error) {
       console.error('Error generating exercises:', error);
       alert('Error generating exercises');
-    } finally {
-      setGeneratingTopicId(null);
-    }
-  };
-
-  const loadTopicExercises = async (topicId: number, topicName: string) => {
-    try {
-      const { data: exercises } = await supabase
-        .from('exercises')
-        .select('*')
-        .eq('topic_id', topicId)
-        .eq('ai_generated', true)
-        .order('created_at', { ascending: false });
-
-      setSelectedTopicExercises(exercises || []);
-      setSelectedTopicName(topicName);
-      setViewMode('exercise-details');
-    } catch (error) {
-      console.error('Error loading topic exercises:', error);
-      alert('Error loading exercises');
     }
   };
 
@@ -281,12 +249,6 @@ export default function AdminDashboard() {
                   {mode === 'analytics' && '📈 Analyser'}
                 </button>
               ))}
-              <a
-                href="/admin/ai-config"
-                className="px-4 py-2 rounded-lg font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
-              >
-                🤖 AI Konfiguration
-              </a>
             </div>
           </div>
         </div>
@@ -441,11 +403,7 @@ export default function AdminDashboard() {
                         return priorityOrder[b.priority] - priorityOrder[a.priority];
                       })
                       .map(generation => (
-                      <tr 
-                        key={generation.topicId} 
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => loadTopicExercises(generation.topicId, generation.topicName)}
-                      >
+                      <tr key={generation.topicId} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {generation.topicName}
@@ -469,27 +427,14 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              generateExercisesForTopic(
-                                generation, 
-                                generation.recommendedCount - generation.currentCount
-                              );
-                            }}
-                            disabled={generation.currentCount >= generation.recommendedCount || generatingTopicId === generation.topicId}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
-                          >
-                            {generatingTopicId === generation.topicId ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Genererer...</span>
-                              </>
-                            ) : (
-                              <span>Generer {generation.recommendedCount - generation.currentCount}</span>
+                            onClick={() => generateExercisesForTopic(
+                              generation.topicId, 
+                              generation.recommendedCount - generation.currentCount
                             )}
+                            disabled={generation.currentCount >= generation.recommendedCount}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                          >
+                            Generer {generation.recommendedCount - generation.currentCount}
                           </button>
                         </td>
                       </tr>
@@ -554,94 +499,6 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {viewMode === 'exercise-details' && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Øvelser for: {selectedTopicName}
-              </h2>
-              <button
-                onClick={() => setViewMode('exercises')}
-                className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Tilbage til Dashboard
-              </button>
-            </div>
-
-            {selectedTopicExercises.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Ingen øvelser fundet for dette emne.
-              </p>
-            ) : (
-              <div className="space-y-6">
-                {selectedTopicExercises.map((exercise, index) => (
-                  <div key={exercise.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Øvelse #{index + 1}
-                      </h3>
-                      <div className="flex space-x-2">
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          {exercise.level}
-                        </span>
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                          {exercise.question_type}
-                        </span>
-                        <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
-                          AI Genereret
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded p-3 mb-3">
-                      <h4 className="font-medium text-gray-700 mb-2">Spørgsmål:</h4>
-                      <p className="text-gray-900">{exercise.question}</p>
-                    </div>
-
-                    {exercise.content && exercise.content.options && (
-                      <div className="mb-3">
-                        <h4 className="font-medium text-gray-700 mb-2">Svarmuligheder:</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {exercise.content.options.map((option: string, optIndex: number) => (
-                            <li 
-                              key={optIndex} 
-                              className={`text-sm ${
-                                optIndex === exercise.content.correct_answer 
-                                  ? 'text-green-600 font-medium' 
-                                  : 'text-gray-600'
-                              }`}
-                            >
-                              {option} {optIndex === exercise.content.correct_answer && '(Korrekt)'}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {exercise.content && exercise.content.correct_answer && typeof exercise.content.correct_answer === 'string' && (
-                      <div className="mb-3">
-                        <h4 className="font-medium text-gray-700 mb-2">Korrekt Svar:</h4>
-                        <p className="text-green-600 font-medium">{exercise.content.correct_answer}</p>
-                      </div>
-                    )}
-
-                    {exercise.content && exercise.content.explanation && (
-                      <div className="mb-3">
-                        <h4 className="font-medium text-gray-700 mb-2">Forklaring:</h4>
-                        <p className="text-gray-600 text-sm">{exercise.content.explanation}</p>
-                      </div>
-                    )}
-
-                    <div className="text-xs text-gray-500 border-t pt-2">
-                      Oprettet: {new Date(exercise.created_at).toLocaleDateString('da-DK')} kl. {new Date(exercise.created_at).toLocaleTimeString('da-DK')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>

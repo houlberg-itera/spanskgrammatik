@@ -2048,6 +2048,46 @@
 				"-Command",
 				"taskkill /F /IM node.exe /T 2>$null; taskkill /F /IM npm.exe /T 2>$null; Write-Host 'All Node and NPM processes terminated'"
 			]
+		},
+		{
+			"label": "Remove AI Config File",
+			"type": "shell",
+			"command": "Remove-Item \"src\\app\\admin\\ai-config\\page.tsx\" -Force"
+		},
+		{
+			"label": "Pull latest changes",
+			"type": "shell",
+			"command": "git pull origin FixVercelErrors"
+		},
+		{
+			"label": "Create AI Config File",
+			"type": "shell",
+			"command": "New-Item -Path \"src\\app\\admin\\ai-config\\page.tsx\" -ItemType File -Force"
+		},
+		{
+			"label": "Stage all remaining changes",
+			"type": "shell",
+			"command": "git add ."
+		},
+		{
+			"label": "Check status after staging",
+			"type": "shell",
+			"command": "git status"
+		},
+		{
+			"label": "Commit architectural upgrade",
+			"type": "shell",
+			"command": "git commit -m \"🚀 Major architectural upgrade: Complex AI config → Streamlined GPT-5\\n\\n✅ Removed complex database-driven AI configuration system\\n✅ Upgraded to direct GPT-5 integration with optimized settings\\n✅ Simplified admin interfaces and removed unnecessary complexity\\n✅ Enhanced exercise generation with GPT-5 capabilities\\n✅ Cleaned up database schema by removing AI config tables\\n✅ Streamlined authentication and removed user roles\\n✅ Added production build utilities and error handling\\n\\nThis commit represents the successful modernization from an\\nover-engineered system to a maintainable, production-ready\\nSpanish learning application with GPT-5 AI integration.\""
+		},
+		{
+			"label": "Add remaining files",
+			"type": "shell",
+			"command": "git add ."
+		},
+		{
+			"label": "Force add all files",
+			"type": "shell",
+			"command": "git add -A"
 		}
 	]
 }

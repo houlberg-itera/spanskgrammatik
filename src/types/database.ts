@@ -48,36 +48,6 @@ export interface Exercise {
   updated_at: string;
 }
 
-export interface AIConfiguration {
-  id: number;
-  name: string;
-  description?: string;
-  model_name: string;
-  temperature: number;
-  max_tokens: number;
-  system_prompt: string;
-  user_prompt_template: string;
-  examples: Record<string, any>;
-  retry_config: {
-    maxRetries: number;
-    baseDelay: number;
-  };
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PromptTemplate {
-  id: number;
-  ai_config_id: number;
-  exercise_type: string;
-  level?: SpanishLevel;
-  template_content: string;
-  variables?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface ExerciseContent {
   questions: Question[];
   instructions_da?: string;

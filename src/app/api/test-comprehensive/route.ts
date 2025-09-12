@@ -22,27 +22,7 @@ export async function GET(request: NextRequest) {
     
     console.log('📚 Exercise data test:', exercises?.length || 0, 'exercises found')
     
-    // Test 4: AI Configuration tables
-    console.log('🤖 Testing AI configuration tables...')
-    const { data: aiConfigs, error: aiConfigError } = await supabase
-      .from('ai_configurations')
-      .select('name, model_name, is_active, description')
-      .limit(5)
-    
-    const aiConfigTest = {
-      status: aiConfigError ? '❌ Failed' : '✅ Working',
-      count: aiConfigs?.length || 0,
-      error: aiConfigError?.message || null,
-      configs: aiConfigs?.map(c => ({
-        name: c.name,
-        model: c.model_name,
-        active: c.is_active
-      })) || []
-    }
-    
-    console.log('🤖 AI Config test result:', aiConfigTest.status, `(${aiConfigTest.count} configs found)`)
-
-    // Test 4: Progress data (if user exists)
+    // Test 3: Progress data (if user exists)
     let progressTest = null
     if (user) {
       const { data: progress, error: progressError } = await supabase
@@ -92,12 +72,6 @@ export async function GET(request: NextRequest) {
       progressSystem: {
         status: user && progressTest ? '✅ WORKING' : '⚠️ NEEDS AUTH',
         ...progressTest
-      },
-      aiConfiguration: {
-        status: aiConfigTest.status,
-        configCount: aiConfigTest.count,
-        error: aiConfigTest.error,
-        availableConfigs: aiConfigTest.configs
       },
       moduleResolution: {
         status: '✅ WORKING',
