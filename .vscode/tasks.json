@@ -2113,6 +2113,21 @@
 			"label": "Commit and push with PowerShell syntax",
 			"type": "shell",
 			"command": "git add .vscode/tasks.json; git commit -m 'Update tasks.json with latest build configurations'; git push origin FixVercelErrors"
+		},
+		{
+			"label": "Force push to origin",
+			"type": "shell",
+			"command": "git push --force origin FixVercelErrors"
+		},
+		{
+			"label": "Final git status check",
+			"type": "shell",
+			"command": "git status"
+		},
+		{
+			"label": "Add final file",
+			"type": "shell",
+			"command": "git add .vscode/tasks.json"
 		}
 	]
 }
