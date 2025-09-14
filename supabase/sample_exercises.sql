@@ -307,3 +307,4 @@ INSERT INTO public.exercises (topic_id, level, type, title_da, title_es, descrip
     }
   ]
 }', false);
+

@@ -253,22 +253,26 @@ export default function ProficiencyAnalysis() {
                         <div>
                           <h4 className="font-medium text-green-700 mb-2">Styrker:</h4>
                           <div className="flex flex-wrap gap-2">
-                            {proficiencyData.analysis.strengthAreas.map(area => (
+                            {proficiencyData.analysis.strengthAreas?.map(area => (
                               <span key={area} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
                                 {area}
                               </span>
-                            ))}
+                            )) || (
+                              <span className="text-gray-500 text-sm">Ingen styrker identificeret endnu</span>
+                            )}
                           </div>
                         </div>
                         
                         <div>
                           <h4 className="font-medium text-red-700 mb-2">Svagheder:</h4>
                           <div className="flex flex-wrap gap-2">
-                            {proficiencyData.analysis.weaknessAreas.map(area => (
+                            {proficiencyData.analysis.weaknessAreas?.map(area => (
                               <span key={area} className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">
                                 {area}
                               </span>
-                            ))}
+                            )) || (
+                              <span className="text-gray-500 text-sm">Ingen svagheder identificeret endnu</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -279,7 +283,7 @@ export default function ProficiencyAnalysis() {
                         📚 Seneste Aktivitet
                       </h3>
                       <div className="space-y-3">
-                        {proficiencyData.recentProgress.length > 0 ? (
+                        {proficiencyData.recentProgress && proficiencyData.recentProgress.length > 0 ? (
                           proficiencyData.recentProgress.slice(0, 5).map((progress, index) => (
                             <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
                               <div>
@@ -311,7 +315,7 @@ export default function ProficiencyAnalysis() {
                         🎯 Anbefalede Øvelser
                       </h3>
                       <div className="space-y-3">
-                        {proficiencyData.recommendations.suggestedExercises.map((exercise, index) => (
+                        {proficiencyData.recommendations?.suggestedExercises?.map((exercise, index) => (
                           <div key={index} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-medium text-gray-900">{exercise.topicName}</h4>
@@ -321,7 +325,12 @@ export default function ProficiencyAnalysis() {
                             </div>
                             <p className="text-sm text-gray-600">{exercise.reason}</p>
                           </div>
-                        ))}
+                        )) || (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>🔄 Ingen anbefalede øvelser tilgængelige endnu</p>
+                            <p className="text-sm mt-2">Systemet analyserer brugerens data for at generere personaliserede anbefalinger.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -330,7 +339,7 @@ export default function ProficiencyAnalysis() {
                         📅 Studieplan
                       </h3>
                       <div className="space-y-4">
-                        {proficiencyData.recommendations.studyPlan.map((week, index) => (
+                        {proficiencyData.recommendations?.studyPlan?.map((week, index) => (
                           <div key={index} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center mb-2">
                               <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded">
@@ -339,14 +348,21 @@ export default function ProficiencyAnalysis() {
                               <h4 className="font-medium text-gray-900 ml-3">{week.focus}</h4>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {week.topics.map(topic => (
+                              {week.topics?.map(topic => (
                                 <span key={topic} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
                                   {topic}
                                 </span>
-                              ))}
+                              )) || (
+                                <span className="text-gray-500 text-sm">Ingen emner defineret</span>
+                              )}
                             </div>
                           </div>
-                        ))}
+                        )) || (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>📅 Ingen studieplan tilgængelig endnu</p>
+                            <p className="text-sm mt-2">Systemet genererer en personaliseret studieplan baseret på brugerens fremskridt.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
