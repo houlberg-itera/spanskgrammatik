@@ -331,6 +331,27 @@ export async function POST(request: NextRequest) {
           (Array.isArray(q.correct_answer) ? q.correct_answer.length > 0 : q.correct_answer.trim().length > 0);
         const hasValidExplanation = q.explanation_da && q.explanation_da.trim().length > 0;
         
+        // Additional validation for fill_blank exercises
+        if (exerciseType === 'fill_blank') {
+          const hasUnderscore = q.question_da && q.question_da.includes('_');
+          const underscoreCount = (q.question_da.match(/_/g) || []).length;
+          const hasSimpleAnswer = q.correct_answer && typeof q.correct_answer === 'string' && 
+                                  q.correct_answer.trim().split(' ').length <= 3; // Max 3 words
+          
+          if (!hasUnderscore) {
+            console.warn(`⚠️ Fill_blank question missing underscore: "${q.question_da}"`);
+            return false;
+          }
+          if (underscoreCount !== 1) {
+            console.warn(`⚠️ Fill_blank question has ${underscoreCount} underscores, expected 1: "${q.question_da}"`);
+            return false;
+          }
+          if (!hasSimpleAnswer) {
+            console.warn(`⚠️ Fill_blank answer too complex: "${q.correct_answer}"`);
+            return false;
+          }
+        }
+        
         return hasValidQuestion && hasValidAnswer && hasValidExplanation;
       });
 

@@ -88,7 +88,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
         
         if (Array.isArray(question.correct_answer)) {
           isCorrect = Array.isArray(userAnswer) 
-            ? userAnswer.sort().join(',') === question.correct_answer.sort().join(',')
+            ? userAnswer.sort().join(',').toLowerCase() === question.correct_answer.sort().join(',').toLowerCase()
             : false;
           console.log('Array comparison logic used');
         } else {

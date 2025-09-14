@@ -44,11 +44,15 @@ export default function ExerciseQuestion({
     
     if (Array.isArray(question.correct_answer)) {
       return Array.isArray(selectedAnswer) 
-        ? selectedAnswer.sort().join(',') === question.correct_answer.sort().join(',')
+        ? selectedAnswer.sort().join(',').toLowerCase() === question.correct_answer.sort().join(',').toLowerCase()
         : false;
     }
     
-    return selectedAnswer === question.correct_answer;
+    // Case-insensitive comparison for string answers
+    const userAnswer = String(selectedAnswer).toLowerCase().trim();
+    const correctAnswer = String(question.correct_answer).toLowerCase().trim();
+    
+    return userAnswer === correctAnswer;
   };
 
   const generateAiFeedback = async () => {
