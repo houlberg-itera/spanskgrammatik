@@ -92,7 +92,7 @@ export default function ExerciseGeneratorAdmin() {
         { id: 'fill_blank', name: 'Fill in the Blank', weight: 30 },
         { id: 'translation', name: 'Translation', weight: 20 },
         { id: 'conjugation', name: 'Verb Conjugation', weight: 10 },
-        { id: 'sentence_structure', name: 'Sentence Structure', weight: 0 }
+        { id: 'sentence_structure', name: 'Sentence Structure', weight: 15 }
       ]
     }
   };

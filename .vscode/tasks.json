@@ -2313,6 +2313,16 @@
 			"type": "shell",
 			"command": "del src\\app\\api\\refresh-progress\\route.ts",
 			"group": "build"
+		},
+		{
+			"label": "Create Fill Blank Test",
+			"type": "shell",
+			"command": "New-Item -ItemType File -Path 'test-fill-blank-generation.js' -Force"
+		},
+		{
+			"label": "Cleanup Fill Blank Test",
+			"type": "shell",
+			"command": "Remove-Item test-fill-blank-generation.js -ErrorAction SilentlyContinue"
 		}
 	]
 }

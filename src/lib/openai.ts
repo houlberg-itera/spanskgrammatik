@@ -138,15 +138,15 @@ Eksempel på ${exerciseType} øvelse:`;
       ]
     }`,
     sentence_structure: `{
-      "instructions_da": "Arranger ordene til en korrekt spansk sætning",
+      "instructions_da": "Arranger de givne spanske ord til en korrekt sætning",
       "questions": [
         {
           "id": "q1",
           "type": "multiple_choice",
-          "question_da": "Arranger: 'gato / el / grande / es'",
+          "question_da": "Arranger følgende spanske ord til en korrekt sætning: gato, el, grande, es",
           "options": ["el gato es grande", "grande el gato es", "es el gato grande", "gato es el grande"],
           "correct_answer": "el gato es grande",
-          "explanation_da": "På spansk kommer adjektivet (grande) normalt efter substantivet (gato). Korrekt rækkefølge: artikel + substantiv + verbum + adjektiv.",
+          "explanation_da": "På spansk kommer adjektivet (grande) normalt efter substantivet (gato). Korrekt rækkefølge: artikel + substantiv + verbum + adjektiv. 'El gato es grande' = Katten er stor.",
           "points": 1
         }
       ]

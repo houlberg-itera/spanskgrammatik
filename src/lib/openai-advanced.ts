@@ -304,6 +304,27 @@ SPROGADSKILLELSE EKSEMPLER:
 ❌ FORKERT: "Hvilken artikel passer til substantivet 'casa' i sætningen: Jeg har købt _ casa i Spanien?"
 ✅ KORREKT: Instruktion: "Vælg den korrekte artikel til følgende spanske sætning:" + Øvelse: "He comprado _ casa en España"
 
+EKSEMPLER PÅ KORREKTE FILL_BLANK ØVELSER:
+✅ KORREKT format for fill_blank:
+{
+  "id": "fb1",
+  "type": "fill_blank",
+  "question_da": "Udfyld den tomme plads med den korrekte verbform: María _ (hablar) español muy bien.",
+  "correct_answer": "habla",
+  "explanation_da": "Vi bruger 'habla' fordi det er 3. person ental af verbet 'hablar' i præsens.",
+  "difficulty_level": "easy"
+}
+
+✅ KORREKT format for fill_blank (artikel):
+{
+  "id": "fb2", 
+  "type": "fill_blank",
+  "question_da": "Udfyld med den korrekte artikel: Tengo _ perro muy inteligente.",
+  "correct_answer": "un",
+  "explanation_da": "Vi bruger 'un' fordi 'perro' er maskulint og bestemt artikel i entalsform.",
+  "difficulty_level": "medium"
+}
+
 UNDGÅ DISSE EKSISTERENDE SPØRGSMÅL:
 ${existingQuestions.slice(0, 10).map(q => `- "${q}"`).join('\n')}
 
@@ -321,9 +342,16 @@ Focus: Proficienstest der kan vurdere elevens beherskelse af emnet
 KRITISKE KRAV:
 - Du SKAL generere præcis ${questionCount} komplette, funktionelle spørgsmål
 - Hvert spørgsmål SKAL have alle påkrævede felter udfyldt
-- For fill_blank: Brug _ til at markere tomme pladser i sætningen
+- For fill_blank: Brug NØJAGTIGT ÉN _ i question_da og giv ÉT entydigt svar i correct_answer
 - For multiple_choice: Inkluder 4 realistiske svarmuligheder
 - Alle forklaringer skal være detaljerede og pædagogiske på dansk
+${exerciseType === 'fill_blank' ? `
+SÆRLIGE KRAV FOR FILL_BLANK:
+- question_da SKAL indeholde nøjagtigt én _ (underscore) som markerer den tomme plads
+- correct_answer SKAL være et enkelt ord eller kort udtryk (maks 3 ord)
+- Konteksten skal gøre svaret entydigt
+- Undgå tvetydige sætninger hvor flere svar kunne være korrekte
+` : ''}
 
 Returner KUN valid JSON i dette format:
 {
@@ -332,9 +360,9 @@ Returner KUN valid JSON i dette format:
     {
       "id": "q1",
       "type": "${exerciseType}",
-      "question_da": "Spørgsmål på dansk",
+      "question_da": "Spørgsmål på dansk${exerciseType === 'fill_blank' ? ' med _ for tomme pladser' : ''}",
       ${exerciseType === 'multiple_choice' ? `"options": ["option1", "option2", "option3", "option4"],` : ''}
-      "correct_answer": "korrekt svar",
+      "correct_answer": "${exerciseType === 'fill_blank' ? 'enkelt ord eller kort udtryk' : 'korrekt svar'}",
       "explanation_da": "Detaljeret forklaring på dansk med spansk eksempel",
       "difficulty_level": "${difficulty}",
       "proficiency_indicator": "hvilket niveau-mål dette spørgsmål tester"
