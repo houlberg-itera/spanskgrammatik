@@ -288,15 +288,21 @@ ${proficiencyTargets.map(indicator => `- ${indicator}`).join('\n')}
 
 KVALITETSKRAV:
 1. Alle instruktioner og forklaringer på dansk
-2. Spanske eksempler med dansk forklaring
-3. Progressiv sværhedsgrad inden for ${difficulty}-kategorien
-4. Varierede kontekster og situationer
-5. Kulturelt relevante eksempler
-6. Undgå gentagelse af eksisterende spørgsmål
-7. Inkluder distraktoranalyse for multiple choice
-8. Pedagogisk progression mellem spørgsmål
-9. For fill_blank: Brug _ til tomme pladser og sørg for ét entydigt svar
-10. KRAV: Generer MINDST ${questionCount} komplette, valide spørgsmål
+2. KRITISK: Brug RENE SPANSKE SÆTNINGER i øvelser - ingen blanding af dansk og spansk
+3. ALDRIG bland sprog i samme sætning (fx "Jeg har købt _ casa i Spanien" ❌)
+4. Korrekt format: Dansk instruktion + Rent spansk øvelsesindhold (fx "He comprado _ casa en España" ✅)
+5. Progressiv sværhedsgrad inden for ${difficulty}-kategorien
+6. Varierede kontekster og situationer
+7. Kulturelt relevante eksempler
+8. Undgå gentagelse af eksisterende spørgsmål
+9. Inkluder distraktoranalyse for multiple choice
+10. Pedagogisk progression mellem spørgsmål
+11. For fill_blank: Brug _ til tomme pladser og sørg for ét entydigt svar
+12. KRAV: Generer MINDST ${questionCount} komplette, valide spørgsmål
+
+SPROGADSKILLELSE EKSEMPLER:
+❌ FORKERT: "Hvilken artikel passer til substantivet 'casa' i sætningen: Jeg har købt _ casa i Spanien?"
+✅ KORREKT: Instruktion: "Vælg den korrekte artikel til følgende spanske sætning:" + Øvelse: "He comprado _ casa en España"
 
 UNDGÅ DISSE EKSISTERENDE SPØRGSMÅL:
 ${existingQuestions.slice(0, 10).map(q => `- "${q}"`).join('\n')}

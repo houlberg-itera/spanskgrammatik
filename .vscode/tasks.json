@@ -2276,6 +2276,43 @@
 			"type": "shell",
 			"command": "npm start",
 			"isBackground": true
+		},
+		{
+			"label": "Start Production Server on Port 3001",
+			"type": "shell",
+			"command": "npx next start -p 3001",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Create Progress Display Test API",
+			"type": "shell",
+			"command": "mkdir -p src/app/api/test-progress-display && echo 'Directory created'",
+			"group": "build"
+		},
+		{
+			"label": "Create Refresh Progress API Directory",
+			"type": "shell",
+			"command": "mkdir src\\app\\api\\refresh-progress",
+			"group": "build"
+		},
+		{
+			"label": "Copy Route File",
+			"type": "shell",
+			"command": "copy \"src\\app\\api\\quick-progress-test\\route.ts\" \"src\\app\\api\\refresh-progress\\route.ts\"",
+			"group": "build"
+		},
+		{
+			"label": "Delete Corrupt Route File",
+			"type": "shell",
+			"command": "Remove-Item \"src\\app\\api\\refresh-progress\\route.ts\" -Force",
+			"group": "build"
+		},
+		{
+			"label": "Remove File",
+			"type": "shell",
+			"command": "del src\\app\\api\\refresh-progress\\route.ts",
+			"group": "build"
 		}
 	]
 }

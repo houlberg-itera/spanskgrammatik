@@ -205,33 +205,12 @@ BEGIN
   UPDATE public.user_level_progress
   SET 
     progress_percentage = level_progress,
-    completed_at = CASE WHEN level_progress >= 80 THEN NOW() ELSE completed_at END,
+    completed_at = CASE WHEN level_progress >= 100 THEN NOW() ELSE completed_at END,
     updated_at = NOW()
   WHERE user_id = current_user_id AND level = exercise_level;
   
-  -- Update user's current level if they completed 80% of current level
-  IF level_progress >= 80 THEN
-    UPDATE public.users
-    SET 
-      current_level = CASE 
-        WHEN exercise_level = 'A1' THEN 'A2'
-        WHEN exercise_level = 'A2' THEN 'B1'
-        ELSE current_level
-      END,
-      updated_at = NOW()
-    WHERE id = current_user_id AND current_level = exercise_level;
-    
-    -- Initialize next level progress if unlocked
-    IF exercise_level = 'A1' THEN
-      INSERT INTO public.user_level_progress (user_id, level)
-      VALUES (current_user_id, 'A2')
-      ON CONFLICT (user_id, level) DO NOTHING;
-    ELSIF exercise_level = 'A2' THEN
-      INSERT INTO public.user_level_progress (user_id, level)
-      VALUES (current_user_id, 'B1')
-      ON CONFLICT (user_id, level) DO NOTHING;
-    END IF;
-  END IF;
+  -- Note: Automatic level progression removed - users can choose their preferred level
+  -- Progress is tracked but doesn't automatically unlock next levels
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
