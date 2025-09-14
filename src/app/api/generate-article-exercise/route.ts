@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
 FOCUS: ${focus} (definite articles: el/la, indefinite articles: un/una)
 TYPE: ${type}
 
+CRITICAL: Use PURE SPANISH sentences with article blanks. No mixing of Danish and Spanish.
+
 DANISH CONTEXT FOR LEARNERS:
 - Danish only has "en/et" (indefinite) and "-en/-et" (definite)
 - Spanish has el/la (definite) and un/una (indefinite) + gender
@@ -36,22 +38,22 @@ EXERCISE REQUIREMENTS:
 
 ${type === 'multiple_choice' ? `
 FORMAT: Multiple choice with 4 options each
-- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
+- Question format: "Vælg den korrekte artikel til følgende spanske sætning:" followed by a pure Spanish sentence like "He comprado _ casa en España"
 - Options: A) el, B) la, C) un, D) una
 - Explanation in Danish why the answer is correct
-- NO parentheses with Danish translations in the question
+- NO mixing of Danish and Spanish in the same sentence
 ` : type === 'fill_blank' ? `
 FORMAT: Fill in the blank
-- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
+- Question format: "Udfyld den manglende artikel i følgende spanske sætning:" followed by a pure Spanish sentence with blank like "Tengo _ perro muy grande"
 - Student types the correct article (el/la/un/una)
 - Immediate feedback in Danish explaining the grammar rule
-- NO parentheses with Danish translations in the question
+- NO mixing of Danish and Spanish in the same sentence
 ` : `
 FORMAT: Translation exercise
-- Question format: "Skriv den bestemte artikel af [spanish_word]" eller "Skriv den ubestemte artikel af [spanish_word]"
-- Focus on getting the article + noun correct
-- Include context about definiteness (bestemt/ubestemt)
-- NO parentheses with Danish translations in the question
+- Question format: "Udfyld den korrekte artikel i følgende spanske sætning:" followed by a pure Spanish sentence
+- Focus on getting the article + noun correct in Spanish context
+- Include context about definiteness (bestemt/ubestemt) in Danish explanation
+- NO mixing of Danish and Spanish in the exercise sentence
 `}
 
 VOCABULARY GUIDELINES:
@@ -65,7 +67,7 @@ Generate the exercise as a JSON object with:
   "description": "Brief description in Danish",
   "questions": [
     {
-      "question": "Question text in Danish/Spanish",
+      "question": "Pure Spanish sentence with blank like 'Tengo _ casa grande' or Danish instruction + Spanish sentence",
       "type": "${type}",
       ${type === 'multiple_choice' ? `
       "options": ["A) el", "B) la", "C) un", "D) una"],
@@ -88,14 +90,22 @@ Generate the exercise as a JSON object with:
           role: 'system',
           content: `You are a Spanish grammar expert who specializes in teaching Spanish articles to Danish speakers. You understand the key differences between Danish and Spanish article systems and can explain them clearly in Danish.
 
+CRITICAL LANGUAGE REQUIREMENTS:
+- NEVER mix Danish and Spanish in the same sentence
+- Use PURE SPANISH sentences for exercises (e.g., "He comprado _ casa en España" ✅)
+- AVOID mixed sentences like "Jeg har købt _ casa i Spanien" ❌
+- Instructions should be in Danish, separate from the Spanish exercise content
+- Questions should present Spanish sentences with article blanks
+
 Key points to remember:
 - Danish: en/et (indefinite), -en/-et (definite) - no gender distinction  
 - Spanish: un/una (indefinite), el/la (definite) - with gender distinction
 - Always explain in Danish why specific articles are used
 - Focus on practical learning with clear comparisons
-- IMPORTANT: Questions should be formatted as "Skriv den bestemte artikel af [spanish_word]" or "Skriv den ubestemte artikel af [spanish_word]"
-- NEVER include Danish translations in parentheses like "(håndet/en)" or "(problemet/en)" in the question text
-- Keep questions clean and simple without hints that may contain grammatical errors`
+- IMPORTANT: Format questions as "Vælg den korrekte artikel til følgende spanske sætning:" followed by a pure Spanish sentence
+- NEVER include Danish translations in parentheses in the question text
+- Keep Spanish sentences grammatically correct and natural
+- Separate Danish instructions from Spanish exercise content`
         },
         {
           role: 'user',

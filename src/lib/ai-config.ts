@@ -68,7 +68,7 @@ export function getDefaultConfiguration(configName: string): AIConfiguration {
       temperature: 0.7,
       max_tokens: 1500,
       system_prompt: 'Du er en ekspert spansklærer for danske studerende. Opret øvelser på {{level}} niveau for emnet "{{topic}}" ({{topicDescription}}). Fokuser på {{exerciseType}} øvelser. Alle instruktioner, spørgsmål og forklaringer skal være på dansk. Svar altid i valid JSON format.',
-      user_prompt_template: 'Opret {{questionCount}} {{exerciseType}} spørgsmål om "{{topic}}" på {{level}} niveau. Svar i valid JSON format med denne struktur:\n\n{\n  "instructions_da": "Instruktioner på dansk",\n  "questions": [\n    {\n      "id": "unique_id",\n      "type": "question_type",\n      "question_da": "Spørgsmål på dansk",\n      "options": ["mulighed1", "mulighed2", "mulighed3", "mulighed4"],\n      "correct_answer": "korrekte svar",\n      "explanation_da": "Forklaring på dansk med spansk eksempel",\n      "points": 1\n    }\n  ]\n}',
+      user_prompt_template: 'Opret {{questionCount}} {{exerciseType}} spørgsmål om "{{topic}}" på {{level}} niveau med {{difficulty}} sværhedsgrad. KRITISK: Brug rene spanske sætninger i øvelser uden danske ord. Eksempel FORKERT: "Jeg har købt _ casa i Spanien". Eksempel KORREKT: Instruktion på dansk + Spansk sætning: "He comprado _ casa en España". Svar i valid JSON format med denne struktur:\n\n{\n  "instructions_da": "Instruktioner på dansk",\n  "questions": [\n    {\n      "id": "unique_id",\n      "type": "question_type",\n      "question_da": "Spørgsmål på dansk (ren dansk)",\n      "options": ["mulighed1", "mulighed2", "mulighed3", "mulighed4"],\n      "correct_answer": "korrekte svar",\n      "explanation_da": "Forklaring på dansk med spansk eksempel",\n      "points": 1\n    }\n  ]\n}',
       examples: {
         grammar: {
           instructions_da: "Vælg den korrekte form af verbum 'ser' eller 'estar'",
@@ -102,7 +102,7 @@ export function getDefaultConfiguration(configName: string): AIConfiguration {
       model_name: 'gpt-4o',
       temperature: 0.7,
       max_tokens: 2500,
-      system_prompt: 'Du er en ekspert spansklærer for danske studerende. Du skal oprette {{questionCount}} øvelser på {{level}} niveau for emnet "{{topic}}" med sværhedsgrad {{difficulty}}. Fokuser på {{exerciseType}} øvelser. Alle instruktioner og forklaringer skal være på dansk. Svar altid i valid JSON format.',
+      system_prompt: 'Du er en ekspert spansklærer for danske studerende. Du skal oprette {{questionCount}} øvelser på {{level}} niveau for emnet "{{topic}}" med sværhedsgrad {{difficulty}}. Fokuser på {{exerciseType}} øvelser. KRITISK: Alle instruktioner og forklaringer skal være på dansk. Øvelsessætninger skal være på rent spansk UDEN dansk indblandet. ALDRIG bland dansk og spansk i samme sætning (fx "Jeg har købt _ casa i Spanien" ❌). Korrekt format: Dansk instruktion + Rent spansk øvelse (fx "He comprado _ casa en España" ✅). Svar altid i valid JSON format.',
       user_prompt_template: 'Opret {{questionCount}} {{exerciseType}} spørgsmål om "{{topic}}" på {{level}} niveau med {{difficulty}} sværhedsgrad.',
       examples: {},
       retry_config: { maxRetries: 3, baseDelay: 1000 }

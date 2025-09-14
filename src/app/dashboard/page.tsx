@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [userProgress, setUserProgress] = useState<UserLevelProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState<string | null>(null);
   const [assessmentResults, setAssessmentResults] = useState<Record<string, any>>({});
   
@@ -20,6 +21,30 @@ export default function Dashboard() {
   useEffect(() => {
     checkUser();
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refresh data when the page becomes visible (user returns from exercises)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Dashboard became visible, refreshing progress data...');
+        fetchData();
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('Dashboard focused, refreshing progress data...');
+      fetchData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -42,7 +67,11 @@ export default function Dashboard() {
   }, [router, supabase]);
 
   const fetchData = useCallback(async () => {
+    if (!loading) setRefreshing(true);
+    
     try {
+      console.log('Fetching dashboard data...');
+      
       // Fetch levels
       const { data: levelsData } = await supabase
         .from('levels')
@@ -51,6 +80,7 @@ export default function Dashboard() {
 
       if (levelsData) {
         setLevels(levelsData);
+        console.log('Levels loaded:', levelsData.length);
       }
 
       // Fetch user progress
@@ -63,14 +93,17 @@ export default function Dashboard() {
 
         if (progressData) {
           setUserProgress(progressData);
+          console.log('User level progress loaded:', progressData.length, 'levels');
+          console.log('Progress data:', progressData);
         }
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [supabase]);
+  }, [supabase, loading]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -82,13 +115,8 @@ export default function Dashboard() {
   };
 
   const isLevelUnlocked = (levelName: string, orderIndex: number) => {
-    if (orderIndex === 1) return true; // A1 is always unlocked
-    
-    const previousLevel = levels.find(l => l.order_index === orderIndex - 1);
-    if (!previousLevel) return false;
-    
-    const previousProgress = getLevelProgress(previousLevel.name);
-    return previousProgress && previousProgress.progress_percentage >= 80;
+    // All levels are now unlocked - users can choose their preferred level
+    return true;
   };
 
   const requestAiAssessment = async (level: string) => {
@@ -140,6 +168,14 @@ export default function Dashboard() {
               {user && (
                 <span className="text-gray-700">Hej, {user.full_name || user.email}!</span>
               )}
+              <button
+                onClick={fetchData}
+                disabled={refreshing}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                title="Opdater fremgang"
+              >
+                {refreshing ? '🔄 Opdaterer...' : '🔄 Opdater'}
+              </button>
               <button
                 onClick={handleSignOut}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
@@ -318,29 +354,90 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Statistics */}
+        {/* Enhanced Statistics */}
         <div className="mt-12 bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Mine Statistikker</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">Mine Statistikker</h3>
+            {refreshing && (
+              <div className="text-sm text-blue-600 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Opdaterer...
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-3xl font-bold text-blue-600">
                 {userProgress.filter(p => p.completed_at).length}
               </div>
               <div className="text-sm text-gray-600">Afsluttede niveauer</div>
+              <div className="text-xs text-gray-500 mt-1">
+                af {levels.length} tilgængelige
+              </div>
             </div>
+            
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {Math.round(userProgress.reduce((acc, p) => acc + p.progress_percentage, 0) / userProgress.length) || 0}%
+              <div className="text-3xl font-bold text-green-600">
+                {userProgress.length > 0 ? 
+                  Math.round(userProgress.reduce((acc, p) => acc + p.progress_percentage, 0) / userProgress.length) : 0}%
               </div>
               <div className="text-sm text-gray-600">Gennemsnitlig fremgang</div>
+              <div className="text-xs text-gray-500 mt-1">
+                på tværs af alle niveauer
+              </div>
             </div>
+            
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {user?.current_level}
+              <div className="text-3xl font-bold text-purple-600">
+                {user?.current_level || 'A1'}
               </div>
               <div className="text-sm text-gray-600">Nuværende niveau</div>
+              <div className="text-xs text-gray-500 mt-1">
+                kan vælges frit
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-600">
+                {userProgress.reduce((acc, p) => acc + (p.progress_percentage > 0 ? 1 : 0), 0)}
+              </div>
+              <div className="text-sm text-gray-600">Aktive niveauer</div>
+              <div className="text-xs text-gray-500 mt-1">
+                med fremgang &gt; 0%
+              </div>
             </div>
           </div>
+
+          {/* Detailed Progress Breakdown */}
+          {userProgress.length > 0 && (
+            <div className="mt-8 border-t pt-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Detaljeret Fremgang</h4>
+              <div className="space-y-3">
+                {userProgress.map((progress) => (
+                  <div key={progress.level} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium text-gray-900">Niveau {progress.level}</span>
+                      {progress.completed_at && (
+                        <span className="text-green-600 text-sm">✓ Afsluttet</span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress.progress_percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 w-12 text-right">
+                        {progress.progress_percentage}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

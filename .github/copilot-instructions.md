@@ -65,8 +65,8 @@ All major components have been implemented and enhanced with comprehensive AI-po
 - JSONB content structure for flexible exercise data
 
 ### ✅ Level Progression System
-- A1, A2, B1 language levels with locked progression
-- 80% completion requirement to unlock next level
+- A1, A2, B1 language levels with free level selection
+- Users can choose any level they want to practice
 - Visual progress tracking and statistics
 
 ### ✅ Exercise System

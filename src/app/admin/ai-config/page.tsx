@@ -398,12 +398,17 @@ function ConfigurationForm({ config, onSave, onCancel, saving }: ConfigurationFo
     max_tokens: config?.max_tokens || 2000,
     system_prompt: config?.system_prompt || `Du er en ekspert i spansk grammatik og sprogpædagogik med speciale i at skabe valide proficienstests for danske studerende.
 
-VIGTIGE KRAV:
+KRITISKE SPROGKRAV:
 1. Alle instruktioner og forklaringer skal være på DANSK
-2. Spørgsmål og svar skal være på SPANSK (med undtagelse af oversættelsesopgaver)
-3. Svar skal altid være JSON-format uden markdown
-4. Skab variation i spørgstyper og sværhedsgrad
-5. Fokuser på praktisk anvendelse og common mistakes danske studerende laver
+2. Spanske øvelser skal bruge RENE SPANSKE SÆTNINGER - ingen blanding af dansk og spansk
+3. ALDRIG bland dansk og spansk i samme sætning (fx "Jeg har købt _ casa i Spanien" ❌)
+4. Brug kun spansk i øvelsessætninger (fx "He comprado _ casa en España" ✅)
+5. Danske instruktioner ADSKILT fra spanske sætninger
+6. Svar skal altid være JSON-format uden markdown
+
+EKSEMPEL PÅ KORREKT FORMATERING:
+❌ FORKERT: "Jeg har købt _ casa i Spanien" (blanding af dansk og spansk)
+✅ KORREKT: Instruktion på dansk: "Vælg den korrekte artikel til sætningen:" + Spansk sætning: "He comprado _ casa en España"
 
 SVÆRHEDSGRADER:
 - A1 (Begynder): Grundlæggende grammatik, almindelige verber, simple sætninger
@@ -414,16 +419,33 @@ KVALITETSKRAV:
 - Hver opgave skal teste specifik grammatisk viden
 - Distraktorer (forkerte svar) skal være plausible og teste almindelige fejl
 - Forklaringer skal hjælpe med at forstå reglen, ikke bare angive svaret
-- Variér ordforråd og kontekster for at teste faktisk beherskelse`,
+- Variér ordforråd og kontekster for at teste faktisk beherskelse
+- ALTID separer dansk instruktion fra spansk øvelsesindhold`,
     user_prompt_template: config?.user_prompt_template || `Generer {{questionCount}} {{exerciseType}} øvelser for emnet "{{topic}}" på {{level}}-niveau med {{difficulty}} sværhedsgrad.
 
 Emne beskrivelse: {{topicDescription}}
+
+KRITISKE SPROGKRAV:
+- ADSKIL dansk instruktion fra spansk øvelsesindhold
+- UNDGÅ blanding af dansk og spansk i samme sætning
+- Brug kun rene spanske sætninger i øvelserne
+- Danske forklaringer kommer EFTER de spanske øvelser
+
+EKSEMPEL PÅ KORREKT ARTIKEL-ØVELSE:
+Instruktion (dansk): "Vælg den korrekte artikel til følgende spanske sætning:"
+Øvelse (rent spansk): "He comprado _ casa en España"
+Svar: "una"
+Forklaring (dansk): "Casa er hunkøn, og her bruges ubestemt artikel"
+
+EKSEMPEL PÅ FORKERT BLANDING:
+❌ "Jeg har købt _ casa i Spanien" (blander dansk og spansk)
 
 Krav til output:
 - Exact JSON format som specificeret
 - Variation i ordforråd og kontekster  
 - Forklaringer på dansk der hjælper forståelse
 - Plausible distraktorer der tester almindelige fejl
+- Rene spanske sætninger uden danske ord indblandet
 
 {{existingQuestionsContext}}`,
     is_active: config?.is_active ?? true
