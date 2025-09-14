@@ -66,6 +66,7 @@ export interface AdvancedGenerateExerciseParams {
   generateVariations?: boolean;
   includeExplanations?: boolean;
   targetProficiency?: boolean;
+  model?: string; // OpenAI model to use (e.g., 'gpt-4o', 'gpt-5')
 }
 
 interface ProficiencyIndicator {
@@ -164,6 +165,7 @@ export async function generateAdvancedExercise({
   generateVariations = true,
   includeExplanations = true,
   targetProficiency = true,
+  model = 'gpt-4o', // Default to GPT-4o if not specified
 }: AdvancedGenerateExerciseParams): Promise<EnhancedExerciseContent> {
   console.log('🤖 OpenAI Advanced: Starting exercise generation...');
   console.log('📋 Parameters:', {
@@ -176,7 +178,8 @@ export async function generateAdvancedExercise({
     existingQuestionsCount: existingQuestions.length,
     generateVariations,
     includeExplanations,
-    targetProficiency
+    targetProficiency,
+    model
   });
 
   // GPT-5 reasoning token retry logic - reduce question count on reasoning token issues
@@ -197,7 +200,8 @@ export async function generateAdvancedExercise({
         existingQuestions,
         generateVariations,
         includeExplanations,
-        targetProficiency
+        targetProficiency,
+        model
       });
       
     } catch (error: any) {
@@ -229,6 +233,7 @@ async function generateAdvancedExerciseInternal({
   generateVariations = true,
   includeExplanations = true,
   targetProficiency = true,
+  model = 'gpt-4o',
 }: AdvancedGenerateExerciseParams): Promise<EnhancedExerciseContent> {
 
   // Check OpenAI API key
@@ -350,17 +355,17 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
   console.log('📝 User prompt length:', userPrompt.length);
 
   try {
-    console.log('🌐 Making OpenAI API call with model: gpt-5');
+    console.log(`🌐 Making OpenAI API call with model: ${model}`);
     const completion = await retryWithBackoff(async () => {
       console.log('🔄 Attempting OpenAI API call...');
       return await openai.chat.completions.create({
-        model: "gpt-5",
+        model: model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 1,  // GPT-5 only supports temperature: 1
-        max_completion_tokens: 4000,  // Increased from 3000 for better GPT-5 utilization
+        temperature: model === 'gpt-5' ? 1 : 0.7,  // GPT-5 only supports temperature: 1, others can use 0.7
+        max_completion_tokens: model === 'gpt-5' ? 4000 : 3000,  // Higher token limit for GPT-5
       });
     });
 

@@ -51,13 +51,35 @@ export async function POST(request: NextRequest) {
     if (!adminEmails.includes(userEmail || '')) {
       console.log(`❌ Access denied for ${userEmail}`);
       return NextResponse.json({ 
-        error: 'Admin access required for exercise generation',
+        error: `Admin access required. Your email (${userEmail}) is not in the admin list.`,
         userEmail: userEmail,
-        adminEmails: adminEmails
+        adminEmails: adminEmails,
+        message: 'Please add your email to the ADMIN_EMAILS environment variable to access exercise generation.'
       }, { status: 403 });
     }
     
     console.log(`✅ Admin access granted for ${userEmail}`);
+
+    // Fetch AI configuration to get the selected model
+    console.log('🔍 Fetching AI configuration for model selection...');
+    let selectedModel = 'gpt-4o'; // Default fallback
+    try {
+      const { data: configs, error: configError } = await adminSupabase
+        .from('ai_configurations')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+      
+      if (configs && !configError) {
+        selectedModel = configs.model_name || 'gpt-4o';
+        console.log(`✅ Using configured AI model: ${selectedModel}`);
+      } else {
+        console.log(`⚠️ No active AI configuration found, using default: ${selectedModel}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch AI configuration:', error);
+      console.log(`⚠️ Using default model: ${selectedModel}`);
+    }
 
     console.log(`📝 Parsing request body [${requestId}]...`);
     const body = await request.json();
@@ -91,17 +113,44 @@ export async function POST(request: NextRequest) {
     if (!exerciseType) missingFields.push('exerciseType');
     if (!count) missingFields.push('count');
     if (!difficulty && !difficultyDistribution) missingFields.push('difficulty or difficultyDistribution');
-    if (!level) missingFields.push('level');
-    if (!topicName) missingFields.push('topicName');
 
     if (missingFields.length > 0) {
       console.error('❌ Missing required fields:', missingFields);
       console.error('❌ Received body:', JSON.stringify(body, null, 2));
       return NextResponse.json({ 
-        error: `Missing required fields: ${missingFields.join(', ')}`,
-        received: body,
-        required: ['topicId', 'exerciseType', 'count', 'difficulty or difficultyDistribution', 'level', 'topicName']
+        error: `Missing required fields: ${JSON.stringify(missingFields)}`,
+        receivedBody: body,
+        requiredFields: ['topicId', 'exerciseType', 'count', 'difficulty or difficultyDistribution']
       }, { status: 400 });
+    }
+
+    // Fetch topic details from database if not provided
+    let finalLevel = level;
+    let finalTopicName = topicName;
+    let finalTopicDescription = topicDescription;
+
+    if (!level || !topicName) {
+      console.log(`🔍 Fetching topic details for ID: ${topicId}`);
+      const { data: topic, error: topicError } = await adminSupabase
+        .from('topics')
+        .select('*')
+        .eq('id', topicId)
+        .single();
+
+      if (topicError || !topic) {
+        console.error('❌ Topic not found:', topicError);
+        return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
+      }
+
+      finalLevel = level || topic.level;
+      finalTopicName = topicName || topic.name_da;
+      finalTopicDescription = topicDescription || topic.description_da;
+      
+      console.log(`✅ Topic details fetched:`, {
+        level: finalLevel,
+        name: finalTopicName,
+        description: finalTopicDescription
+      });
     }
 
     console.log('✅ All required fields present');
@@ -119,10 +168,10 @@ export async function POST(request: NextRequest) {
     const validDifficulties = ['easy', 'medium', 'hard'];
     const validExerciseTypes = ['multiple_choice', 'fill_blank', 'translation', 'conjugation', 'sentence_structure'];
 
-    if (!validLevels.includes(level)) {
-      console.error(`❌ Invalid level: ${level}`);
+    if (!validLevels.includes(finalLevel)) {
+      console.error(`❌ Invalid level: ${finalLevel}`);
       return NextResponse.json({ 
-        error: `Invalid level: ${level}. Must be one of: ${validLevels.join(', ')}` 
+        error: `Invalid level: ${finalLevel}. Must be one of: ${validLevels.join(', ')}` 
       }, { status: 400 });
     }
 
@@ -154,7 +203,7 @@ export async function POST(request: NextRequest) {
       ? Object.entries(difficultyDistribution).filter(([_, percentage]) => (percentage as number) > 0)
       : [[difficulty || 'medium', 100]];
     
-    console.log(`🤖 Generating ${actualCount} ${exerciseType} exercises for topic: ${topicName} (${level}) [${requestId}]`);
+    console.log(`🤖 Generating ${actualCount} ${exerciseType} exercises for topic: ${finalTopicName} (${finalLevel}) [${requestId}]`);
     console.log(`📊 Difficulty distribution [${requestId}]:`, difficulties);
 
     // Check for recent generation to prevent rapid duplicates (reduced from 5 minutes to 2 minutes for GPT-5)
@@ -203,9 +252,9 @@ export async function POST(request: NextRequest) {
 
       // Generate exercise content using enhanced AI
       console.log('🤖 Calling generateAdvancedExercise with parameters:', {
-        level: level as SpanishLevel,
-        topic: topicName,
-        topicDescription: topicDescription || '',
+        level: finalLevel as SpanishLevel,
+        topic: finalTopicName,
+        topicDescription: finalTopicDescription || '',
         exerciseType,
         questionCount: difficultyCount,
         difficulty: difficultyLevel,
@@ -219,16 +268,17 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`🔄 Starting OpenAI generation for ${difficultyLevel} difficulty [${requestId}]...`);
         exerciseContent = await generateAdvancedExercise({
-          level: level as SpanishLevel,
-          topic: topicName,
-          topicDescription: topicDescription || '',
+          level: finalLevel as SpanishLevel,
+          topic: finalTopicName,
+          topicDescription: finalTopicDescription || '',
           exerciseType,
           questionCount: difficultyCount,
           difficulty: difficultyLevel,
           existingQuestions,
           generateVariations: true,
           includeExplanations: true,
-          targetProficiency: true
+          targetProficiency: true,
+          model: selectedModel // Use the configured model
         });
         console.log(`✅ OpenAI generation completed for ${difficultyLevel} difficulty [${requestId}]`);
       } catch (openaiError: any) {
@@ -331,14 +381,14 @@ export async function POST(request: NextRequest) {
         
         const exerciseData = {
           topic_id: topicId,
-          level: level,
+          level: finalLevel,
           type: getExerciseTypeFromQuestionType(exerciseType),
-          title_da: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
-          title_es: `${topicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
-          description_da: `AI-genereret ${diffLevel} øvelse om ${topicName} med ${questionsSlice.length} spørgsmål`,
-          description_es: `Ejercicio ${diffLevel} generado por IA sobre ${topicName} con ${questionsSlice.length} preguntas`,
+          title_da: `${finalTopicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
+          title_es: `${finalTopicName} - ${exerciseType} (${diffLevel.toUpperCase()}) #${exerciseCounter}`,
+          description_da: `AI-genereret ${diffLevel} øvelse om ${finalTopicName} med ${questionsSlice.length} spørgsmål`,
+          description_es: `Ejercicio ${diffLevel} generado por IA sobre ${finalTopicName} con ${questionsSlice.length} preguntas`,
           content: {
-            instructions_da: `Besvar følgende spørgsmål om ${topicName}. Sværhedsgrad: ${diffLevel}`,
+            instructions_da: `Besvar følgende spørgsmål om ${finalTopicName}. Sværhedsgrad: ${diffLevel}`,
             questions: questionsSlice,
             metadata: {
               difficulty: diffLevel,

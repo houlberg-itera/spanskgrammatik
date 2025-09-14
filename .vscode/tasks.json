@@ -2128,6 +2128,154 @@
 			"label": "Add final file",
 			"type": "shell",
 			"command": "git add .vscode/tasks.json"
+		},
+		{
+			"label": "Final commit",
+			"type": "shell",
+			"command": "git commit -m 'Final tasks.json line ending update'"
+		},
+		{
+			"label": "Push final commit",
+			"type": "shell",
+			"command": "git push origin FixVercelErrors"
+		},
+		{
+			"label": "Final status verification",
+			"type": "shell",
+			"command": "git status"
+		},
+		{
+			"label": "Check status concisely",
+			"type": "shell",
+			"command": "git status --porcelain"
+		},
+		{
+			"label": "Clean and Build Production",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Production Build",
+			"type": "shell",
+			"command": "powershell -Command \"Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run build\"",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Start Production Server",
+			"type": "shell",
+			"command": "npm run start",
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Create test-ai-config directory",
+			"type": "shell",
+			"command": "mkdir \"src\\app\\api\\test-ai-config\""
+		},
+		{
+			"label": "Create route.ts file",
+			"type": "shell",
+			"command": "echo. > \"src\\app\\api\\test-ai-config\\route.ts\""
+		},
+		{
+			"label": "Remove corrupted AI config file",
+			"type": "shell",
+			"command": "Remove-Item -Force 'src/app/admin/ai-config/page.tsx'",
+			"group": "build"
+		},
+		{
+			"label": "Create new AI config file",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/admin/ai-config/page.tsx' -ItemType File -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create API directories",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/ai-config/configurations' -ItemType Directory -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create route file",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/ai-config/configurations/route.ts' -ItemType File -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create dynamic route directory",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/ai-config/configurations/[id]' -ItemType Directory -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create dynamic route file",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/ai-config/configurations/[id]/route.ts' -ItemType File -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create test endpoint directory",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/test-ai-config' -ItemType Directory -Force",
+			"group": "build"
+		},
+		{
+			"label": "Create test endpoint file",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/test-ai-config/route.ts' -ItemType File -Force",
+			"group": "build"
+		},
+		{
+			"label": "Manual Clean Start",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"if (Test-Path '.next') { Start-Process powershell -ArgumentList '-Command', 'Remove-Item -Recurse -Force .next' -Verb RunAs -Wait }; npm run dev"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Start Next Dev Server",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Start Dev Server Port 3001",
+			"type": "shell",
+			"command": "npm run dev",
+			"args": [
+				"--",
+				"--port",
+				"3001"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Next Dev Port 3001",
+			"type": "shell",
+			"command": "npx next dev --port 3001",
+			"isBackground": true
+		},
+		{
+			"label": "Production Build",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false
+		},
+		{
+			"label": "Start Production Server",
+			"type": "shell",
+			"command": "npm start",
+			"isBackground": true
 		}
 	]
 }

@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const adminPages = [
     { href: '/admin/dashboard', label: '📊 Dashboard', description: 'Oversigt over bruger performance og øvelses behov' },
     { href: '/admin/exercise-generator', label: '🤖 AI Øvelses Generator', description: 'Bulk generering af AI øvelser' },
+    { href: '/admin/ai-config', label: '⚙️ AI Konfiguration', description: 'GPT-5 system status og konfiguration' },
     { href: '/admin/proficiency-analysis', label: '📈 Proficiency Analyse', description: 'Detaljeret bruger performance analyse' },
     { href: '/admin/content-management', label: '📚 Indhold Styring', description: 'Administrer emner og øvelser' },
   ];

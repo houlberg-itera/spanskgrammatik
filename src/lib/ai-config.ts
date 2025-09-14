@@ -147,3 +147,155 @@ export function replaceTemplateVariables(
   
   return result;
 }
+
+// CRUD Operations for AI Configurations
+
+export async function getAllConfigurations(): Promise<AIConfiguration[]> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: configs, error } = await supabase
+      .from('ai_configurations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all configurations:', error);
+      throw new Error('Failed to fetch configurations');
+    }
+
+    return configs || [];
+  } catch (error) {
+    console.error('Error in getAllConfigurations:', error);
+    throw error;
+  }
+}
+
+export async function createConfiguration(config: Omit<AIConfiguration, 'id' | 'created_at' | 'updated_at'>): Promise<AIConfiguration> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: newConfig, error } = await supabase
+      .from('ai_configurations')
+      .insert([{
+        name: config.name,
+        description: config.description,
+        model_name: config.model_name,
+        temperature: config.temperature,
+        max_tokens: config.max_tokens,
+        system_prompt: config.system_prompt,
+        user_prompt_template: config.user_prompt_template,
+        examples: config.examples || {},
+        retry_config: config.retry_config || { maxRetries: 3, baseDelay: 1000 },
+        is_active: config.is_active
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating configuration:', error);
+      throw new Error('Failed to create configuration');
+    }
+
+    // Clear cache for the new configuration
+    clearConfigCache(config.name);
+
+    return newConfig;
+  } catch (error) {
+    console.error('Error in createConfiguration:', error);
+    throw error;
+  }
+}
+
+export async function updateConfiguration(id: number, config: Partial<AIConfiguration>): Promise<AIConfiguration> {
+  try {
+    const supabase = await createClient();
+    
+    const updateData: any = {};
+    if (config.name !== undefined) updateData.name = config.name;
+    if (config.description !== undefined) updateData.description = config.description;
+    if (config.model_name !== undefined) updateData.model_name = config.model_name;
+    if (config.temperature !== undefined) updateData.temperature = config.temperature;
+    if (config.max_tokens !== undefined) updateData.max_tokens = config.max_tokens;
+    if (config.system_prompt !== undefined) updateData.system_prompt = config.system_prompt;
+    if (config.user_prompt_template !== undefined) updateData.user_prompt_template = config.user_prompt_template;
+    if (config.examples !== undefined) updateData.examples = config.examples;
+    if (config.retry_config !== undefined) updateData.retry_config = config.retry_config;
+    if (config.is_active !== undefined) updateData.is_active = config.is_active;
+
+    updateData.updated_at = new Date().toISOString();
+
+    const { data: updatedConfig, error } = await supabase
+      .from('ai_configurations')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating configuration:', error);
+      throw new Error('Failed to update configuration');
+    }
+
+    // Clear cache for the updated configuration
+    clearConfigCache(updatedConfig.name);
+
+    return updatedConfig;
+  } catch (error) {
+    console.error('Error in updateConfiguration:', error);
+    throw error;
+  }
+}
+
+export async function deleteConfiguration(id: number): Promise<void> {
+  try {
+    const supabase = await createClient();
+    
+    // First get the configuration to clear its cache
+    const { data: config } = await supabase
+      .from('ai_configurations')
+      .select('name')
+      .eq('id', id)
+      .single();
+
+    const { error } = await supabase
+      .from('ai_configurations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting configuration:', error);
+      throw new Error('Failed to delete configuration');
+    }
+
+    // Clear cache for the deleted configuration
+    if (config?.name) {
+      clearConfigCache(config.name);
+    }
+  } catch (error) {
+    console.error('Error in deleteConfiguration:', error);
+    throw error;
+  }
+}
+
+export async function getConfigurationById(id: number): Promise<AIConfiguration | null> {
+  try {
+    const supabase = await createClient();
+    
+    const { data: config, error } = await supabase
+      .from('ai_configurations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching configuration by ID:', error);
+      return null;
+    }
+
+    return config;
+  } catch (error) {
+    console.error('Error in getConfigurationById:', error);
+    return null;
+  }
+}
