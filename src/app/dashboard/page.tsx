@@ -70,8 +70,6 @@ export default function Dashboard() {
     if (!loading) setRefreshing(true);
     
     try {
-      console.log('Fetching dashboard data...');
-      
       // Fetch levels
       const { data: levelsData } = await supabase
         .from('levels')
@@ -80,21 +78,22 @@ export default function Dashboard() {
 
       if (levelsData) {
         setLevels(levelsData);
-        console.log('Levels loaded:', levelsData.length);
       }
 
       // Fetch user progress
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
-        const { data: progressData } = await supabase
+        console.log(`📊 Dashboard: Fetching progress for user ${currentUser.id}`);
+        const { data: progressData, error: progressError } = await supabase
           .from('user_level_progress')
           .select('*')
           .eq('user_id', currentUser.id);
 
-        if (progressData) {
-          setUserProgress(progressData);
-          console.log('User level progress loaded:', progressData.length, 'levels');
-          console.log('Progress data:', progressData);
+        if (progressError) {
+          console.error('❌ Dashboard: Error fetching progress:', progressError);
+        } else {
+          console.log(`📈 Dashboard: Retrieved progress for ${progressData?.length || 0} levels:`, progressData);
+          setUserProgress(progressData || []);
         }
       }
     } catch (error) {
@@ -308,32 +307,6 @@ export default function Dashboard() {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Article Training Module */}
-            <div className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-center mb-4">
-                <span className="text-3xl mr-3">📝</span>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900">Artikel Træning</h4>
-                  <p className="text-sm text-gray-600">el/la, un/una for danske talere</p>
-                </div>
-              </div>
-              <p className="text-gray-700 mb-4">
-                Mestre brugen af spanske artikler med dansk sammenligning. Lær forskellen mellem 
-                bestemt/ubestemt og hankøn/hunkøn med interaktive øvelser og AI-genereret indhold.
-              </p>
-              <div className="space-y-2">
-                <Link
-                  href="/article-training"
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
-                >
-                  🎯 Start Artikel Træning
-                </Link>
-                <div className="text-xs text-gray-500 text-center">
-                  ✨ Inkluderer AI-drevne øvelser og danske forklaringer
-                </div>
-              </div>
-            </div>
-
             {/* Future Training Modules Placeholder */}
             <div className="border border-gray-200 rounded-lg p-6 opacity-50">
               <div className="flex items-center mb-4">

@@ -563,18 +563,6 @@
 			"group": "build"
 		},
 		{
-			"label": "Fix corrupted component",
-			"type": "shell",
-			"command": "copy \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator_fixed.tsx\" \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator.tsx\"",
-			"group": "build"
-		},
-		{
-			"label": "Cleanup temp file",
-			"type": "shell",
-			"command": "Remove-Item \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ArticleExerciseGenerator_fixed.tsx\" -Force",
-			"group": "build"
-		},
-		{
 			"label": "Restart Next.js Server",
 			"type": "shell",
 			"command": "npx next dev",
@@ -2323,6 +2311,139 @@
 			"label": "Cleanup Fill Blank Test",
 			"type": "shell",
 			"command": "Remove-Item test-fill-blank-generation.js -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Complete Clean and Build",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item -Path '.next' -Recurse -Force -ErrorAction SilentlyContinue; Start-Sleep 2; npm run build"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Force Kill All Processes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Unix Style Clean and Build",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"taskkill /F /IM node.exe /T; sleep 3; rm -rf .next; npm run build"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Run Clean and Build Script",
+			"type": "shell",
+			"command": ".\\clean-and-build.bat",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check and Start Dev Server",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"echo 'Checking build status...'; if (Test-Path '.next') { echo '.next directory exists'; npm run dev } else { echo 'Build may have failed'; npm run dev }"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Fix .next permissions and restart",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Start-Sleep 3; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Start-Sleep 2; npm run dev"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Remove Article Training Files",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force 'src\\app\\article-training' -ErrorAction SilentlyContinue; Remove-Item -Force 'src\\components\\ArticleTrainer.tsx' -ErrorAction SilentlyContinue; Remove-Item -Force 'src\\components\\ArticleExerciseGenerator.tsx' -ErrorAction SilentlyContinue; Remove-Item -Force 'src\\components\\ArticleExerciseGenerator_fixed.tsx' -ErrorAction SilentlyContinue; Write-Host 'Article training files removed'"
+		},
+		{
+			"label": "Test Build Without Article Training",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; npm run build"
+		},
+		{
+			"label": "Simple Build Test",
+			"type": "shell",
+			"command": "npm run build"
+		},
+		{
+			"label": "Start Dev After Article Training Removal",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Test Answer Comparison Fix",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Start Dev Server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Test Answer Comparison",
+			"type": "shell",
+			"command": "powershell -Command \"Write-Host 'Testing answer comparison logic...'; node -e \\\"const normalizeText = (text) => { return text.toLowerCase().trim().replace(/[áàâäã]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i').replace(/[óòôöõ]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ñ/g, 'n').replace(/ç/g, 'c').replace(/[.,!?;:'\\\"()[\\]{}]/g, '').replace(/\\\\s+/g, ' ').trim(); }; const userAnswer = 'tengo un coche'; const correctAnswer = 'Tengo un coche.'; console.log('User answer normalized:', normalizeText(userAnswer)); console.log('Correct answer normalized:', normalizeText(correctAnswer)); console.log('Match:', normalizeText(userAnswer) === normalizeText(correctAnswer));\\\"\""
+		},
+		{
+			"label": "Quick Test Answer Comparison",
+			"type": "shell",
+			"command": "echo \"const normalizeText = (text) => { return text.toLowerCase().trim().replace(/[áàâäã]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i').replace(/[óòôöõ]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ñ/g, 'n').replace(/ç/g, 'c').replace(/[.,!?;:'\\\"()[\\]{}]/g, '').replace(/\\\\s+/g, ' ').trim(); }; const userAnswer = 'tengo un coche'; const correctAnswer = 'Tengo un coche.'; const normalizedUser = normalizeText(userAnswer); const normalizedCorrect = normalizeText(correctAnswer); console.log('User answer:', userAnswer); console.log('Correct answer:', correctAnswer); console.log('User normalized:', normalizedUser); console.log('Correct normalized:', normalizedCorrect); console.log('Match:', normalizedUser === normalizedCorrect);\" > test.js && node test.js && del test.js"
+		},
+		{
+			"label": "Clean .next Directory",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Write-Host 'Cleaned .next directory'"
+		},
+		{
+			"label": "Test Answer Comparison",
+			"type": "shell",
+			"command": "echo \"// Simple answer comparison test\nconst normalizeText = (text) => {\n  return text\n    .toLowerCase()\n    .trim()\n    .replace(/[áàâäã]/g, 'a')\n    .replace(/[éèêë]/g, 'e')\n    .replace(/[íìîï]/g, 'i')\n    .replace(/[óòôöõ]/g, 'o')\n    .replace(/[úùûü]/g, 'u')\n    .replace(/ñ/g, 'n')\n    .replace(/ç/g, 'c')\n    .replace(/[.,!?;:'\\\"()[\\]{}]/g, '')\n    .replace(/\\\\s+/g, ' ')\n    .trim();\n};\n\n// Test the specific case\nconst userAnswer = 'tengo un coche';\nconst correctAnswer = 'Tengo un coche.';\n\nconst userNorm = normalizeText(userAnswer);\nconst correctNorm = normalizeText(correctAnswer);\n\nconsole.log('User answer:', userAnswer);\nconsole.log('Correct answer:', correctAnswer);\nconsole.log('User normalized:', userNorm);\nconsole.log('Correct normalized:', correctNorm);\nconsole.log('Match:', userNorm === correctNorm);\" | Out-File -Encoding UTF8 test.js; node test.js; Remove-Item test.js"
+		},
+		{
+			"label": "Simple Answer Test",
+			"type": "shell",
+			"command": "powershell -Command \"node -e \\\"const normalizeText = (text) => text.toLowerCase().trim().replace(/[.,!?;:'\\\"()\\[\\]{}]/g, '').replace(/\\\\s+/g, ' ').trim(); console.log('Test 1:', normalizeText('tengo un coche') === normalizeText('Tengo un coche.')); console.log('Result should be: true');\\\"\""
+		},
+		{
+			"label": "Clean Build Artifacts",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Write-Host 'Cleaned build artifacts'"
+		},
+		{
+			"label": "Force Clean .next Directory",
+			"type": "shell",
+			"command": "powershell -Command \"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Start-Sleep 2; if (Test-Path '.next') { Remove-Item -Recurse -Force '.next' -ErrorAction SilentlyContinue }; if (Test-Path '.next') { takeown /f '.next' /r /d y 2>$null; icacls '.next' /grant administrators:F /t 2>$null; Remove-Item -Recurse -Force '.next' -ErrorAction SilentlyContinue }; Write-Host 'Cleanup completed'\""
+		},
+		{
+			"label": "Start Dev Server on Port 3001",
+			"type": "shell",
+			"command": "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep 3; npx next dev --port 3001",
+			"isBackground": true
 		}
 	]
 }

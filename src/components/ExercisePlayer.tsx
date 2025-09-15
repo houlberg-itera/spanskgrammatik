@@ -7,6 +7,93 @@ import ExerciseQuestion from './ExerciseQuestion';
 import ProgressErrorHandler from './ProgressErrorHandler';
 import { useRouter } from 'next/navigation';
 
+// Helper function to update level progress
+async function updateLevelProgress(userId: string, level: string, supabase: any) {
+  console.log(`🔄 Updating level progress for user ${userId}, level ${level}`);
+  
+  // Get all exercises for this level
+  const { data: levelExercises, error: exercisesError } = await supabase
+    .from('exercises')
+    .select('id')
+    .eq('level', level);
+
+  if (exercisesError || !levelExercises) {
+    console.error('❌ Error fetching level exercises:', exercisesError);
+    return;
+  }
+
+  console.log(`📊 Found ${levelExercises.length} exercises for level ${level}`);
+  const exerciseIds = levelExercises.map(ex => ex.id);
+  
+  // Get user's completed exercises for this level
+  const { data: userProgress, error: progressError } = await supabase
+    .from('user_progress')
+    .select('exercise_id, completed, score')
+    .eq('user_id', userId)
+    .in('exercise_id', exerciseIds);
+
+  if (progressError) {
+    console.error('❌ Error fetching user progress:', progressError);
+    return;
+  }
+
+  console.log(`📈 User has progress on ${userProgress?.length || 0} exercises for level ${level}`);
+
+  // Calculate completion stats
+  const totalExercises = exerciseIds.length;
+  const completedExercises = userProgress?.filter(p => p.completed).length || 0;
+  const averageScore = userProgress?.length > 0 
+    ? userProgress.reduce((sum, p) => sum + (p.score || 0), 0) / userProgress.length 
+    : 0;
+  const progressPercentage = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
+
+  console.log(`📊 Progress calculation: ${completedExercises}/${totalExercises} (${progressPercentage}%), avg score: ${averageScore.toFixed(1)}`);
+
+  // Update or insert level progress
+  const { data: existingLevelProgress } = await supabase
+    .from('user_level_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('level', level)
+    .single();
+
+  if (existingLevelProgress) {
+    // Update existing level progress
+    console.log(`✏️ Updating existing level progress for ${level}`);
+    const { error: updateError } = await supabase
+      .from('user_level_progress')
+      .update({
+        progress_percentage: progressPercentage,
+        completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
+      })
+      .eq('user_id', userId)
+      .eq('level', level);
+      
+    if (updateError) {
+      console.error('❌ Error updating level progress:', updateError);
+    } else {
+      console.log(`✅ Successfully updated level progress for ${level}: ${progressPercentage}%`);
+    }
+  } else {
+    // Insert new level progress
+    console.log(`➕ Creating new level progress for ${level}`);
+    const { error: insertError } = await supabase
+      .from('user_level_progress')
+      .insert({
+        user_id: userId,
+        level: level,
+        progress_percentage: progressPercentage,
+        completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
+      });
+      
+    if (insertError) {
+      console.error('❌ Error inserting level progress:', insertError);
+    } else {
+      console.log(`✅ Successfully created level progress for ${level}: ${progressPercentage}%`);
+    }
+  }
+}
+
 interface ExercisePlayerProps {
   exercise: Exercise;
   onComplete: (attempt: ExerciseAttempt) => void;
@@ -24,26 +111,6 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   const router = useRouter();
   const supabase = createClient();
 
-  // Debug: Log exercise data when component mounts
-  useEffect(() => {
-    console.log('=== EXERCISE PLAYER DEBUG ===');
-    console.log('Exercise received:', exercise);
-    console.log('Exercise content:', exercise.content);
-    console.log('Questions:', exercise.content.questions);
-    console.log('Number of questions:', exercise.content.questions?.length);
-    exercise.content.questions?.forEach((q, i) => {
-      console.log(`Question ${i + 1}:`, {
-        id: q.id,
-        type: q.type,
-        question_da: q.question_da,
-        correct_answer: q.correct_answer,
-        points: q.points,
-        options: q.options
-      });
-    });
-    console.log('=== END EXERCISE DEBUG ===');
-  }, [exercise]);
-
   const questions = exercise.content.questions;
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
@@ -56,32 +123,46 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     }));
   };
 
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .trim()
+      // Remove or normalize special characters
+      .replace(/[áàâäã]/g, 'a')
+      .replace(/[éèêë]/g, 'e')
+      .replace(/[íìîï]/g, 'i')
+      .replace(/[óòôöõ]/g, 'o')
+      .replace(/[úùûü]/g, 'u')
+      .replace(/ñ/g, 'n')
+      .replace(/ç/g, 'c')
+      // Remove extra spaces
+      .replace(/\s+/g, ' ');
+  };
+
+  const compareAnswers = (userAnswer: string, correctAnswer: string): boolean => {
+    const originalUserAnswer = userAnswer.toLowerCase().trim();
+    const originalCorrectAnswer = correctAnswer.toLowerCase().trim();
+    
+    // Check exact match first (case-insensitive only)
+    if (originalUserAnswer === originalCorrectAnswer) {
+      return true;
+    }
+    
+    // Then check normalized match (ignoring special characters)
+    const normalizedUserAnswer = normalizeText(userAnswer);
+    const normalizedCorrectAnswer = normalizeText(correctAnswer);
+    
+    return normalizedUserAnswer === normalizedCorrectAnswer;
+  };
+
   const calculateScore = (): number => {
     let correct = 0;
     let total = 0;
 
-    console.log('=== SCORE CALCULATION DEBUG ===');
-    console.log('Total questions:', questions.length);
-    console.log('Questions structure:', questions.map(q => ({
-      id: q.id,
-      type: q.type,
-      question: q.question_da?.substring(0, 50) + '...',
-      correct_answer: q.correct_answer,
-      points: q.points
-    })));
-    console.log('User answers:', answers);
-
-    questions.forEach((question, index) => {
+    questions.forEach((question) => {
       const questionPoints = question.points || 1;
       total += questionPoints;
       const userAnswer = answers[question.id];
-      
-      console.log(`\n--- Question ${index + 1} (ID: ${question.id}) ---`);
-      console.log('Question text:', question.question_da);
-      console.log('Question type:', question.type);
-      console.log('User answer:', userAnswer, '(type:', typeof userAnswer, ')');
-      console.log('Correct answer:', question.correct_answer, '(type:', typeof question.correct_answer, ')');
-      console.log('Points for this question:', questionPoints);
       
       if (userAnswer !== undefined && userAnswer !== '' && userAnswer !== null) {
         let isCorrect = false;
@@ -90,52 +171,37 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
           isCorrect = Array.isArray(userAnswer) 
             ? userAnswer.sort().join(',').toLowerCase() === question.correct_answer.sort().join(',').toLowerCase()
             : false;
-          console.log('Array comparison logic used');
         } else {
-          // Convert both to strings for comparison
-          const correctAnswer = String(question.correct_answer).toLowerCase().trim();
-          const givenAnswer = String(userAnswer).toLowerCase().trim();
-          
-          console.log(`String comparison: "${givenAnswer}" === "${correctAnswer}"`);
+          // Use enhanced comparison with special character handling
+          const correctAnswer = String(question.correct_answer);
+          const givenAnswer = String(userAnswer);
           
           if (question.type === 'multiple_choice') {
-            // For multiple choice, direct string comparison
-            isCorrect = givenAnswer === correctAnswer;
-            console.log('Multiple choice comparison:', isCorrect);
+            isCorrect = compareAnswers(givenAnswer, correctAnswer);
           } else if (question.type === 'fill_in_blank' || question.type === 'conjugation') {
-            // For fill-in-blank and conjugation, check for exact match
-            isCorrect = givenAnswer === correctAnswer;
-            console.log('Fill-in-blank/conjugation comparison:', isCorrect);
+            isCorrect = compareAnswers(givenAnswer, correctAnswer);
           } else if (question.type === 'translation') {
-            // For translation, be more lenient with variations
-            isCorrect = givenAnswer === correctAnswer || 
-                       givenAnswer.includes(correctAnswer) || 
-                       correctAnswer.includes(givenAnswer);
-            console.log('Translation comparison:', isCorrect);
+            // For translation, use enhanced comparison first, then fallback to partial matches
+            isCorrect = compareAnswers(givenAnswer, correctAnswer);
+            if (!isCorrect) {
+              // Fallback to partial matching for translations
+              const normalizedGiven = normalizeText(givenAnswer);
+              const normalizedCorrect = normalizeText(correctAnswer);
+              isCorrect = normalizedGiven.includes(normalizedCorrect) || 
+                         normalizedCorrect.includes(normalizedGiven);
+            }
           } else {
-            isCorrect = givenAnswer === correctAnswer;
-            console.log('Default comparison:', isCorrect);
+            isCorrect = compareAnswers(givenAnswer, correctAnswer);
           }
         }
         
-        console.log(`Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
-        
         if (isCorrect) {
           correct += questionPoints;
-          console.log(`Added ${questionPoints} points. Total correct points: ${correct}`);
         }
-      } else {
-        console.log('No answer provided for this question');
       }
     });
 
     const finalScore = total > 0 ? Math.round((correct / total) * 100) : 0;
-    console.log(`\n=== FINAL CALCULATION ===`);
-    console.log(`Correct points: ${correct}`);
-    console.log(`Total points: ${total}`);
-    console.log(`Percentage: ${correct}/${total} = ${finalScore}%`);
-    console.log('=== END SCORE CALCULATION ===\n');
-    
     return finalScore;
   };
 
@@ -160,86 +226,89 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     setShowResults(true);
 
     try {
-      // Enhanced debugging and validation
-      console.log('=== PROGRESS SAVING DEBUG ===');
-      console.log('Exercise ID:', exercise.id);
-      console.log('Final Score:', finalScore);
-      console.log('Exercise object:', exercise);
-      
       // Validate exercise data
       if (!exercise || !exercise.id) {
-        console.error('Invalid exercise data:', exercise);
         throw new Error('Øvelse data er ugyldig - mangler ID');
       }
 
       if (typeof finalScore !== 'number' || finalScore < 0 || finalScore > 100) {
-        console.error('Invalid score:', finalScore);
         throw new Error('Ugyldig score beregning');
       }
 
       // Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        console.error('Auth error:', authError);
         throw new Error('Autentifikationsfejl: ' + authError.message);
       }
 
       if (!user) {
-        console.error('No authenticated user found');
         throw new Error('Du skal være logget ind for at gemme fremgang');
       }
 
-      console.log('Authenticated user:', user.id);
-      console.log('Saving progress directly to database:', {
-        exercise_id: exercise.id,
-        score: finalScore
-      });
+      // First try using the RPC function for atomic operation
+      console.log(`🔄 Attempting to save exercise ${exercise.id} with score ${finalScore} using RPC function`);
+      let saveResult: any;
+      const { data: rpcResult, error: rpcError } = await supabase
+        .rpc('update_user_progress', {
+          exercise_id_param: exercise.id,
+          score_param: finalScore
+        });
 
-      // Save progress using direct database operations (bypassing problematic RPC function)
-      // First check if progress already exists
-      const { data: existingProgress, error: checkError } = await supabase
-        .from('user_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exercise_id', exercise.id)
-        .single();
-
-      let saveResult;
-      let operation = existingProgress ? 'update' : 'insert';
-
-      if (existingProgress) {
-        // Update existing progress
-        console.log('Updating existing progress...');
-        const { data, error } = await supabase
+      if (rpcError) {
+        console.log(`⚠️ RPC function failed (${rpcError.code}): ${rpcError.message}`);
+        console.log(`🔄 Falling back to direct database operations`);
+        
+        // RPC function failed, use direct database operations
+        const { data: existingProgress } = await supabase
           .from('user_progress')
-          .update({
-            score: finalScore,
-            completed: finalScore >= 70,
-            attempts: (existingProgress.attempts || 0) + 1,
-            completed_at: finalScore >= 70 ? new Date().toISOString() : existingProgress.completed_at,
-            updated_at: new Date().toISOString()
-          })
+          .select('*')
           .eq('user_id', user.id)
           .eq('exercise_id', exercise.id)
-          .select();
-        
-        saveResult = { data, error };
+          .single();
+
+        if (existingProgress) {
+          // Update existing progress
+          console.log(`✏️ Updating existing progress for exercise ${exercise.id}`);
+          const { data, error } = await supabase
+            .from('user_progress')
+            .update({
+              score: Math.max(existingProgress.score || 0, finalScore),
+              completed: Math.max(existingProgress.score || 0, finalScore) >= 70,
+              attempts: (existingProgress.attempts || 0) + 1,
+              completed_at: Math.max(existingProgress.score || 0, finalScore) >= 70 ? new Date().toISOString() : existingProgress.completed_at,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+            .eq('exercise_id', exercise.id)
+            .select();
+          
+          saveResult = { data, error };
+        } else {
+          // Insert new progress
+          const { data, error } = await supabase
+            .from('user_progress')
+            .insert({
+              user_id: user.id,
+              exercise_id: exercise.id,
+              completed: finalScore >= 70,
+              score: finalScore,
+              attempts: 1,
+              completed_at: finalScore >= 70 ? new Date().toISOString() : null
+            })
+            .select();
+          
+          saveResult = { data, error };
+        }
       } else {
-        // Insert new progress using only schema-compliant columns
-        console.log('Inserting new progress...');
-        const { data, error } = await supabase
-          .from('user_progress')
-          .insert({
-            user_id: user.id,
-            exercise_id: exercise.id,
-            completed: finalScore >= 70,
-            score: finalScore,
-            attempts: 1,
-            completed_at: finalScore >= 70 ? new Date().toISOString() : null
-          })
-          .select();
-        
-        saveResult = { data, error };
+        saveResult = { data: rpcResult, error: rpcError };
+      }
+
+      // Always update level progress to ensure dashboard stays in sync
+      if (!saveResult?.error) {
+        console.log(`🔄 Exercise completed successfully, updating level progress for ${exercise.level}`);
+        await updateLevelProgress(user.id, exercise.level, supabase);
+      } else {
+        console.error('❌ Not updating level progress due to save error:', saveResult.error);
       }
 
       if (saveResult.error) {
@@ -265,10 +334,6 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
         
         throw new Error(errorMessage + ' (Teknisk fejl: ' + saveResult.error.message + ')');
       }
-      
-      console.log('Progress saved successfully:', saveResult.data);
-      console.log('Operation:', operation);
-      console.log('=== END PROGRESS SAVING DEBUG ===');
 
       const attempt: ExerciseAttempt = {
         exerciseId: exercise.id,
@@ -279,8 +344,6 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
 
       onComplete(attempt);
     } catch (error) {
-      console.error('Error in handleFinish:', error);
-      
       // Store error details for the error handler
       setErrorDetails({
         exerciseId: exercise.id,

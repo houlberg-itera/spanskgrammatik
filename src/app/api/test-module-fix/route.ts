@@ -24,7 +24,7 @@ export async function GET() {
             },
             originalError: {
                 error: "Module not found: Can't resolve '@supabase/auth-helpers-nextjs'",
-                location: './src/app/article-training/page.tsx',
+                location: 'Legacy components (now removed)',
                 solution: 'Replaced with modern @/lib/supabase/server import',
                 status: '✅ RESOLVED'
             },

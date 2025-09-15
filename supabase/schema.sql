@@ -160,7 +160,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- Function to update user progress
+-- Create or replace the updated function
 CREATE OR REPLACE FUNCTION public.update_user_progress(
   exercise_id_param INTEGER,
   score_param INTEGER
@@ -201,16 +201,22 @@ BEGIN
   
   level_progress := CASE WHEN total_exercises > 0 THEN (completed_exercises * 100 / total_exercises) ELSE 0 END;
   
-  -- Update level progress
+  -- Update level progress (only updating columns that exist)
   UPDATE public.user_level_progress
   SET 
     progress_percentage = level_progress,
-    completed_at = CASE WHEN level_progress >= 100 THEN NOW() ELSE completed_at END,
-    updated_at = NOW()
+    completed_at = CASE WHEN level_progress >= 100 THEN NOW() ELSE completed_at END
   WHERE user_id = current_user_id AND level = exercise_level;
   
-  -- Note: Automatic level progression removed - users can choose their preferred level
-  -- Progress is tracked but doesn't automatically unlock next levels
+  -- If no level progress exists, create it
+  INSERT INTO public.user_level_progress (user_id, level, progress_percentage, completed_at)
+  VALUES (
+    current_user_id, 
+    exercise_level, 
+    level_progress,
+    CASE WHEN level_progress >= 100 THEN NOW() ELSE NULL END
+  )
+  ON CONFLICT (user_id, level) DO NOTHING;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
