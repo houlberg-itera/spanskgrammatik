@@ -7,36 +7,30 @@ interface ArticleTipProps {
 }
 
 export default function ArticleTip({ level }: ArticleTipProps) {
-  const tips: Record<SpanishLevel, { title: string; content: string; link: string }> = {
+  const tips: Record<SpanishLevel, { title: string; content: string }> = {
     A1: {
       title: "💡 Artikel Tip for A1",
-      content: "På A1 niveau fokuser på: el (hankøn) vs la (hunkøn) + grundlæggende mønstre som -o = hankøn, -a = hunkøn.",
-      link: "Gå til detaljeret artikel træning →"
+      content: "På A1 niveau fokuser på: el (hankøn) vs la (hunkøn) + grundlæggende mønstre som -o = hankøn, -a = hunkøn."
     },
     A2: {
       title: "💡 Artikel Tip for A2", 
-      content: "På A2 niveau lær: undtagelser (problema, mano), kontekstuel brug og bestemt vs ubestemt i sammenhæng.",
-      link: "Øv artikel udfordringer →"
+      content: "På A2 niveau lær: undtagelser (problema, mano), kontekstuel brug og bestemt vs ubestemt i sammenhæng."
     },
     B1: {
       title: "💡 Artikel Tip for B1",
-      content: "På B1 niveau mestre: abstrakte begreber, professionelle titler og subtile betydningsforskelle.",
-      link: "Avanceret artikel træning →"
+      content: "På B1 niveau mestre: abstrakte begreber, professionelle titler og subtile betydningsforskelle."
     },
     B2: {
       title: "💡 Artikel Tip for B2",
-      content: "På B2 niveau perfektioner: nuancerede betydninger, stilistiske valg og artikel udeladelse.",
-      link: "Mester artikel træning →"
+      content: "På B2 niveau perfektioner: nuancerede betydninger, stilistiske valg og artikel udeladelse."
     },
     C1: {
       title: "💡 Artikel Tip for C1",
-      content: "På C1 niveau behersker du: komplekse literære tekster, regionale variationer og avancerede registre.",
-      link: "Ekspert artikel træning →"
+      content: "På C1 niveau behersker du: komplekse literære tekster, regionale variationer og avancerede registre."
     },
     C2: {
       title: "💡 Artikel Tip for C2",
-      content: "På C2 niveau har du: nær-indfødt beherskelse af alle artikel nuancer og stilistiske anvendelser.",
-      link: "Ekspert artikel træning →"
+      content: "På C2 niveau har du: nær-indfødt beherskelse af alle artikel nuancer og stilistiske anvendelser."
     }
   };
 
@@ -54,12 +48,6 @@ export default function ArticleTip({ level }: ArticleTipProps) {
           </h3>
           <div className="mt-2 text-sm text-yellow-700">
             <p>{tip.content}</p>
-            <a 
-              href="/article-training" 
-              className="mt-2 inline-block text-yellow-800 hover:text-yellow-900 underline"
-            >
-              {tip.link}
-            </a>
           </div>
         </div>
       </div>

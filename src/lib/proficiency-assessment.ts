@@ -74,6 +74,8 @@ const DIFFICULTY_WEIGHTS = {
 export async function analyzeProficiency(userId: string): Promise<ProficiencyAnalysis> {
   const supabase = await createClient();
 
+  console.log('🔍 Analyzing proficiency for user:', userId);
+
   // Get user's exercise performance
   const { data: performances, error } = await supabase
     .from('user_progress')
@@ -97,15 +99,90 @@ export async function analyzeProficiency(userId: string): Promise<ProficiencyAna
     .order('completed_at', { ascending: false })
     .limit(100);
 
+  console.log('📊 Raw proficiency query result:', { 
+    error, 
+    performancesCount: performances?.length || 0,
+    userId 
+  });
+
+  if (error) {
+    console.error('❌ Error fetching user performances:', error);
+  }
+
+  // If no individual exercise data, check level progress
   if (error || !performances || performances.length === 0) {
-    // Return default analysis for new users
+    console.log('⚠️ No individual exercise data found, checking level progress...');
+    
+    const { data: levelProgress, error: levelError } = await supabase
+      .from('user_level_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .order('progress_percentage', { ascending: false });
+
+    console.log('📈 Level progress data:', { 
+      levelError, 
+      levelProgressCount: levelProgress?.length || 0,
+      userId 
+    });
+
+    if (levelError) {
+      console.error('❌ Error fetching level progress:', levelError);
+    }
+
+    if (levelProgress && levelProgress.length > 0) {
+      // Generate analysis based on level progress
+      const maxProgress = Math.max(...levelProgress.map(lp => lp.progress_percentage || 0));
+      const completedLevels = levelProgress.filter(lp => lp.completed_at).length;
+      const avgProgress = levelProgress.reduce((sum, lp) => sum + (lp.progress_percentage || 0), 0) / levelProgress.length;
+      
+      // Determine current level based on progress
+      let currentLevel: SpanishLevel = 'A1';
+      let recommendedLevel: SpanishLevel = 'A1';
+      
+      if (maxProgress >= 80) {
+        const highestLevel = levelProgress.find(lp => (lp.progress_percentage || 0) >= 80)?.level;
+        currentLevel = (highestLevel as SpanishLevel) || 'A1';
+      } else if (maxProgress >= 50) {
+        const midLevel = levelProgress.find(lp => (lp.progress_percentage || 0) >= 50)?.level;
+        currentLevel = (midLevel as SpanishLevel) || 'A1';
+      }
+      
+      // Recommend next level
+      if (currentLevel === 'A1' && maxProgress >= 70) recommendedLevel = 'A2';
+      else if (currentLevel === 'A2' && maxProgress >= 70) recommendedLevel = 'B1';
+      else recommendedLevel = currentLevel;
+
+      console.log('✅ Generated analysis from level progress');
+      return {
+        currentLevel,
+        confidenceScore: Math.min(maxProgress / 100, 0.9), // Convert to 0-1 scale
+        strengthAreas: levelProgress
+          .filter(lp => (lp.progress_percentage || 0) >= 60)
+          .map(lp => `Niveau ${lp.level} (${lp.progress_percentage}% fremgang)`),
+        weaknessAreas: levelProgress
+          .filter(lp => (lp.progress_percentage || 0) < 40 && (lp.progress_percentage || 0) > 0)
+          .map(lp => `Niveau ${lp.level} (kun ${lp.progress_percentage}% fremgang)`),
+        recommendedLevel,
+        progressToNextLevel: Math.max(0, 100 - maxProgress),
+        exercisesNeeded: Math.max(5, Math.round((100 - maxProgress) / 10)),
+        detailedAnalysis: {
+          topicScores: {},
+          skillDistribution: {},
+          difficultyProgression: maxProgress >= 60,
+          consistencyScore: avgProgress / 100
+        }
+      };
+    }
+
+    // Return default analysis for truly new users
+    console.log('⚠️ No progress data found at all, returning default analysis');
     return {
       currentLevel: 'A1',
       confidenceScore: 0,
       strengthAreas: [],
-      weaknessAreas: ['Insufficient data'],
+      weaknessAreas: ['Ingen data fundet - begynd at tage øvelser for at se din fremgang'],
       recommendedLevel: 'A1',
-      progressToNextLevel: 0,
+      progressToNextLevel: 100,
       exercisesNeeded: 50,
       detailedAnalysis: {
         topicScores: {},
@@ -115,6 +192,8 @@ export async function analyzeProficiency(userId: string): Promise<ProficiencyAna
       }
     };
   }
+
+  console.log('✅ Found performance data:', performances.length, 'exercises');
 
   // Process performance data
   const exercisePerformances: ExercisePerformance[] = performances.map(p => {

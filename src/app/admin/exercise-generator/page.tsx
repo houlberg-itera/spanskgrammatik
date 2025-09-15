@@ -208,26 +208,55 @@ export default function ExerciseGeneratorAdmin() {
     return selectedTopics.length * exercisesPerTopic;
   };
 
-  const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution) => {
-    const response = await fetch('/api/generate-bulk-exercises', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topicId: topic.id,
-        exerciseType,
-        count,
-        difficultyDistribution: difficultyDist || difficultyDistribution,
-        level: topic.level,
-        topicName: topic.name_da,
-        topicDescription: topic.description_da
-      })
-    });
+  const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0) => {
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 seconds base delay
+    
+    try {
+      const response = await fetch('/api/generate-bulk-exercises', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topicId: topic.id,
+          exerciseType,
+          count,
+          difficultyDistribution: difficultyDist || difficultyDistribution,
+          level: topic.level,
+          topicName: topic.name_da,
+          topicDescription: topic.description_da
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to generate exercises: ${response.statusText}`);
+      if (!response.ok) {
+        // Check if it's a rate limit error (429)
+        if (response.status === 429 && retryCount < maxRetries) {
+          const exponentialDelay = baseDelay * Math.pow(2, retryCount); // 2s, 4s, 8s
+          console.log(`Rate limit hit for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1})`);
+          
+          // Wait with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, exponentialDelay));
+          
+          // Retry the request
+          return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
+        }
+        
+        throw new Error(`Failed to generate exercises: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      // If we've exhausted retries or it's not a network error, throw
+      if (retryCount >= maxRetries || !error.message?.includes('Failed to fetch')) {
+        throw error;
+      }
+      
+      // Retry on network errors too
+      const exponentialDelay = baseDelay * Math.pow(2, retryCount);
+      console.log(`Network error for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      
+      await new Promise(resolve => setTimeout(resolve, exponentialDelay));
+      return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
     }
-
-    return await response.json();
   };
 
   const startBulkGeneration = async () => {
@@ -267,6 +296,8 @@ export default function ExerciseGeneratorAdmin() {
 
     setGenerationJobs(jobs);
 
+    console.log(`🚀 Starting bulk generation with ${jobs.length} jobs. Using progressive delays to avoid rate limits.`);
+
     // Process jobs sequentially to avoid rate limits
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
@@ -289,6 +320,8 @@ export default function ExerciseGeneratorAdmin() {
         j.id === job.id ? { ...j, status: 'generating' } : j
       ));
 
+      console.log(`📝 Processing job ${i+1}/${jobs.length}: ${topic.name_da} - ${job.exerciseType} (${job.requestedCount} exercises)`);
+
       try {
         // Generate all exercises for this topic and exercise type in a single API call
         const result = await generateExercisesForTopic(
@@ -309,22 +342,42 @@ export default function ExerciseGeneratorAdmin() {
           } : j
         ));
 
-        // Add delay to respect rate limits (reduced from 2000ms to 500ms for GPT-5 high limits)
+        console.log(`✅ Job ${i+1}/${jobs.length} completed: ${generatedCount} exercises generated`);
+
+        // Add progressive delay to respect rate limits (longer delays as we progress)
         if (i < jobs.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const progressiveDelay = Math.min(1000 + (i * 200), 5000); // Start at 1s, increase by 200ms per job, max 5s
+          console.log(`⏳ Waiting ${progressiveDelay/1000}s before next generation (job ${i+1}/${jobs.length})`);
+          await new Promise(resolve => setTimeout(resolve, progressiveDelay));
         }
 
       } catch (error) {
         console.error(`Error generating exercises for job ${job.id}:`, error);
+        
+        // Check if it's a rate limit error to provide better messaging
+        const isRateLimit = error instanceof Error && 
+          (error.message.includes('Too Many Requests') || 
+           error.message.includes('rate limit') ||
+           error.message.includes('429'));
+           
+        const errorMessage = isRateLimit 
+          ? 'Rate limit reached - AI service busy. Retries were attempted but failed.' 
+          : (error instanceof Error ? error.message : 'Unknown error');
+          
         setGenerationJobs(prev => prev.map(j => 
           j.id === job.id ? { 
             ...j, 
             status: 'error',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error'
+            errorMessage: errorMessage
           } : j
         ));
         
-        // Continue with other jobs even if one fails
+        // Continue with other jobs even if one fails, but add extra delay for rate limit errors
+        if (isRateLimit && i < jobs.length - 1) {
+          console.log(`⚠️ Rate limit error - adding extra 10s delay before continuing`);
+          await new Promise(resolve => setTimeout(resolve, 10000)); // Extra 10s delay for rate limits
+        }
+        
         console.log(`Continuing with remaining jobs after error in job ${job.id}`);
       }
     }

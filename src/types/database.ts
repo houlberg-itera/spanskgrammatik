@@ -2,7 +2,7 @@ export type SpanishLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
 export type ExerciseType = 'grammar' | 'vocabulary' | 'conjugation' | 'sentence_structure';
 
-export type QuestionType = 'multiple_choice' | 'fill_in_blank' | 'translation' | 'conjugation';
+export type QuestionType = 'multiple_choice' | 'fill_in_blank' | 'translation' | 'conjugation' | 'sentence_structure';
 
 export interface User {
   id: string;

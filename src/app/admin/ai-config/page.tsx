@@ -98,25 +98,39 @@ export default function AIConfigPage() {
       setError('');
       setTestResult(null);
       
+      // Determine test parameters based on configuration type
+      const isFeedbackConfig = config.name.includes('feedback') || 
+                              config.system_prompt.toLowerCase().includes('feedback');
+      
+      const testParams = isFeedbackConfig ? {
+        // Parameters for feedback generation testing
+        level: 'A1',
+        question: 'Vælg den korrekte form af verbum "ser": María ___ lærer',
+        userAnswer: 'está',
+        correctAnswer: 'es'
+      } : {
+        // Parameters for exercise generation testing
+        level: 'A1',
+        topic: 'present_tense',
+        topicDescription: 'Present tense of regular verbs',
+        exerciseType: 'multiple_choice',
+        questionCount: 2,
+        difficulty: 'easy'
+      };
+      
       const response = await fetch('/api/test-ai-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           config: {
+            name: config.name,
             model: config.model_name,
             temperature: config.temperature,
             maxTokens: config.max_tokens,
             systemPrompt: config.system_prompt,
             userPromptTemplate: config.user_prompt_template
           },
-          testParams: {
-            level: 'A1',
-            topic: 'present_tense',
-            topicDescription: 'Present tense of regular verbs',
-            exerciseType: 'multiple_choice',
-            questionCount: 2,
-            difficulty: 'easy'
-          }
+          testParams
         })
       });
 
@@ -325,7 +339,29 @@ export default function AIConfigPage() {
                       </div>
                     )}
                     
-                    {testResult.rawResponse && !testResult.exercises && (
+                    {testResult.feedback && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Generated Feedback</h4>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <p className="text-sm text-green-800">
+                            {testResult.feedback}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {testResult.type === 'text_response' && testResult.rawResponse && !testResult.feedback && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Generated Text Response</h4>
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            {testResult.rawResponse}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {testResult.rawResponse && !testResult.exercises && !testResult.feedback && testResult.type !== 'text_response' && (
                       <div>
                         <h4 className="font-medium text-red-900 mb-2">Raw AI Response (Failed to Parse JSON)</h4>
                         <div className="bg-red-50 p-4 rounded-lg">

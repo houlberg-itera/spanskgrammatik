@@ -1,166 +1,189 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-
-export async function POST(request: NextRequest) {
-  try {
-    const { exerciseId, score, userId } = await request.json();
-    
-    console.log('=== MANUAL PROGRESS SAVE TEST ===');
-    console.log('Input:', { exerciseId, score, userId });
-    
-    const supabase = await createClient();
-    
-    // Validate inputs
-    if (!exerciseId || typeof score !== 'number') {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing required parameters: exerciseId and score'
-      }, { status: 400 });
-    }
-
-    // Get current user if not provided
-    let currentUserId = userId;
-    if (!currentUserId) {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        return NextResponse.json({
-          success: false,
-          error: 'Authentication required',
-          authError: authError?.message,
-          tip: 'Please register and login first using the auth test dashboard'
-        }, { status: 401 });
-      }
-      currentUserId = user.id;
-    }
-
-    console.log('Using user ID:', currentUserId);
-
-    // First, verify the exercise exists
-    const { data: exercise, error: exerciseError } = await supabase
-      .from('exercises')
-      .select('id, topic_id, level, title_da')
-      .eq('id', exerciseId)
-      .single();
-
-    if (exerciseError || !exercise) {
-      return NextResponse.json({
-        success: false,
-        error: 'Exercise not found',
-        exerciseError: exerciseError?.message,
-        exerciseId
-      }, { status: 404 });
-    }
-
-    console.log('Exercise found:', exercise);
-
-    // Try to call the RPC function
-    const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_progress', {
-      exercise_id_param: exerciseId,
-      score_param: score
-    });
-
-    if (rpcError) {
-      console.error('RPC Error:', rpcError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to update progress',
-        rpcError: {
-          message: rpcError.message,
-          code: rpcError.code,
-          details: rpcError.details,
-          hint: rpcError.hint
-        },
-        exercise,
-        userId: currentUserId
-      }, { status: 500 });
-    }
-
-    console.log('RPC Success:', rpcData);
-
-    // Verify the progress was saved
-    const { data: savedProgress, error: verifyError } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', currentUserId)
-      .eq('exercise_id', exerciseId)
-      .single();
-
-    if (verifyError) {
-      console.warn('Could not verify saved progress:', verifyError);
-    }
-
-    console.log('Saved progress verification:', savedProgress);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Progress saved successfully',
-      data: {
-        rpcResult: rpcData,
-        exercise,
-        savedProgress,
-        userId: currentUserId
-      }
-    });
-
-  } catch (error) {
-    console.error('Manual progress save test error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Unexpected error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
-}
 
 export async function GET() {
   try {
     const supabase = await createClient();
     
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    // Get all progress for debugging
-    const { data: allProgress, error: progressError } = await supabase
-      .from('user_progress')
-      .select(`
-        *,
-        exercises (id, title_da, level, topic_id),
-        topics (name_da, level)
-      `)
-      .order('completed_at', { ascending: false });
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ 
+        error: 'Not authenticated' 
+      }, { status: 401 });
+    }
 
-    // Get user count
-    const { count: userCount, error: userCountError } = await supabase
-      .from('auth.users')
-      .select('*', { count: 'exact' });
+    // Get user progress for review
+    const { data: levelProgress } = await supabase
+      .from('user_level_progress')
+      .select('*')
+      .eq('user_id', user.id);
 
     return NextResponse.json({
-      currentUser: {
-        authenticated: !!user,
-        userId: user?.id,
-        email: user?.email,
-        error: userError?.message
-      },
-      allProgress: {
-        count: allProgress?.length || 0,
-        data: allProgress,
-        error: progressError?.message
-      },
-      userCount: {
-        total: userCount || 0,
-        error: userCountError?.message
-      },
-      instructions: {
-        message: 'Use POST with { exerciseId, score } to test progress saving',
-        authRequired: 'You must be logged in to save progress',
-        testUser: 'Create test user via /auth-test.html dashboard'
-      },
-      timestamp: new Date().toISOString()
+      success: true,
+      data: {
+        userId: user.id,
+        levelProgress: levelProgress || []
+      }
     });
 
   } catch (error) {
-    console.error('Progress GET error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.text();
+    let requestData = {};
+    
+    if (body) {
+      try {
+        requestData = JSON.parse(body);
+      } catch (e) {
+        // If it's not JSON, treat it as a fix request
+      }
+    }
+
+    const { exerciseId, score, fixProgress } = requestData as any;
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // If fixProgress is true, manually recalculate all level progress
+    if (fixProgress) {
+
+      // Get all user exercise progress
+      const { data: exerciseProgress } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Get all exercises grouped by level
+      const { data: allExercises } = await supabase
+        .from('exercises')
+        .select('id, level')
+        .in('level', ['A1', 'A2', 'B1']);
+
+      if (!exerciseProgress || !allExercises) {
+        throw new Error('Could not fetch progress or exercises data');
+      }
+
+      // Calculate progress for each level
+      const levels = ['A1', 'A2', 'B1'];
+      const progressUpdates = [];
+
+      for (const level of levels) {
+        // Get exercises for this level
+        const levelExercises = allExercises.filter(ex => ex.level === level);
+        const totalExercises = levelExercises.length;
+
+        // Get completed exercises for this level
+        const completedExercises = exerciseProgress.filter(p => 
+          p.completed && levelExercises.some(ex => ex.id === p.exercise_id)
+        );
+        const completedCount = completedExercises.length;
+
+        // Calculate progress percentage
+        const progressPercentage = totalExercises > 0 ? Math.round((completedCount / totalExercises) * 100) : 0;
+
+        // Check if user_level_progress entry exists
+        const { data: existingLevelProgress } = await supabase
+          .from('user_level_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('level', level)
+          .single();
+
+        if (existingLevelProgress) {
+          // Update existing
+          const { error: updateError } = await supabase
+            .from('user_level_progress')
+            .update({
+              progress_percentage: progressPercentage,
+              completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
+            })
+            .eq('user_id', user.id)
+            .eq('level', level);
+
+          if (updateError) {
+            throw new Error(`Failed to update ${level} progress`);
+          }
+        } else {
+          // Insert new
+          const { error: insertError } = await supabase
+            .from('user_level_progress')
+            .insert({
+              user_id: user.id,
+              level: level,
+              progress_percentage: progressPercentage,
+              started_at: new Date().toISOString(),
+              completed_at: progressPercentage >= 100 ? new Date().toISOString() : null
+            });
+
+          if (insertError) {
+            console.error(`Error inserting ${level} progress:`, insertError);
+          }
+        }
+
+        progressUpdates.push({
+          level,
+          totalExercises,
+          completedCount,
+          progressPercentage
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Progress successfully recalculated and updated',
+        progressUpdates
+      });
+    }
+
+    // Original functionality - test RPC function
+    if (!exerciseId || score === undefined) {
+      return NextResponse.json({ 
+        error: 'Missing exerciseId or score. Send { "fixProgress": true } to fix progress instead.' 
+      }, { status: 400 });
+    }
+
+    // Test the RPC function
+    const { data, error } = await supabase
+      .rpc('update_user_progress', {
+        exercise_id_param: exerciseId,
+        score_param: score
+      });
+
+    if (error) {
+      return NextResponse.json({ 
+        error: 'RPC function failed',
+        details: error.message 
+      }, { status: 500 });
+    }
+
+    // Check the updated progress
+    const { data: updatedLevelProgress } = await supabase
+      .from('user_level_progress')
+      .select('*')
+      .eq('user_id', user.id);
+
     return NextResponse.json({
+      success: true,
+      message: 'Progress updated successfully',
+      rpcResult: data,
+      updatedLevelProgress
+    });
+
+  } catch (error) {
+    console.error('Error in test-progress POST:', error);
+    return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
