@@ -35,59 +35,79 @@ export async function POST(request: NextRequest) {
 
       const responseTime = `${Date.now() - startTime}ms`;
       const rawResponse = completion.choices[0]?.message?.content || '';
-
-      // Clean the response to extract JSON from markdown or other formatting
-      let cleanedResponse = rawResponse.trim();
       
-      // Remove markdown code blocks if present (more robust)
-      cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n?/gm, '').replace(/\n?\s*```$/gm, '');
+      // Determine expected response type based on configuration name or system prompt
+      const expectsJson = config.name?.includes('exercise') || 
+                         config.name?.includes('generation') ||
+                         config.systemPrompt?.includes('JSON') ||
+                         config.userPromptTemplate?.includes('JSON');
       
-      // Remove any remaining leading/trailing whitespace
-      cleanedResponse = cleanedResponse.trim();
-      
-      // Find JSON content between first { and last } (more precise)
-      const firstBrace = cleanedResponse.indexOf('{');
-      const lastBrace = cleanedResponse.lastIndexOf('}');
-      
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        cleanedResponse = cleanedResponse.substring(firstBrace, lastBrace + 1);
-      }
-      
-      // Additional cleanup: remove any remaining non-JSON characters at start/end
-      cleanedResponse = cleanedResponse.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-      
-      console.log('Raw response:', rawResponse);
-      console.log('Cleaned response:', cleanedResponse);
-
-      // Try to parse the response as JSON
-      let exercises;
-      try {
-        exercises = JSON.parse(cleanedResponse);
-      } catch (parseError) {
-        // If JSON parsing still fails, try one more time with the original response
-        try {
-          exercises = JSON.parse(rawResponse);
-        } catch (secondParseError) {
-          // If both attempts fail, return detailed error info
-          return NextResponse.json({
-            success: false,
-            error: 'Failed to parse AI response as JSON',
-            rawResponse: rawResponse,
-            cleanedResponse: cleanedResponse,
-            parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
-            responseTime: responseTime,
-            usage: completion.usage
-          });
+      if (expectsJson) {
+        // For exercise generation - expect JSON response
+        // Clean the response to extract JSON from markdown or other formatting
+        let cleanedResponse = rawResponse.trim();
+        
+        // Remove markdown code blocks if present (more robust)
+        cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n?/gm, '').replace(/\n?\s*```$/gm, '');
+        
+        // Remove any remaining leading/trailing whitespace
+        cleanedResponse = cleanedResponse.trim();
+        
+        // Find JSON content between first { and last } (more precise)
+        const firstBrace = cleanedResponse.indexOf('{');
+        const lastBrace = cleanedResponse.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanedResponse = cleanedResponse.substring(firstBrace, lastBrace + 1);
         }
-      }
+        
+        // Additional cleanup: remove any remaining non-JSON characters at start/end
+        cleanedResponse = cleanedResponse.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+        
+        console.log('Raw response:', rawResponse);
+        console.log('Cleaned response:', cleanedResponse);
 
-      return NextResponse.json({
-        success: true,
-        exercises: exercises,
-        responseTime: responseTime,
-        usage: completion.usage,
-        model: config.model
-      });
+        // Try to parse the response as JSON
+        let exercises;
+        try {
+          exercises = JSON.parse(cleanedResponse);
+        } catch (parseError) {
+          // If JSON parsing still fails, try one more time with the original response
+          try {
+            exercises = JSON.parse(rawResponse);
+          } catch (secondParseError) {
+            // If both attempts fail, return detailed error info
+            return NextResponse.json({
+              success: false,
+              error: 'Failed to parse AI response as JSON',
+              rawResponse: rawResponse,
+              cleanedResponse: cleanedResponse,
+              parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+              responseTime: responseTime,
+              usage: completion.usage
+            });
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          exercises: exercises,
+          responseTime: responseTime,
+          usage: completion.usage,
+          model: config.model
+        });
+      } else {
+        // For feedback generation or other text responses - expect plain text
+        return NextResponse.json({
+          success: true,
+          feedback: rawResponse,
+          rawResponse: rawResponse,
+          responseTime: responseTime,
+          usage: completion.usage,
+          model: config.model,
+          type: 'text_response'
+        });
+      }
 
     } catch (openaiError: any) {
       return NextResponse.json({

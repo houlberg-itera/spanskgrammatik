@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { ExerciseContent, ExerciseType, SpanishLevel } from '@/types/database';
+import { getAIConfiguration, replaceTemplateVariables } from '@/lib/ai-config';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -191,27 +192,32 @@ export async function generateFeedback(
   question: string,
   level: SpanishLevel
 ): Promise<string> {
-  const prompt = `Som spansklærer for danske studerende på ${level} niveau, giv konstruktiv feedback på denne besvarelse:
-
-Spørgsmål: ${question}
-Studerendes svar: ${userAnswer}
-Korrekte svar: ${correctAnswer}
-
-Giv feedback på dansk der:
-1. Forklarer om svaret er korrekt eller forkert
-2. Forklarer hvorfor (grammatikregel, betydning, etc.)
-3. Giver et hjælpsomt tip til fremtiden
-4. Er opmuntrende og konstruktiv
-
-Hold feedbacken kort (max 2-3 sætninger) og på begyndervenligt sprog.`;
-
   try {
+    // Get AI configuration for feedback generation
+    const config = await getAIConfiguration('feedback_generation');
+    
+    // Replace template variables in the user prompt
+    const userPrompt = replaceTemplateVariables(config.user_prompt_template, {
+      question,
+      userAnswer,
+      correctAnswer,
+      level
+    });
+    
+    // Replace template variables in the system prompt
+    const systemPrompt = replaceTemplateVariables(config.system_prompt, {
+      level
+    });
+
     const completion = await retryWithBackoff(async () => {
       return await openai.chat.completions.create({
-        model: 'gpt-5',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 1,  // GPT-5 only supports temperature: 1
-        max_completion_tokens: 200,
+        model: config.model_name,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: config.temperature,
+        max_tokens: config.max_tokens,
       });
     });
 

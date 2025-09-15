@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface UserProfile {
@@ -47,8 +47,69 @@ export default function ProficiencyAnalysis() {
   const [proficiencyData, setProficiencyData] = useState<ProficiencyData | null>(null);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [adminCheckError, setAdminCheckError] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  // Check admin status and load users when component mounts
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const response = await fetch('/api/check-admin');
+      const result = await response.json();
+      
+      console.log('Admin check result:', result);
+      setIsAdmin(result.isAdmin);
+      setCurrentUserEmail(result.userEmail || null);
+      
+      if (result.isAdmin) {
+        loadAllUsers();
+      } else {
+        setAdminCheckError(`Adgang nægtet: ${result.message} (Email: ${result.userEmail || 'ikke fundet'})`);
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setAdminCheckError('Fejl ved kontrol af admin status');
+      setIsAdmin(false);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    setLoadingAllUsers(true);
+    try {
+      // First check if we can connect to Supabase
+      const { data: authUser } = await supabase.auth.getUser();
+      console.log('Current auth user:', authUser?.user?.email);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, current_level, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      console.log('Query result - Data:', data, 'Error:', error);
+
+      if (error) {
+        console.error('Error loading users:', error);
+        alert(`Fejl ved indlæsning af brugere: ${error.message}`);
+        return;
+      }
+
+      console.log('Users loaded from users table:', data?.length || 0, 'users');
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      alert('Fejl ved indlæsning af brugere');
+    } finally {
+      setLoadingAllUsers(false);
+    }
+  };
 
   const searchUsers = async () => {
     if (!searchEmail.trim()) return;
@@ -117,23 +178,67 @@ export default function ProficiencyAnalysis() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">
-            📈 Proficiency Analyse
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Detaljeret analyse af individuelle brugers sprogfærdigheder
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                📈 Bruger Proficiency Analyse ({users.length} brugere)
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Detaljeret analyse af individuelle brugers sprogfærdigheder
+                {currentUserEmail && (
+                  <span className="block text-sm text-blue-600 mt-1">
+                    Logget ind som: {currentUserEmail}
+                  </span>
+                )}
+              </p>
+            </div>
+            <button
+              onClick={loadAllUsers}
+              disabled={loadingAllUsers || !isAdmin}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+            >
+              {loadingAllUsers ? '🔄 Opdaterer...' : '🔄 Opdater'}
+            </button>
+          </div>
         </div>
 
         <div className="p-6">
-          {/* User Search */}
-          <div className="mb-8">
+          {/* Admin Access Check */}
+          {isAdmin === null ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Kontrollerer admin adgang...</p>
+            </div>
+          ) : !isAdmin ? (
+            <div className="text-center py-8">
+              <div className="bg-red-50 border border-red-200 rounded-md p-6">
+                <h2 className="text-lg font-semibold text-red-800 mb-2">🚫 Adgang Nægtet</h2>
+                <p className="text-red-600 mb-4">{adminCheckError || 'Du har ikke admin rettigheder til denne side'}</p>
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>For at få adgang til bruger proficiency analyse skal du:</p>
+                  <ul className="list-disc list-inside mt-2 text-left max-w-md mx-auto">
+                    <li>Logge ind med en admin email</li>
+                    <li>Kontakte systemadministrator for at få din email tilføjet til admin listen</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={checkAdminStatus}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Prøv igen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* User Search */}
+              <div className="mb-8">
             <div className="flex space-x-4 mb-4">
               <input
                 type="email"
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                placeholder="Søg efter bruger (email)..."
+                placeholder="Søg efter specifik bruger (email)..."
                 className="flex-1 border border-gray-300 rounded-md px-4 py-2"
                 onKeyPress={(e) => e.key === 'Enter' && searchUsers()}
               />
@@ -146,10 +251,17 @@ export default function ProficiencyAnalysis() {
               </button>
             </div>
 
-            {users.length > 0 && (
+            {loadingAllUsers ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Indlæser brugere...</p>
+              </div>
+            ) : users.length > 0 ? (
               <div className="border border-gray-200 rounded-md">
                 <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                  <h3 className="font-medium text-gray-900">Søgeresultater ({users.length})</h3>
+                  <h3 className="font-medium text-gray-900">
+                    {searchEmail ? `Søgeresultater (${users.length})` : `Alle brugere (${users.length})`}
+                  </h3>
                 </div>
                 <div className="max-h-60 overflow-y-auto">
                   {users.map(user => (
@@ -175,8 +287,14 @@ export default function ProficiencyAnalysis() {
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Ingen brugere fundet</p>
+              </div>
             )}
           </div>
+            </>
+          )}
 
           {/* Analysis Results */}
           {selectedUser && (

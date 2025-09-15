@@ -299,34 +299,6 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Special Training Modules */}
-        <div className="mt-12 bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📚 Specialiseret Træning</h3>
-          <p className="text-gray-600 mb-6">
-            Målrettede træningsmoduler for specifikke spanske grammatikudfordringer
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Future Training Modules Placeholder */}
-            <div className="border border-gray-200 rounded-lg p-6 opacity-50">
-              <div className="flex items-center mb-4">
-                <span className="text-3xl mr-3">🔄</span>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900">Verbum Træning</h4>
-                  <p className="text-sm text-gray-600">Avanceret konjugation (kommer snart)</p>
-                </div>
-              </div>
-              <p className="text-gray-700 mb-4">
-                Dybdegående træning af spanske verber med særligt fokus på uregelmæssige 
-                mønstre og tidssystemer.
-              </p>
-              <div className="text-center text-gray-500 py-2">
-                🚧 Under udvikling
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Enhanced Statistics */}
         <div className="mt-12 bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">

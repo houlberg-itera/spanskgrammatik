@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Exercise Completion</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffe6e6; }
+        .success { background: #e6ffe6; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 5px; margin: 5px; width: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Exercise Completion Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Exercise Completion</h2>
+        <p>Exercise ID: <input type="number" id="exerciseId" value="250" /></p>
+        <p>Score: <input type="number" id="score" value="85" /></p>
+        <button onclick="testExerciseCompletion()">Test Exercise Completion</button>
+        <div id="completionResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Check User Progress</h2>
+        <button onclick="checkUserProgress()">Check User Progress</button>
+        <div id="progressResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Proficiency Analysis</h2>
+        <button onclick="testProficiencyAnalysis()">Test Proficiency Analysis</button>
+        <div id="proficiencyResult" class="result"></div>
+    </div>
+
+    <script>
+        async function testExerciseCompletion() {
+            const exerciseId = parseInt(document.getElementById('exerciseId').value);
+            const score = parseInt(document.getElementById('score').value);
+            const resultDiv = document.getElementById('completionResult');
+            
+            try {
+                resultDiv.innerHTML = 'Testing exercise completion...';
+                
+                const response = await fetch('/api/test-exercise-completion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ exerciseId, score })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Error!</h3>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Network Error!</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function checkUserProgress() {
+            const resultDiv = document.getElementById('progressResult');
+            
+            try {
+                resultDiv.innerHTML = 'Checking user progress...';
+                
+                // Note: This would need to be implemented as an API endpoint
+                resultDiv.className = 'result';
+                resultDiv.innerHTML = `
+                    <h3>📊 User Progress Check</h3>
+                    <p>This would check user_progress table directly</p>
+                    <p>Check the browser console and server logs for debugging info</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Error!</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function testProficiencyAnalysis() {
+            const resultDiv = document.getElementById('proficiencyResult');
+            
+            try {
+                resultDiv.innerHTML = 'Testing proficiency analysis...';
+                
+                // This would need user ID - for now just show concept
+                resultDiv.className = 'result';
+                resultDiv.innerHTML = `
+                    <h3>🎯 Proficiency Analysis Test</h3>
+                    <p>This would call the proficiency analysis API</p>
+                    <p>Check admin dashboard for proficiency data</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Error!</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
