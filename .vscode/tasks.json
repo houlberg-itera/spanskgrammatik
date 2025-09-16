@@ -2723,6 +2723,64 @@
 				"src\\app\\api\\save-vocabulary-exercise\\route.ts",
 				"-Force"
 			]
+		},
+		{
+			"label": "Create DuolingoPath Component",
+			"type": "shell",
+			"command": "New-Item -Path 'src\\components\\DuolingoPath.tsx' -ItemType File -Force"
+		},
+		{
+			"label": "Start Next.js Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Stop All Node Processes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2"
+		},
+		{
+			"label": "Clean Build Cache",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force node_modules\\.cache -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Remove Duplicate Config",
+			"type": "shell",
+			"command": "Remove-Item -Path 'next.config.ts' -Force -ErrorAction SilentlyContinue"
+		},
+		{
+			"label": "Clean NPM Cache",
+			"type": "shell",
+			"command": "npm cache clean --force"
+		},
+		{
+			"label": "Fresh Install",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install"
+		},
+		{
+			"label": "Start Dev Server Fixed",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Test Server",
+			"type": "shell",
+			"command": "curl http://localhost:3000"
+		},
+		{
+			"label": "Create Simple Test Component",
+			"type": "shell",
+			"command": "New-Item -Path 'src\\components\\SimplePath.tsx' -ItemType File -Force"
+		},
+		{
+			"label": "Restart with Simple Component",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"isBackground": true
 		}
 	]
 }
