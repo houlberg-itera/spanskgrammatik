@@ -1,11 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress, SpanishLevel } from '@/types/database';
 import Link from 'next/link';
 import ArticleTip from '@/components/ArticleTip';
+import dynamic from 'next/dynamic';
+
+// Dynamically import SimplePath to avoid SSR issues
+const SimplePath = dynamic(() => import('@/components/SimplePath'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-xl">Indlæser læringssti...</div>
+    </div>
+  )
+});
 
 export default function LevelPage() {
   const params = useParams();
@@ -121,31 +132,6 @@ export default function LevelPage() {
     }
   };
 
-  const getTopicExercises = (topicId: number) => {
-    return exercises.filter(ex => ex.topic_id === topicId);
-  };
-
-  const getExerciseProgress = (exerciseId: number) => {
-    return userProgress.find(p => p.exercise_id === exerciseId);
-  };
-
-  const getTopicProgress = (topicId: number) => {
-    const topicExercises = getTopicExercises(topicId);
-    if (topicExercises.length === 0) return 0;
-    
-    const completedExercises = topicExercises.filter(ex => {
-      const progress = getExerciseProgress(ex.id);
-      return progress && progress.completed;
-    });
-    
-    const progressPercent = Math.round((completedExercises.length / topicExercises.length) * 100);
-    
-    // Debug logging (remove in production)
-    console.log(`Topic ${topicId}: ${completedExercises.length}/${topicExercises.length} completed (${progressPercent}%)`);
-    
-    return progressPercent;
-  };
-
   // AI Exercise generation removed for end users - now admin-only
   // const generateAIExercise = async (topicId: number, exerciseType: string) => {
   //   setGeneratingExercise(topicId);
@@ -207,127 +193,20 @@ export default function LevelPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Emner og øvelser</h2>
-              <p className="text-lg text-gray-600">
-                Vælg et emne for at begynde med øvelser på niveau {level}
-              </p>
-            </div>
-            <button
-              onClick={fetchData}
-              disabled={refreshing}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-              title="Opdater fremgang"
-            >
-              {refreshing ? '🔄 Opdaterer...' : '🔄 Opdater'}
-            </button>
-          </div>
+      {/* Duolingo-Style Learning Path */}
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-xl">Indlæser læringssti...</div>
         </div>
-
-        {/* Article Learning Tip */}
-        <ArticleTip level={level} />
-
-        {/* Topics */}
-        <div className="space-y-8">
-          {topics.map((topic) => {
-            const topicExercises = getTopicExercises(topic.id);
-            const topicProgress = getTopicProgress(topic.id);
-
-            return (
-              <div key={topic.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {topic.name_da}
-                    </h3>
-                    <p className="text-gray-600">{topic.description_da}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600">{topicProgress}%</div>
-                    <div className="text-sm text-gray-500">Afsluttet</div>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mb-6">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${topicProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Exercises */}
-                {topicExercises.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {topicExercises.map((exercise) => {
-                      const progress = getExerciseProgress(exercise.id);
-                      const isCompleted = progress && progress.completed;
-                      const hasAttempted = progress && progress.attempts > 0;
-
-                      return (
-                        <Link
-                          key={exercise.id}
-                          href={`/exercise/${exercise.id}`}
-                          className="block p-4 border rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 text-sm">
-                              {exercise.title_da}
-                            </h4>
-                            <div className="flex items-center space-x-1">
-                              {isCompleted && (
-                                <span className="text-green-500 text-sm">✓</span>
-                              )}
-                              {hasAttempted && !isCompleted && (
-                                <span className="text-yellow-500 text-sm">⚠</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <p className="text-xs text-gray-600 mb-3">
-                            {exercise.description_da}
-                          </p>
-                          
-                          <div className="flex justify-between items-center text-xs text-gray-500">
-                            <span className="capitalize">{exercise.type}</span>
-                            {progress && (
-                              <span>
-                                {isCompleted 
-                                  ? `${progress.score}%` 
-                                  : `${progress.attempts} forsøg`}
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Ingen øvelser tilgængelige for dette emne endnu.</p>
-                    <p className="text-sm mt-2">Generer AI-øvelser nedenfor!</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {topics.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500">
-              <p className="text-xl mb-4">Ingen emner fundet for niveau {level}</p>
-              <p>Kontakt support eller prøv et andet niveau.</p>
-            </div>
-          </div>
-        )}
-      </main>
+      }>
+        <SimplePath
+          level={level}
+          topics={topics}
+          exercises={exercises}
+          userProgress={userProgress}
+          onRefresh={fetchData}
+        />
+      </Suspense>
     </div>
   );
 }

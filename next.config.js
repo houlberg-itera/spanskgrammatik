@@ -6,22 +6,17 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Windows filesystem compatibility
+  // Force stable compilation
   experimental: {
-    caseSensitiveRoutes: false,
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
-  // Reduce memory usage during builds
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
+  // Disable webpack cache to prevent client reference issues
+  webpack: (config, { isServer, dev }) => {
+    if (dev) {
+      config.cache = false;
     }
     return config;
   },
 };
-
-module.exports = nextConfig;
 
 module.exports = nextConfig;
