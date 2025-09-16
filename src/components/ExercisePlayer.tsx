@@ -137,9 +137,44 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     const content = exercise.content as any;
     if (content.question_da || content.question_es) {
       // Convert old vocabulary format to questions array
+      // Determine the question type based on the content structure
+      let questionType = 'multiple_choice'; // default
+      
+      if (content.options && Array.isArray(content.options) && content.options.length > 0) {
+        // Has multiple choice options
+        questionType = 'multiple_choice';
+      } else if (content.question_da && content.correct_answer && !content.options) {
+        // No options provided - likely a translation or fill-in-blank exercise
+        // Check if it's asking for translation based on question text
+        const questionText = content.question_da.toLowerCase();
+        if (questionText.includes('oversæt') || questionText.includes('translate') || 
+            questionText.includes('dansk til spansk') || questionText.includes('spansk til dansk') ||
+            questionText.includes('oversættelse')) {
+          questionType = 'translation';
+        } else {
+          // For vocabulary exercises, if the question contains a complete Danish sentence
+          // and expects a Spanish answer, it's likely a translation exercise
+          const words = questionText.split(' ').length;
+          if (words > 3 && content.correct_answer) {
+            // Check if the correct answer is in Spanish (contains Spanish characters or common Spanish words)
+            const correctAnswer = content.correct_answer.toLowerCase();
+            const spanishIndicators = ['ñ', 'á', 'é', 'í', 'ó', 'ú', 'ü', 'bebo', 'agua', 'como', 'tengo', 'soy', 'es', 'está'];
+            const isSpanishAnswer = spanishIndicators.some(indicator => correctAnswer.includes(indicator));
+            
+            if (isSpanishAnswer) {
+              questionType = 'translation';
+            } else {
+              questionType = 'fill_blank';
+            }
+          } else {
+            questionType = 'fill_blank';
+          }
+        }
+      }
+      
       const question = {
         id: '1',
-        type: 'multiple_choice',
+        type: questionType,
         question_da: content.question_da,
         question_es: content.question_es,
         options: content.options || [],
@@ -149,7 +184,9 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
         points: 1
       };
       questions = [question];
-      console.log('🔍 Converted old vocabulary format to questions array');
+      console.log('🔍 Converted old vocabulary format to questions array with type:', questionType);
+      console.log('🔍 Question text:', content.question_da);
+      console.log('🔍 Expected answer:', content.correct_answer);
     }
   }
   

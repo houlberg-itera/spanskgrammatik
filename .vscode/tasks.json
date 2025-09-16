@@ -2723,6 +2723,22 @@
 				"src\\app\\api\\save-vocabulary-exercise\\route.ts",
 				"-Force"
 			]
+		},
+		{
+			"label": "Debug Translation Exercise",
+			"type": "shell",
+			"command": "echo 'Creating debug script...' && echo 'const { createClient } = require(\"@supabase/supabase-js\");\n\nconst supabaseUrl = \"https://wdgjiqjxdqrqdqkxfgkq.supabase.co\";\nconst supabaseServiceRoleKey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2ppcWp4ZHFycWRxa3hmZ2txIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDA5MTEzMSwiZXhwIjoyMDQ5NjY3MTMxfQ.VLCwQYHRdV4LhYqaTjKUZC0W7hEWkVnFKDlGpYebYXM\";\n\nconst supabase = createClient(supabaseUrl, supabaseServiceRoleKey);\n\nasync function debugTranslationExercise() {\n  try {\n    console.log(\"🔍 Looking for vocabulary exercise about comida...\");\n    \n    // Find exercises related to comida (food)\n    const { data: exercises, error } = await supabase\n      .from(\"exercises\")\n      .select(\"*\")\n      .ilike(\"title\", \"%comida%\")\n      .limit(10);\n\n    if (error) {\n      console.error(\"❌ Error fetching exercises:\", error);\n      return;\n    }\n\n    console.log(`📊 Found ${exercises.length} comida exercises`);\n    \n    for (const exercise of exercises) {\n      console.log(\"\\n🏷️ Exercise:\", exercise.id, \"-\", exercise.title);\n      \n      // Check for the specific question mentioned by user\n      const contentStr = JSON.stringify(exercise.content);\n      if (contentStr.includes(\"Jeg drikker koldt vand\")) {\n        console.log(\"🎯 FOUND THE PROBLEMATIC EXERCISE!\");\n        console.log(\"📋 Full content:\", JSON.stringify(exercise.content, null, 2));\n        \n        // Analyze structure\n        if (exercise.content && typeof exercise.content === \"object\") {\n          console.log(\"\\n🔍 Structure Analysis:\");\n          console.log(\"- Keys:\", Object.keys(exercise.content));\n          \n          if (exercise.content.questions) {\n            console.log(\"- Has questions array:\", exercise.content.questions.length, \"items\");\n            exercise.content.questions.forEach((q, i) => {\n              console.log(`  Question ${i+1}:`, q.type, \"-\", q.question_da);\n            });\n          } else if (exercise.content.question_da) {\n            console.log(\"- Old format with single question detected\");\n            console.log(\"- Question type could be inferred as: translation\");\n          } else {\n            console.log(\"- No questions or question_da found!\");\n          }\n        }\n        break;\n      }\n    }\n    \n  } catch (error) {\n    console.error(\"❌ Debug error:\", error);\n  }\n}\n\ndebugTranslationExercise();' > debug-translation.js && node debug-translation.js"
+		},
+		{
+			"label": "Create Debug Script",
+			"type": "shell",
+			"command": "New-Item -Path 'debug-translation.js' -ItemType File -Value \"const { createClient } = require('@supabase/supabase-js');`n`nconst supabaseUrl = 'https://wdgjiqjxdqrqdqkxfgkq.supabase.co';`nconst supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2ppcWp4ZHFycWRxa3hmZ2txIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDA5MTEzMSwiZXhwIjoyMDQ5NjY3MTMxfQ.VLCwQYHRdV4LhYqaTjKUZC0W7hEWkVnFKDlGpYebYXM';`n`nconst supabase = createClient(supabaseUrl, supabaseServiceRoleKey);`n`nasync function debugTranslationExercise() {`n  try {`n    console.log('Looking for vocabulary exercise about comida...');`n    const { data: exercises, error } = await supabase.from('exercises').select('*').ilike('title', '%comida%').limit(10);`n    if (error) { console.error('Error:', error); return; }`n    for (const exercise of exercises) {`n      const contentStr = JSON.stringify(exercise.content);`n      if (contentStr.includes('Jeg drikker koldt vand')) {`n        console.log('FOUND EXERCISE:', exercise.id);`n        console.log('Content:', JSON.stringify(exercise.content, null, 2));`n        break;`n      }`n    }`n  } catch (error) { console.error('Debug error:', error); }`n}`n`ndebugTranslationExercise();\" -Force"
+		},
+		{
+			"label": "Clear Cache and Restart Dev Server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null; Start-Sleep 2; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; npm run dev",
+			"isBackground": true
 		}
 	]
 }
