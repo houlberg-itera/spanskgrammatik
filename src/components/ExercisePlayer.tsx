@@ -111,7 +111,67 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   const router = useRouter();
   const supabase = createClient();
 
-  const questions = exercise.content.questions;
+  // Debug logging to see exercise structure
+  console.log('🔍 ExercisePlayer received exercise:', exercise);
+  console.log('🔍 Exercise content:', exercise?.content);
+  console.log('🔍 Exercise content type:', typeof exercise?.content);
+
+  // Add null checks for exercise content
+  let questions = [];
+  
+  // Handle different exercise content structures
+  if (exercise?.content?.questions) {
+    // New format: content.questions array
+    questions = exercise.content.questions;
+    console.log('🔍 Using content.questions format');
+  } else if (Array.isArray(exercise?.content)) {
+    // Direct array format
+    questions = exercise.content;
+    console.log('🔍 Using direct array format');
+  } else if ((exercise as any)?.questions) {
+    // Questions directly on exercise object
+    questions = (exercise as any).questions;
+    console.log('🔍 Using exercise.questions format');
+  } else if (exercise?.content && typeof exercise.content === 'object') {
+    // Old vocabulary format: single question object
+    const content = exercise.content as any;
+    if (content.question_da || content.question_es) {
+      // Convert old vocabulary format to questions array
+      const question = {
+        id: '1',
+        type: 'multiple_choice',
+        question_da: content.question_da,
+        question_es: content.question_es,
+        options: content.options || [],
+        correct_answer: content.correct_answer,
+        explanation_da: content.explanation_da,
+        explanation_es: content.explanation_es,
+        points: 1
+      };
+      questions = [question];
+      console.log('🔍 Converted old vocabulary format to questions array');
+    }
+  }
+  
+  console.log('🔍 Parsed questions:', questions);
+  console.log('🔍 Questions length:', questions?.length);
+  
+  // Early return if no questions
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+        <h3 className="text-lg font-semibold text-red-800 mb-2">Øvelse fejl</h3>
+        <p className="text-red-600">Denne øvelse har ingen spørgsmål. Kontakt en administrator.</p>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-red-500">Debug info (klik for at se)</summary>
+          <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto">
+            {JSON.stringify(exercise, null, 2)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const allQuestionsAnswered = questions.every(q => answers[q.id] !== undefined && answers[q.id] !== '');
@@ -127,7 +187,9 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     return text
       .toLowerCase()
       .trim()
-      // Remove or normalize special characters
+      // Remove punctuation and special characters
+      .replace(/[.,:;!?¡¿]/g, '')
+      // Normalize Spanish special characters to basic letters
       .replace(/[áàâäã]/g, 'a')
       .replace(/[éèêë]/g, 'e')
       .replace(/[íìîï]/g, 'i')
@@ -136,7 +198,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
       .replace(/ñ/g, 'n')
       .replace(/ç/g, 'c')
       // Remove extra spaces
-      .replace(/\s+/g, ' ');
+      .replace(/\s+/g, ' ')
+      .trim();
   };
 
   const compareAnswers = (userAnswer: string, correctAnswer: string): boolean => {
@@ -147,8 +210,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     if (originalUserAnswer === originalCorrectAnswer) {
       return true;
     }
-    
-    // Then check normalized match (ignoring special characters)
+
+    // Check normalized match (without special characters and punctuation)
     const normalizedUserAnswer = normalizeText(userAnswer);
     const normalizedCorrectAnswer = normalizeText(correctAnswer);
     
@@ -469,6 +532,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
             userAnswer={answers[currentQuestion.id]}
             level={exercise.level}
             enableAiFeedback={true}
+            showResult={showResults}
+            disabled={false}
           />
         </div>
 

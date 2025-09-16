@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SpanishLevel } from '@/types/database';
+import VocabularyExerciseGenerator from '@/components/VocabularyExerciseGenerator';
 
 interface UserProficiency {
   userId: string;
@@ -31,7 +32,7 @@ export default function AdminDashboard() {
   const [exerciseGenerations, setExerciseGenerations] = useState<ExerciseGeneration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'users' | 'exercises' | 'analytics'>('users');
+  const [viewMode, setViewMode] = useState<'users' | 'exercises' | 'analytics' | 'vocabulary'>('users');
   const [analytics, setAnalytics] = useState({
     totalUsers: 0,
     averageProgress: 0,
@@ -234,7 +235,7 @@ export default function AdminDashboard() {
               📊 Spanskgrammatik Admin Dashboard
             </h1>
             <div className="flex space-x-4">
-              {(['users', 'exercises', 'analytics'] as const).map(mode => (
+              {(['users', 'exercises', 'analytics', 'vocabulary'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
@@ -247,6 +248,7 @@ export default function AdminDashboard() {
                   {mode === 'users' && '👥 Brugere'}
                   {mode === 'exercises' && '📚 Øvelser'}
                   {mode === 'analytics' && '📈 Analyser'}
+                  {mode === 'vocabulary' && '🗣️ Ordforråd'}
                 </button>
               ))}
             </div>
@@ -497,6 +499,39 @@ export default function AdminDashboard() {
                     <span className="font-semibold text-red-600">{count}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'vocabulary' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  🗣️ Ordforråds Øvelse Generator
+                </h3>
+                <p className="text-gray-600">
+                  Generer tilpassede ordforrådsøvelser for alle niveauer med AI-drevet indhold
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Level Selection for Vocabulary Exercises */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
+                    <div key={level} className="bg-gray-50 rounded-lg p-4 border">
+                      <h4 className="font-semibold text-gray-900 mb-2">Niveau {level}</h4>
+                      <VocabularyExerciseGenerator 
+                        level={level}
+                        onExerciseGenerated={(exercise) => {
+                          console.log(`Generated ${level} vocabulary exercise:`, exercise);
+                          // You can add logic here to save the exercise to the database
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
