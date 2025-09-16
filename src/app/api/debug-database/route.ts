@@ -164,6 +164,32 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Test: Exercise 370 content structure
+    try {
+      const { data: exercise370, error } = await supabase
+        .from('exercises')
+        .select('*')
+        .eq('id', 370)
+        .single();
+      
+      debugInfo.tests.exercise370 = {
+        success: !error,
+        error: error?.message,
+        exercise: exercise370,
+        contentType: typeof exercise370?.content,
+        isContentArray: Array.isArray(exercise370?.content),
+        contentKeys: exercise370?.content ? Object.keys(exercise370.content) : null,
+        questionsExist: !!exercise370?.content?.questions,
+        questionsLength: exercise370?.content?.questions?.length || 0,
+        rawContent: exercise370?.content
+      };
+    } catch (err) {
+      debugInfo.tests.exercise370 = {
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error'
+      };
+    }
+
     return NextResponse.json(debugInfo);
 
   } catch (error) {

@@ -96,19 +96,34 @@ INSERT INTO public.topics (level, name_da, name_es, description_da, description_
   ('A1', 'Substantiver og artikler', 'Sustantivos y artículos', 'Grundlæggende substantiver og bestemte/ubestemte artikler', 'Sustantivos básicos y artículos definidos/indefinidos', 1),
   ('A1', 'Verbum "ser" og "estar"', 'Verbos "ser" y "estar"', 'Forskellen mellem de to verbum "at være"', 'La diferencia entre los dos verbos "ser" y "estar"', 2),
   ('A1', 'Grundlæggende navneord bøjning', 'Flexión básica de sustantivos', 'Ental og flertal af navneord', 'Singular y plural de sustantivos', 3),
-  ('A1', 'Præsens af regelmæssige verbum', 'Presente de verbos regulares', 'Nutid af -ar, -er, -ir verbum', 'Presente de verbos -ar, -er, -ir', 4);
+  ('A1', 'Præsens af regelmæssige verbum', 'Presente de verbos regulares', 'Nutid af -ar, -er, -ir verbum', 'Presente de verbos -ar, -er, -ir', 4),
+  ('A1', 'Grundlæggende ordforråd - Familie', 'Vocabulario básico - Familia', 'Familiemedlemmer og relationer på spansk', 'Miembros de la familia y relaciones en español', 5),
+  ('A1', 'Grundlæggende ordforråd - Farver', 'Vocabulario básico - Colores', 'Grundlæggende farver på spansk', 'Colores básicos en español', 6),
+  ('A1', 'Grundlæggende ordforråd - Tal 1-20', 'Vocabulario básico - Números 1-20', 'Tal fra 1 til 20 på spansk', 'Números del 1 al 20 en español', 7),
+  ('A1', 'Grundlæggende ordforråd - Hus og møbler', 'Vocabulario básico - Casa y muebles', 'Ting i hjemmet og møbler', 'Cosas del hogar y muebles', 8),
+  ('A1', 'Grundlæggende ordforråd - Mad og drikke', 'Vocabulario básico - Comida y bebida', 'Almindelig mad og drikkevarer', 'Comida y bebidas comunes', 9),
+  ('A1', 'Grundlæggende ordforråd - Tøj', 'Vocabulario básico - Ropa', 'Tøj og tilbehør', 'Ropa y accesorios', 10);
 
 -- Insert default topics for A2 level
 INSERT INTO public.topics (level, name_da, name_es, description_da, description_es, order_index) VALUES
   ('A2', 'Datid (pretérito perfecto)', 'Pretérito perfecto', 'Fortid med har/have + verbum', 'Pasado con haber + participio', 1),
   ('A2', 'Uregelmæssige verbum', 'Verbos irregulares', 'Almindelige uregelmæssige verbum i nutid', 'Verbos irregulares comunes en presente', 2),
-  ('A2', 'Komparativ og superlativ', 'Comparativo y superlativo', 'Sammenligning af adjektiver', 'Comparación de adjetivos', 3);
+  ('A2', 'Komparativ og superlativ', 'Comparativo y superlativo', 'Sammenligning af adjektiver', 'Comparación de adjetivos', 3),
+  ('A2', 'Ordforråd - Transport og rejser', 'Vocabulario - Transporte y viajes', 'Transport, rejser og ferieord', 'Transporte, viajes y vacaciones', 4),
+  ('A2', 'Ordforråd - Arbejde og professioner', 'Vocabulario - Trabajo y profesiones', 'Job, professioner og arbejdsplads', 'Trabajo, profesiones y lugar de trabajo', 5),
+  ('A2', 'Ordforråd - Krop og sundhed', 'Vocabulario - Cuerpo y salud', 'Kropsdele, sygdom og sundhed', 'Partes del cuerpo, enfermedad y salud', 6),
+  ('A2', 'Ordforråd - Vejr og årstider', 'Vocabulario - Tiempo y estaciones', 'Vejr, årstider og klimabeskrivelse', 'Tiempo, estaciones y descripción del clima', 7),
+  ('A2', 'Ordforråd - Sport og fritid', 'Vocabulario - Deportes y tiempo libre', 'Sportsgrene og fritidsaktiviteter', 'Deportes y actividades de tiempo libre', 8);
 
 -- Insert default topics for B1 level
 INSERT INTO public.topics (level, name_da, name_es, description_da, description_es, order_index) VALUES
   ('B1', 'Konjunktiv (subjuntivo)', 'Subjuntivo', 'Konjunktiv modus og dets anvendelse', 'Modo subjuntivo y sus usos', 1),
   ('B1', 'Betinget modus (condicional)', 'Condicional', 'Betinget modus og hypotetiske situationer', 'Modo condicional y situaciones hipotéticas', 2),
-  ('B1', 'Komplekse sætningsstrukturer', 'Estructuras de oraciones complejas', 'Relative sætninger og konjunktioner', 'Oraciones relativas y conjunciones', 3);
+  ('B1', 'Komplekse sætningsstrukturer', 'Estructuras de oraciones complejas', 'Relative sætninger og konjunktioner', 'Oraciones relativas y conjunciones', 3),
+  ('B1', 'Avanceret ordforråd - Uddannelse', 'Vocabulario avanzado - Educación', 'Uddannelsessystem, fag og akademiske udtryk', 'Sistema educativo, materias y términos académicos', 4),
+  ('B1', 'Avanceret ordforråd - Politik og samfund', 'Vocabulario avanzado - Política y sociedad', 'Politik, samfund og sociale emner', 'Política, sociedad y temas sociales', 5),
+  ('B1', 'Avanceret ordforråd - Miljø og natur', 'Vocabulario avanzado - Medio ambiente y naturaleza', 'Miljø, klima og naturbeskyttelse', 'Medio ambiente, clima y conservación', 6),
+  ('B1', 'Avanceret ordforråd - Teknologi', 'Vocabulario avanzado - Tecnología', 'Teknologi, internet og digitale medier', 'Tecnología, internet y medios digitales', 7);
 
 -- Enable Row Level Security
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;

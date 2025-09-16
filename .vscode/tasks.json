@@ -2561,6 +2561,168 @@
 			"type": "shell",
 			"command": "Remove-Item \"c:\\source\\repos\\Spanskgrammatik\\src\\components\\ExerciseQuestion_fixed.tsx\" -Force",
 			"group": "build"
+		},
+		{
+			"label": "Create Vocabulary API Directory",
+			"type": "shell",
+			"command": "New-Item -Path 'src/app/api/generate-vocabulary-exercise' -ItemType Directory -Force"
+		},
+		{
+			"label": "Create Vocabulary API File",
+			"type": "shell",
+			"command": "New-Item -Path 'src\\app\\api\\generate-vocabulary-exercise\\route.ts' -ItemType File -Force -Value 'export async function POST() { return new Response(\"Vocabulary API working!\"); }'"
+		},
+		{
+			"label": "Create Vocabulary Component File",
+			"type": "shell",
+			"command": "New-Item -Path 'src\\components\\VocabularyExerciseGenerator.tsx' -ItemType File -Force -Value '// Vocabulary Exercise Generator Component'"
+		},
+		{
+			"label": "Test Server",
+			"type": "shell",
+			"command": "curl -I http://localhost:3000"
+		},
+		{
+			"label": "Test Vocabulary API",
+			"type": "shell",
+			"command": "powershell -Command \"Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-vocabulary-exercise' -Method POST\""
+		},
+		{
+			"label": "Test Vocabulary Generation",
+			"type": "shell",
+			"command": "powershell -Command \"$body = @{topic='familia'; level='A1'; questionType='multiple_choice'; count=3} | ConvertTo-Json; Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-vocabulary-exercise' -Method POST -Body $body -ContentType 'application/json'\""
+		},
+		{
+			"label": "Fix React Types",
+			"type": "shell",
+			"command": "npm install @types/react@^19 @types/react-dom@^19 --save-dev"
+		},
+		{
+			"label": "Install React Types",
+			"type": "shell",
+			"command": "npm install @types/react@latest @types/react-dom@latest"
+		},
+		{
+			"label": "Test Vocabulary API Simple",
+			"type": "shell",
+			"command": "powershell -Command \"$json = '{\\\"topic\\\":\\\"familia\\\",\\\"level\\\":\\\"A1\\\",\\\"questionType\\\":\\\"multiple_choice\\\",\\\"count\\\":3}'; $response = Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json'; $response.Content\""
+		},
+		{
+			"label": "Create Vocabulary Test",
+			"type": "shell",
+			"command": "echo 'console.log(\"Testing vocabulary API...\"); fetch(\"http://localhost:3000/api/generate-vocabulary-exercise\", { method: \"POST\", headers: { \"Content-Type\": \"application/json\" }, body: JSON.stringify({ topic: \"familia\", level: \"A1\", questionType: \"multiple_choice\", count: 3 }) }).then(r => r.json()).then(d => console.log(\"Success:\", d)).catch(e => console.error(\"Error:\", e));' > test-vocabulary.js"
+		},
+		{
+			"label": "Stop Dev Server",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T 2>$null"
+		},
+		{
+			"label": "Start Dev Server Clean",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true
+		},
+		{
+			"label": "Create Test Directory",
+			"type": "shell",
+			"command": "mkdir src\\app\\api\\test-vocabulary"
+		},
+		{
+			"label": "Create Test Directory",
+			"type": "shell",
+			"command": "mkdir src\\app\\test-answers"
+		},
+		{
+			"label": "Create Test Answers Directory",
+			"type": "shell",
+			"command": "mkdir src\\app\\test-answers"
+		},
+		{
+			"label": "Create Test Page File",
+			"type": "shell",
+			"command": "New-Item -Path 'src\\app\\test-answers\\page.tsx' -ItemType File"
+		},
+		{
+			"label": "Test Vocabulary API",
+			"type": "shell",
+			"command": "Start-Sleep 3; $json = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json'; Write-Host 'SUCCESS:'; $response.Content } catch { Write-Host 'ERROR:'; $_.Exception.Message }"
+		},
+		{
+			"label": "Test Vocabulary API Port 3001",
+			"type": "shell",
+			"command": "Start-Sleep 2; Write-Host 'Testing vocabulary API on port 3001...'; $json = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 10; Write-Host 'SUCCESS - Response received:'; $response.Content | ConvertFrom-Json | ConvertTo-Json -Depth 5 } catch { Write-Host 'ERROR occurred:'; Write-Host $_.Exception.Message; Write-Host 'Response:'; Write-Host $_.Exception.Response }"
+		},
+		{
+			"label": "Check Server Status",
+			"type": "shell",
+			"command": "Start-Sleep 5; Write-Host 'Checking if server is responding...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001' -TimeoutSec 5; Write-Host 'Server is running!' } catch { Write-Host 'Server not ready yet...' }"
+		},
+		{
+			"label": "Test Vocabulary API Correctly",
+			"type": "shell",
+			"command": "Write-Host 'Testing vocabulary API with correct JSON format...'; $json = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 15; Write-Host 'SUCCESS!'; Write-Host $response.Content } catch { Write-Host 'Still have error - checking response...'; Write-Host $_.Exception.Message }"
+		},
+		{
+			"label": "Test Fixed Vocabulary API",
+			"type": "shell",
+			"command": "Write-Host 'Testing vocabulary API after JSON fix...'; $json = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 20; Write-Host 'SUCCESS! Exercise generated:'; $data = $response.Content | ConvertFrom-Json; Write-Host \"Title: $($data.title)\"; Write-Host \"Questions: $($data.questions.Count)\" } catch { Write-Host 'Error:'; Write-Host $_.Exception.Message }"
+		},
+		{
+			"label": "Test Vocabulary After Recompile",
+			"type": "shell",
+			"command": "Start-Sleep 2; Write-Host 'Testing vocabulary API after server recompilation...'; $json = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 25; Write-Host 'SUCCESS! Exercise generated successfully!'; $data = $response.Content | ConvertFrom-Json; Write-Host \"📚 Title: $($data.title)\"; Write-Host \"❓ Questions: $($data.questions.Count)\"; Write-Host \"🎯 First question: $($data.questions[0].question_da)\" } catch { Write-Host 'Error occurred:'; Write-Host $_.Exception.Message }"
+		},
+		{
+			"label": "Trigger API Rebuild",
+			"type": "shell",
+			"command": "Write-Host 'Creating test file to trigger vocabulary API rebuild...'; echo 'test' > test-trigger.txt"
+		},
+		{
+			"label": "Test Vocabulary API with Debug",
+			"type": "shell",
+			"command": "curl -X POST http://localhost:3000/api/generate-vocabulary-exercise -H \"Content-Type: application/json\" -d '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3,\"difficulty\":\"easy\"}'",
+			"group": "build"
+		},
+		{
+			"label": "Test Vocabulary API Successfully",
+			"type": "shell",
+			"command": "$Body = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3,\"difficulty\":\"easy\"}'; Write-Host 'Testing vocabulary API with familia topic...'; try { $Response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $Body -ContentType 'application/json' -TimeoutSec 30; $Data = $Response.Content | ConvertFrom-Json; Write-Host '✅ SUCCESS! Generated exercise:'; Write-Host \"📚 Title: $($Data.title)\"; Write-Host \"📝 Questions: $($Data.questions.Count)\"; Write-Host \"🎯 First question: $($Data.questions[0].question_da)\"; Write-Host \"✨ Correct answer: $($Data.questions[0].correct_answer)\" } catch { Write-Host '❌ Error:'; Write-Host $_.Exception.Message }",
+			"group": "build"
+		},
+		{
+			"label": "Test Vocabulary API with Proper JSON",
+			"type": "shell",
+			"command": "$Body = '{\"topic\":\"familia\",\"level\":\"A1\",\"exerciseType\":\"multiple_choice\",\"questionCount\":3,\"difficulty\":\"easy\"}'; Write-Host 'Testing vocabulary API with familia topic...'; try { $Response = Invoke-WebRequest -Uri 'http://localhost:3001/api/generate-vocabulary-exercise' -Method POST -Body $Body -ContentType 'application/json' -TimeoutSec 30; $Data = $Response.Content | ConvertFrom-Json; Write-Host '✅ SUCCESS! Generated exercise:'; Write-Host \"📚 Title: $($Data.title)\"; Write-Host \"📝 Questions: $($Data.questions.Count)\"; Write-Host \"🎯 First question: $($Data.questions[0].question_da)\"; Write-Host \"✨ Correct answer: $($Data.questions[0].correct_answer)\" } catch { Write-Host '❌ Error:'; Write-Host $_.Exception.Message }",
+			"group": "build"
+		},
+		{
+			"label": "Create Save API Directory",
+			"type": "shell",
+			"command": "mkdir",
+			"args": [
+				"src\\app\\api\\save-vocabulary-exercise"
+			]
+		},
+		{
+			"label": "Create Save API File",
+			"type": "shell",
+			"command": "echo.",
+			"args": [
+				""
+			]
+		},
+		{
+			"label": "Create Save API Route",
+			"type": "shell",
+			"command": "New-Item",
+			"args": [
+				"-ItemType",
+				"File",
+				"-Path",
+				"src\\app\\api\\save-vocabulary-exercise\\route.ts",
+				"-Force"
+			]
 		}
 	]
 }

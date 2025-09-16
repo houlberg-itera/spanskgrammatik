@@ -96,16 +96,32 @@ CREATE POLICY "public_read_levels" ON public.levels FOR SELECT USING (true);
 CREATE POLICY "public_read_topics" ON public.topics FOR SELECT USING (true);
 CREATE POLICY "public_read_exercises" ON public.exercises FOR SELECT USING (true);
 
--- Admin access for exercises - ALL operations
+-- Admin access for exercises - ALL operations (including vocabulary exercises)
 CREATE POLICY "admin_all_exercises" ON public.exercises 
     FOR ALL 
     USING (
         (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
-        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no'
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no' OR
+        (auth.jwt() ->> 'email') = 'ahn@itera.dk'
     )
     WITH CHECK (
         (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
-        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no'
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no' OR
+        (auth.jwt() ->> 'email') = 'ahn@itera.dk'
+    );
+
+-- Admin access for topics (needed for vocabulary exercise generation)
+CREATE POLICY "admin_all_topics" ON public.topics 
+    FOR ALL 
+    USING (
+        (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no' OR
+        (auth.jwt() ->> 'email') = 'ahn@itera.dk'
+    )
+    WITH CHECK (
+        (auth.jwt() ->> 'email') = 'admin@spanskgrammatik.dk' OR
+        (auth.jwt() ->> 'email') = 'anders.houlberg-niel@itera.no' OR
+        (auth.jwt() ->> 'email') = 'ahn@itera.dk'
     );
 
 -- Fallback: Allow authenticated users to insert exercises (temporary)
