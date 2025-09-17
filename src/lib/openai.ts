@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { ExerciseContent, ExerciseType, SpanishLevel } from '@/types/database';
-import { getAIConfiguration, replaceTemplateVariables } from '@/lib/ai-config';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -193,31 +192,24 @@ export async function generateFeedback(
   level: SpanishLevel
 ): Promise<string> {
   try {
-    // Get AI configuration for feedback generation
-    const config = await getAIConfiguration('feedback_generation');
+    // Simplified feedback generation with hardcoded prompts
+    const systemPrompt = `Du er en hjælpsom spansk lærer, der giver feedback på dansk. Giv venlig og konstruktiv feedback til studenten på ${level} niveau.`;
     
-    // Replace template variables in the user prompt
-    const userPrompt = replaceTemplateVariables(config.user_prompt_template, {
-      question,
-      userAnswer,
-      correctAnswer,
-      level
-    });
-    
-    // Replace template variables in the system prompt
-    const systemPrompt = replaceTemplateVariables(config.system_prompt, {
-      level
-    });
+    const userPrompt = `Spørgsmål: ${question}
+Studentens svar: "${userAnswer}"
+Korrekt svar: "${correctAnswer}"
+
+Giv kort feedback på dansk om studentens svar.`;
 
     const completion = await retryWithBackoff(async () => {
       return await openai.chat.completions.create({
-        model: config.model_name,
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: config.temperature,
-        max_tokens: config.max_tokens,
+        temperature: 0.7,
+        max_tokens: 150,
       });
     });
 

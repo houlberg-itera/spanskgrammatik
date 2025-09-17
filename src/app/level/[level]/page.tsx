@@ -8,8 +8,8 @@ import Link from 'next/link';
 import ArticleTip from '@/components/ArticleTip';
 import dynamic from 'next/dynamic';
 
-// Dynamically import SimplePath to avoid SSR issues
-const SimplePath = dynamic(() => import('@/components/SimplePath'), {
+// Dynamically import LearningPath to avoid SSR issues
+const LearningPath = dynamic(() => import('@/components/LearningPath'), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center">
@@ -199,7 +199,7 @@ export default function LevelPage() {
           <div className="text-xl">Indlæser læringssti...</div>
         </div>
       }>
-        <SimplePath
+        <LearningPath
           level={level}
           topics={topics}
           exercises={exercises}

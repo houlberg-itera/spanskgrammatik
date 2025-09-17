@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div className="flex items-center space-x-4">
-                <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                   ← Tilbage til App
                 </Link>
                 <div className="h-6 w-px bg-gray-300"></div>

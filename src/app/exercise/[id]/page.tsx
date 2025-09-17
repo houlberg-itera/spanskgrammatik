@@ -38,13 +38,25 @@ export default function ExercisePage() {
 
   const fetchExercise = async () => {
     try {
+      console.log('Fetching exercise with ID:', exerciseId);
+      
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Du skal være logget ind for at se øvelser');
+        return;
+      }
+
       const { data: exerciseData, error: exerciseError } = await supabase
         .from('exercises')
         .select('*')
         .eq('id', exerciseId)
         .single();
 
+      console.log('Exercise query result:', { exerciseData, exerciseError });
+
       if (exerciseError) {
+        console.error('Supabase error details:', exerciseError);
         throw exerciseError;
       }
 
@@ -56,7 +68,7 @@ export default function ExercisePage() {
       setExercise(exerciseData);
     } catch (error) {
       console.error('Error fetching exercise:', error);
-      setError('Kunne ikke indlæse øvelsen');
+      setError(`Kunne ikke indlæse øvelsen: ${error instanceof Error ? error.message : 'Ukendt fejl'}`);
     } finally {
       setLoading(false);
     }

@@ -43,6 +43,9 @@ export default function ExerciseGeneratorAdmin() {
   });
   const [generationJobs, setGenerationJobs] = useState<GenerationJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [shouldStop, setShouldStop] = useState(false);
+  const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentModel, setCurrentModel] = useState<string>('gpt-4o');
 
   // Preset configurations for comprehensive exercise generation
@@ -265,6 +268,11 @@ export default function ExerciseGeneratorAdmin() {
       return;
     }
 
+    // Reset control states
+    setShouldStop(false);
+    setIsPaused(false);
+    setCurrentJobIndex(0);
+
     // Immediate feedback - set loading state first
     setIsGenerating(true);
     
@@ -300,6 +308,27 @@ export default function ExerciseGeneratorAdmin() {
 
     // Process jobs sequentially to avoid rate limits
     for (let i = 0; i < jobs.length; i++) {
+      // Check if we should stop
+      if (shouldStop) {
+        console.log('🛑 Generation stopped by user');
+        setIsGenerating(false);
+        return;
+      }
+
+      // Wait while paused
+      while (isPaused && !shouldStop) {
+        console.log('⏸️ Generation paused, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Check again after pause
+      if (shouldStop) {
+        console.log('🛑 Generation stopped by user after pause');
+        setIsGenerating(false);
+        return;
+      }
+
+      setCurrentJobIndex(i);
       const job = jobs[i];
       const topic = topics.find(t => t.id === job.topicId);  // Use topicId instead of name_da
       
@@ -348,7 +377,20 @@ export default function ExerciseGeneratorAdmin() {
         if (i < jobs.length - 1) {
           const progressiveDelay = Math.min(1000 + (i * 200), 5000); // Start at 1s, increase by 200ms per job, max 5s
           console.log(`⏳ Waiting ${progressiveDelay/1000}s before next generation (job ${i+1}/${jobs.length})`);
-          await new Promise(resolve => setTimeout(resolve, progressiveDelay));
+          
+          // Break delay into smaller chunks so we can respond to pause/stop faster
+          const chunkSize = 250;
+          const chunks = Math.ceil(progressiveDelay / chunkSize);
+          for (let chunk = 0; chunk < chunks; chunk++) {
+            if (shouldStop) return;
+            if (isPaused) {
+              while (isPaused && !shouldStop) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+              if (shouldStop) return;
+            }
+            await new Promise(resolve => setTimeout(resolve, chunkSize));
+          }
         }
 
       } catch (error) {
@@ -385,6 +427,22 @@ export default function ExerciseGeneratorAdmin() {
     // Always set isGenerating to false when done
     setIsGenerating(false);
     await loadTopics(); // Refresh topic counts
+  };
+
+  const pauseGeneration = () => {
+    setIsPaused(true);
+    console.log('⏸️ Generation paused by user');
+  };
+
+  const resumeGeneration = () => {
+    setIsPaused(false);
+    console.log('▶️ Generation resumed by user');
+  };
+
+  const stopGeneration = () => {
+    setShouldStop(true);
+    setIsPaused(false);
+    console.log('🛑 Generation stop requested by user');
   };
 
   const getJobStatusColor = (status: string) => {
@@ -794,29 +852,78 @@ export default function ExerciseGeneratorAdmin() {
             </div>
           </div>
 
-          {/* Generate Button */}
+          {/* Generation Control Panel */}
           <div className="mb-8">
-            <button
-              onClick={startBulkGeneration}
-              disabled={isGenerating || selectedTopics.length === 0}
-              className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 ${
-                isGenerating || selectedTopics.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
-              }`}
-            >
-              {isGenerating ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-500"></div>
-                  <span>🤖 Genererer øvelser...</span>
+            {!isGenerating ? (
+              <button
+                onClick={startBulkGeneration}
+                disabled={selectedTopics.length === 0}
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                  selectedTopics.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
+                }`}
+              >
+                🚀 Start AI Generering
+              </button>
+            ) : (
+              <div className="space-y-4">
+                {/* Generation Status */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <span className="text-blue-700 font-medium">
+                        {isPaused ? '⏸️ Pauseret' : '🤖 Genererer øvelser...'}
+                      </span>
+                      <span className="text-blue-600">
+                        Job {currentJobIndex + 1} af {generationJobs.length}
+                      </span>
+                    </div>
+                    <div className="text-sm text-blue-600">
+                      {Math.round(((currentJobIndex) / generationJobs.length) * 100)}% færdig
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mt-3 bg-blue-100 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((currentJobIndex) / generationJobs.length) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
-              ) : (
-                '🚀 Start AI Generering'
-              )}
-            </button>
+
+                {/* Control Buttons */}
+                <div className="flex space-x-3">
+                  {!isPaused ? (
+                    <button
+                      onClick={pauseGeneration}
+                      className="flex-1 py-3 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+                    >
+                      ⏸️ Pause Generering
+                    </button>
+                  ) : (
+                    <button
+                      onClick={resumeGeneration}
+                      className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      ▶️ Fortsæt Generering
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={stopGeneration}
+                    className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  >
+                    🛑 Stop Generering
+                  </button>
+                </div>
+              </div>
+            )}
             
-            {/* Immediate feedback message */}
-            {isGenerating && (
+            {/* Immediate feedback message for non-generating state */}
+            {!isGenerating && selectedTopics.length > 0 && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2 text-blue-700">
                   <div className="animate-pulse">⚡</div>

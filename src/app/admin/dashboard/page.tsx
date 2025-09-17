@@ -175,6 +175,109 @@ export default function AdminDashboard() {
     });
   };
 
+  const deleteAllUserProgress = async () => {
+    const confirmed = confirm(
+      '⚠️ ADVARSEL: Dette vil slette AL brugerdata og fremgang for ALLE brugere.\n\n' +
+      'Denne handling kan IKKE fortrydes.\n\n' +
+      'Er du sikker på, at du vil fortsætte?'
+    );
+
+    if (!confirmed) return;
+
+    const doubleConfirm = confirm(
+      '🔴 SIDSTE ADVARSEL: Du er ved at slette al brugerdata.\n\n' +
+      'Skriv "SLET ALT" for at bekræfte (case-sensitive):'
+    );
+
+    if (!doubleConfirm) return;
+
+    const finalConfirmation = prompt(
+      'Skriv "SLET ALT" for at bekræfte sletning af al brugerdata:'
+    );
+
+    if (finalConfirmation !== 'SLET ALT') {
+      alert('Handling afbrudt. Data er ikke slettet.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Delete user progress
+      const { error: progressError } = await supabase
+        .from('user_progress')
+        .delete()
+        .neq('id', 0); // Delete all records
+
+      if (progressError) throw progressError;
+
+      // Delete user level progress
+      const { error: levelProgressError } = await supabase
+        .from('user_level_progress')
+        .delete()
+        .neq('id', 0); // Delete all records
+
+      if (levelProgressError) throw levelProgressError;
+
+      // Reset users to default level
+      const { error: usersError } = await supabase
+        .from('users')
+        .update({ current_level: 'A1' })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all users
+
+      if (usersError) throw usersError;
+
+      alert('✅ Al brugerdata er blevet slettet succesfuldt.');
+      
+      // Reload dashboard data
+      await loadDashboardData();
+    } catch (error) {
+      console.error('Error deleting user progress:', error);
+      alert('❌ Fejl ved sletning af brugerdata: ' + (error instanceof Error ? error.message : 'Ukendt fejl'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportUserData = async () => {
+    try {
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('id, email, full_name, current_level, created_at');
+
+      const { data: allProgress } = await supabase
+        .from('user_progress')
+        .select('*');
+
+      const { data: allLevelProgress } = await supabase
+        .from('user_level_progress')
+        .select('*');
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        totalUsers: allUsers?.length || 0,
+        users: allUsers,
+        progress: allProgress,
+        levelProgress: allLevelProgress
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `spanskgrammatik-userdata-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert('✅ Brugerdata er blevet eksporteret.');
+    } catch (error) {
+      console.error('Error exporting user data:', error);
+      alert('❌ Fejl ved eksport af brugerdata.');
+    }
+  };
+
   const generateExercisesForTopic = async (topicId: string, count: number) => {
     try {
       const response = await fetch('/api/generate-bulk-exercises', {
@@ -259,6 +362,30 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {viewMode === 'users' && (
           <div className="space-y-6">
+            {/* Bulk Actions Section */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Bulk Handlinger</h3>
+                  <p className="text-sm text-gray-600">Administrer bruger data for alle brugere</p>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => deleteAllUserProgress()}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    🗑️ Slet Al Bruger Fremgang
+                  </button>
+                  <button
+                    onClick={() => exportUserData()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    📊 Eksporter Data
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">
