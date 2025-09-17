@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@jridgewell/gen-mapping": "^0.3.13",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.39.8",
+    "@swc/helpers": "^0.5.17",
     "autoprefixer": "^10.4.21",
     "next": "^15.5.2",
     "openai": "^4.67.3",

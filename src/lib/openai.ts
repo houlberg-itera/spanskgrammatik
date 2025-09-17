@@ -166,13 +166,36 @@ Eksempel på ${exerciseType} øvelse:`;
       });
     });
 
-    const content = completion.choices[0].message.content;
+    let content = completion.choices[0].message.content;
     if (!content) {
       throw new Error('No content generated from OpenAI');
     }
 
-    const exerciseContent: ExerciseContent = JSON.parse(content);
-    
+    // Robustly remove code block markers and any leading/trailing junk
+    content = content.trim();
+    // Remove triple backticks and optional 'json' label at start/end
+    if (content.startsWith('```')) {
+      content = content.replace(/^```(json)?\s*/i, '').replace(/```$/i, '').trim();
+    }
+    // Remove any leading/trailing newlines or whitespace
+    content = content.replace(/^\s+|\s+$/g, '');
+    // Remove any trailing semicolon or stray characters
+    content = content.replace(/;*$/g, '');
+
+    // If still not valid JSON, try to extract the first valid JSON object
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      // Try to extract JSON from within code block
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw new Error('OpenAI response is not valid JSON');
+      }
+    }
+    const exerciseContent: ExerciseContent = parsed;
     // Validate the structure
     if (!exerciseContent.questions || !Array.isArray(exerciseContent.questions)) {
       throw new Error('Invalid exercise content structure');
