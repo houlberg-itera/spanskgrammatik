@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SpanishLevel } from '@/types/database';
 
@@ -45,6 +45,7 @@ export default function ExerciseGeneratorAdmin() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [shouldStop, setShouldStop] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentModel, setCurrentModel] = useState<string>('gpt-4o');
 
@@ -111,12 +112,11 @@ export default function ExerciseGeneratorAdmin() {
     try {
       console.log('Loading topics for level:', selectedLevel);
       const response = await fetch(`/api/admin/topics?level=${selectedLevel}`);
-      
       if (!response.ok) {
         console.error('Failed to fetch topics:', response.status, response.statusText);
+        setTopics([]);
         return;
       }
-      
       const { topics } = await response.json();
       console.log('Loaded topics:', topics?.length || 0);
       setTopics(topics || []);
@@ -214,7 +214,11 @@ export default function ExerciseGeneratorAdmin() {
   const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0) => {
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds base delay
-    
+    // Create or reuse AbortController for this request
+    if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+      abortControllerRef.current = new AbortController();
+    }
+    const signal = abortControllerRef.current.signal;
     try {
       const response = await fetch('/api/generate-bulk-exercises', {
         method: 'POST',
@@ -227,7 +231,8 @@ export default function ExerciseGeneratorAdmin() {
           level: topic.level,
           topicName: topic.name_da,
           topicDescription: topic.description_da
-        })
+        }),
+        signal,
       });
 
       if (!response.ok) {
@@ -442,6 +447,9 @@ export default function ExerciseGeneratorAdmin() {
   const stopGeneration = () => {
     setShouldStop(true);
     setIsPaused(false);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     console.log('🛑 Generation stop requested by user');
   };
 
@@ -631,10 +639,11 @@ export default function ExerciseGeneratorAdmin() {
           </div>
 
           {/* Exercise Configuration */}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Øvelser per Emne
+                Øvelser per emne
               </label>
               <input
                 type="number"
@@ -948,70 +957,42 @@ export default function ExerciseGeneratorAdmin() {
               </div>
               
               {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${(generationJobs.filter(j => j.status === 'completed').length / generationJobs.length) * 100}%` 
-                  }}
-                ></div>
-              </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${generationJobs.length === 0 ? 0 : (generationJobs.filter(j => j.status === 'completed').length / generationJobs.length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
               
               <div className="space-y-2">
                 {generationJobs.map(job => (
                   <div key={job.id} className="flex items-center justify-between p-3 bg-white rounded border shadow-sm">
                     <div className="flex-1">
                       <div className="font-medium">{job.topic} - {job.exerciseType}</div>
-                      <div className="text-sm text-gray-600">
-                        {job.generatedCount}/{job.requestedCount} øvelser
+                      <div className={getJobStatusColor(job.status)}>
+                        Status: {job.status}
+                        {job.status === 'completed' && (
+                          <span className="ml-2 text-green-600">✔️</span>
+                        )}
+                        {job.status === 'generating' && (
+                          <span className="ml-2 text-blue-600">⏳</span>
+                        )}
+                        {job.status === 'error' && (
+                          <span className="ml-2 text-red-600">❌</span>
+                        )}
                       </div>
-                    </div>
-                    <div className={`font-medium flex items-center space-x-1 ${getJobStatusColor(job.status)}`}>
-                      {job.status === 'pending' && (
-                        <>
-                          <span className="animate-pulse">⏳</span>
-                          <span>Venter</span>
-                        </>
-                      )}
-                      {job.status === 'generating' && (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                          <span>🤖 Genererer</span>
-                        </>
-                      )}
-                      {job.status === 'completed' && (
-                        <>
-                          <span>✅</span>
-                          <span>Færdig</span>
-                        </>
-                      )}
-                      {job.status === 'error' && (
-                        <>
-                          <span>❌</span>
-                          <span>Fejl</span>
-                        </>
+                      {job.status === 'error' && job.errorMessage && (
+                        <div className="text-xs text-red-500 mt-1">{job.errorMessage}</div>
                       )}
                     </div>
-                    {job.status === 'error' && job.errorMessage && (
-                      <div className="text-xs text-red-600 mt-1 ml-2 max-w-xs truncate" title={job.errorMessage}>
-                        {job.errorMessage}
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <span className="text-sm text-gray-600">{job.generatedCount} / {job.requestedCount}</span>
+                    </div>
                   </div>
                 ))}
               </div>
-              
-              {/* Completion Message */}
-              {generationJobs.every(job => job.status === 'completed' || job.status === 'error') && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center space-x-2 text-green-700">
-                    <span>🎉</span>
-                    <span className="font-medium">
-                      Generering færdig! {generationJobs.filter(j => j.status === 'completed').length} af {generationJobs.length} opgaver gennemført med succes.
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -1019,3 +1000,4 @@ export default function ExerciseGeneratorAdmin() {
     </div>
   );
 }
+
