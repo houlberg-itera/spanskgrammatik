@@ -3102,6 +3102,12 @@
 			"type": "shell",
 			"command": "git add -A; git commit -m 'Fix visual learning path component naming issue'",
 			"isBackground": false
+		},
+		{
+			"label": "Git Commit Fix",
+			"type": "shell",
+			"command": "git add .; git commit -m 'Fix visual learning path component - renamed DuolingoPath to LearningPath'",
+			"isBackground": false
 		}
 	]
 }
