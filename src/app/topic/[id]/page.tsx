@@ -30,9 +30,12 @@ export default function TopicPage() {
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showContinue, setShowContinue] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
   
   const supabase = createClient();
 
@@ -53,6 +56,7 @@ export default function TopicPage() {
       router.push('/auth');
       return;
     }
+    setUserId(session.user.id);
   };
 
   const fetchTopicData = async () => {
@@ -111,7 +115,7 @@ export default function TopicPage() {
 
       setQuestions(allQuestions);
 
-      // Get user's completed exercises count for this topic
+      // Get user's completed exercises count and current position for this topic
       const { data: { session } } = await supabase.auth.getSession();
       if (session && exercisesData) {
         const exerciseIds = exercisesData.map(ex => ex.id);
@@ -124,6 +128,22 @@ export default function TopicPage() {
 
         if (!progressError) {
           setCompletedCount(progressData?.length || 0);
+        }
+
+        // Check for saved position in topic sequence
+        const { data: topicProgress, error: topicProgressError } = await supabase
+          .from('user_topic_progress')
+          .select('current_question_index, last_updated')
+          .eq('user_id', session.user.id)
+          .eq('topic_id', topicId)
+          .single();
+
+        if (!topicProgressError && topicProgress && topicProgress.current_question_index !== null) {
+          // Resume from saved position if it's valid
+          const savedIndex = topicProgress.current_question_index;
+          if (savedIndex >= 0 && savedIndex < allQuestions.length) {
+            setCurrentIndex(savedIndex);
+          }
         }
       }
 
@@ -154,11 +174,20 @@ export default function TopicPage() {
   const handleCheckAnswer = () => {
     const currentQuestion = questions[currentIndex];
     const correct = normalizeText(userAnswer) === normalizeText(Array.isArray(currentQuestion.correct_answer) ? currentQuestion.correct_answer[0] : currentQuestion.correct_answer);
+    
+    setAttempts(prev => prev + 1);
     setIsCorrect(correct);
-    setShowContinue(correct);
     
     if (correct) {
+      setShowContinue(true);
       saveProgress(currentQuestion.exerciseId, true);
+    } else {
+      // After 2 incorrect attempts, show the correct answer
+      if (attempts >= 1) {
+        setShowCorrectAnswer(true);
+        setShowContinue(true);
+      }
+      // Otherwise, let them try again
     }
   };
 
@@ -168,15 +197,62 @@ export default function TopicPage() {
       setUserAnswer('');
       setIsCorrect(null);
       setShowContinue(false);
+      setAttempts(0);
+      setShowCorrectAnswer(false);
       setCompletedCount(prev => prev + 1);
+      
+      // Save current position when moving to next question
+      saveTopicProgress(currentIndex + 1);
     } else {
-      // All questions completed
+      // All questions completed - clear progress
+      clearTopicProgress();
       router.push('/dashboard');
     }
   };
 
-  const handleStop = () => {
+  const handleTryAgain = () => {
+    setUserAnswer('');
+    setIsCorrect(null);
+    setShowContinue(false);
+  };
+
+  const handleStop = async () => {
+    // Save current position before stopping
+    await saveTopicProgress(currentIndex);
     router.push('/dashboard');
+  };
+
+  const saveTopicProgress = async (questionIndex: number) => {
+    if (!userId) return;
+    
+    try {
+      await supabase
+        .from('user_topic_progress')
+        .upsert({
+          user_id: userId,
+          topic_id: topicId,
+          current_question_index: questionIndex,
+          last_updated: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,topic_id'
+        });
+    } catch (error) {
+      console.error('Error saving topic progress:', error);
+    }
+  };
+
+  const clearTopicProgress = async () => {
+    if (!userId) return;
+    
+    try {
+      await supabase
+        .from('user_topic_progress')
+        .delete()
+        .eq('user_id', userId)
+        .eq('topic_id', topicId);
+    } catch (error) {
+      console.error('Error clearing topic progress:', error);
+    }
   };
 
   const saveProgress = async (exerciseId: number, correct: boolean) => {
@@ -388,14 +464,22 @@ export default function TopicPage() {
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                Ikke helt rigtigt
+                {attempts === 1 ? 'Prøv igen!' : 'Ikke helt rigtigt'}
               </div>
-              <p className="text-red-600 text-sm mb-2">
-                Det rigtige svar er: <strong>{Array.isArray(currentQuestion.correct_answer) ? currentQuestion.correct_answer[0] : currentQuestion.correct_answer}</strong>
-              </p>
-              {currentQuestion.explanation_da && (
+              {showCorrectAnswer ? (
+                <>
+                  <p className="text-red-600 text-sm mb-2">
+                    Det rigtige svar er: <strong>{Array.isArray(currentQuestion.correct_answer) ? currentQuestion.correct_answer[0] : currentQuestion.correct_answer}</strong>
+                  </p>
+                  {currentQuestion.explanation_da && (
+                    <p className="text-red-600 text-sm">
+                      {currentQuestion.explanation_da}
+                    </p>
+                  )}
+                </>
+              ) : (
                 <p className="text-red-600 text-sm">
-                  {currentQuestion.explanation_da}
+                  {attempts === 1 ? 'Du har én chance mere!' : 'Prøv at tænke over det igen.'}
                 </p>
               )}
             </div>
@@ -414,6 +498,13 @@ export default function TopicPage() {
                 }`}
               >
                 Tjek svar
+              </button>
+            ) : isCorrect === false && !showCorrectAnswer ? (
+              <button
+                onClick={handleTryAgain}
+                className="flex-1 py-4 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-xl"
+              >
+                Prøv igen
               </button>
             ) : (
               <button

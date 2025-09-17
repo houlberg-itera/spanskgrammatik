@@ -3174,6 +3174,42 @@
 			"type": "shell",
 			"command": "Write-Host 'Testing topic page to see question display issue...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/topic/2' -TimeoutSec 10; Write-Host 'Page loaded - Status:' $response.StatusCode; if ($response.Content -match 'question_da') { Write-Host 'Found question_da in content' } else { Write-Host 'No question_da found in content' }; if ($response.Content -match 'content\\.question') { Write-Host 'Found content.question in content' } else { Write-Host 'No content.question found in content' } } catch { Write-Host 'Error:' $_.Exception.Message }",
 			"isBackground": false
+		},
+		{
+			"label": "Test Progress Fix",
+			"type": "shell",
+			"command": "Start-Sleep 8; Write-Host 'Testing admin dashboard progress fix...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/admin/dashboard' -TimeoutSec 20; Write-Host '✅ Admin dashboard loaded!'; Write-Host 'Status:' $response.StatusCode; if ($response.Content -match '100\\.0%.*alfredhoulberg') { Write-Host '❌ Still showing 100% - need further debugging' } elseif ($response.Content -match '0\\.0%.*alfredhoulberg') { Write-Host '✅ SUCCESS! Now showing 0.0% for inactive user' } else { Write-Host 'User data may have changed' } } catch { Write-Host '❌ Error:' $_.Exception.Message }",
+			"isBackground": false
+		},
+		{
+			"label": "Test Progress Fix",
+			"type": "shell",
+			"command": "Write-Host 'Waiting for server to be ready...'; Start-Sleep 15; Write-Host 'Testing admin dashboard progress fix...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/admin/dashboard' -TimeoutSec 25; Write-Host '✅ Admin dashboard loaded successfully!'; Write-Host 'Status:' $response.StatusCode; Write-Host 'Content length:' $response.Content.Length 'chars'; Write-Host ''; Write-Host 'Checking for user progress display...'; if ($response.Content -match 'alfredhoulberg.*?([0-9]+\\.[0-9]+%).*?([0-9]+\\.[0-9]+%)') { Write-Host 'Found user with progress data in table'; Write-Host 'Extracting progress values...'; } if ($response.Content -match '100\\.0%.*alfredhoulberg|alfredhoulberg.*100\\.0%') { Write-Host '❌ Still showing 100.0% - bug not fixed' } elseif ($response.Content -match '0\\.0%.*alfredhoulberg|alfredhoulberg.*0\\.0%') { Write-Host '✅ SUCCESS! Now showing 0.0% for user with no activity' } else { Write-Host '❔ User data may have changed or structure different' } } catch { Write-Host '❌ Error accessing admin dashboard:' $_.Exception.Message }",
+			"isBackground": false
+		},
+		{
+			"label": "Test API Progress Fix",
+			"type": "shell",
+			"command": "Write-Host 'Testing proficiency analysis API directly to verify progress fix...'; Start-Sleep 20; try { Write-Host 'Testing API endpoint for user with no exercises...'; $response = Invoke-WebRequest -Uri 'http://localhost:3000/api/proficiency-analysis?userId=c7774dc5-f71a-4b9a-b857-123456789012' -TimeoutSec 20; $data = $response.Content | ConvertFrom-Json; Write-Host '✅ API Response received'; Write-Host 'Progress to next level:' $data.analysis.progressToNextLevel; if ($data.analysis.progressToNextLevel -eq 0) { Write-Host '✅ SUCCESS! Progress is 0 for user with no data' } elseif ($data.analysis.progressToNextLevel -eq 100) { Write-Host '❌ BUG STILL EXISTS! Showing 100 instead of 0' } else { Write-Host '❔ Unexpected progress value:' $data.analysis.progressToNextLevel } } catch { Write-Host '❌ Error:' $_.Exception.Message; Write-Host 'Server may still be starting up...' }",
+			"isBackground": false
+		},
+		{
+			"label": "Check Port 3000",
+			"type": "shell",
+			"command": "netstat -ano | findstr :3000",
+			"isBackground": false
+		},
+		{
+			"label": "Test Progress Fix on Port 3001",
+			"type": "shell",
+			"command": "Write-Host 'Testing admin dashboard progress fix on port 3001...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3001/admin/dashboard' -TimeoutSec 20; Write-Host '✅ Admin dashboard loaded successfully!'; Write-Host 'Status:' $response.StatusCode; Write-Host ''; Write-Host 'Looking for user progress in response...'; $content = $response.Content; if ($content -match 'alfredhoulberg.*?([0-9]+\\.[0-9]+%)') { $progressMatch = $matches[1]; Write-Host 'Found user progress:' $progressMatch; if ($progressMatch -eq '0.0%') { Write-Host '✅ SUCCESS! Progress fix working - showing 0.0%' } elseif ($progressMatch -eq '100.0%') { Write-Host '❌ BUG STILL EXISTS! Still showing 100.0%' } else { Write-Host '❔ Different progress value:' $progressMatch } } else { Write-Host '❔ Could not find alfredhoulberg progress in response' } } catch { Write-Host '❌ Error:' $_.Exception.Message }",
+			"isBackground": false
+		},
+		{
+			"label": "Test Progress Fix API",
+			"type": "shell",
+			"command": "node test-vocabulary.js",
+			"isBackground": false
 		}
 	]
 }

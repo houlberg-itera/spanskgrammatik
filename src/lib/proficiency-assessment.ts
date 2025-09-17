@@ -163,7 +163,7 @@ export async function analyzeProficiency(userId: string): Promise<ProficiencyAna
           .filter(lp => (lp.progress_percentage || 0) < 40 && (lp.progress_percentage || 0) > 0)
           .map(lp => `Niveau ${lp.level} (kun ${lp.progress_percentage}% fremgang)`),
         recommendedLevel,
-        progressToNextLevel: Math.max(0, 100 - maxProgress),
+        progressToNextLevel: Math.max(0, maxProgress), // Fixed: show actual progress, not remaining
         exercisesNeeded: Math.max(5, Math.round((100 - maxProgress) / 10)),
         detailedAnalysis: {
           topicScores: {},
@@ -182,7 +182,7 @@ export async function analyzeProficiency(userId: string): Promise<ProficiencyAna
       strengthAreas: [],
       weaknessAreas: ['Ingen data fundet - begynd at tage øvelser for at se din fremgang'],
       recommendedLevel: 'A1',
-      progressToNextLevel: 100,
+      progressToNextLevel: 0, // Fixed: show 0% progress for users with no data
       exercisesNeeded: 50,
       detailedAnalysis: {
         topicScores: {},
