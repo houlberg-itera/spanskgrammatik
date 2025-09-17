@@ -3108,6 +3108,24 @@
 			"type": "shell",
 			"command": "git add .; git commit -m 'Fix visual learning path component - renamed DuolingoPath to LearningPath'",
 			"isBackground": false
+		},
+		{
+			"label": "Push Fix to Vercel",
+			"type": "shell",
+			"command": "git push origin FixWhatWasLostYesterday",
+			"isBackground": false
+		},
+		{
+			"label": "Check Git Status",
+			"type": "shell",
+			"command": "echo 'Push completed - checking git status'; git status",
+			"isBackground": false
+		},
+		{
+			"label": "Final Commit and Push",
+			"type": "shell",
+			"command": "git add .vscode/tasks.json; git commit -m 'Update tasks.json'; git push origin FixWhatWasLostYesterday",
+			"isBackground": false
 		}
 	]
 }
