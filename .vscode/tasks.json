@@ -3126,6 +3126,24 @@
 			"type": "shell",
 			"command": "git add .vscode/tasks.json; git commit -m 'Update tasks.json'; git push origin FixWhatWasLostYesterday",
 			"isBackground": false
+		},
+		{
+			"label": "Check Branches",
+			"type": "shell",
+			"command": "git branch -a",
+			"isBackground": false
+		},
+		{
+			"label": "Merge to Main and Deploy",
+			"type": "shell",
+			"command": "git checkout main; git merge FixWhatWasLostYesterday; git push origin main",
+			"isBackground": false
+		},
+		{
+			"label": "Complete Merge to Main",
+			"type": "shell",
+			"command": "git add .; git commit -m 'Final commit tasks.json'; git checkout main; git merge FixWhatWasLostYesterday; git push origin main",
+			"isBackground": false
 		}
 	]
 }
