@@ -3144,6 +3144,12 @@
 			"type": "shell",
 			"command": "git add .; git commit -m 'Final commit tasks.json'; git checkout main; git merge FixWhatWasLostYesterday; git push origin main",
 			"isBackground": false
+		},
+		{
+			"label": "Check Final Status",
+			"type": "shell",
+			"command": "git status; echo 'Waiting for merge to complete...'; Start-Sleep 10; echo 'Testing Vercel deployment...'",
+			"isBackground": false
 		}
 	]
 }

@@ -64,3 +64,4 @@ setup-git.ps1
 setup-git.bat
 node_modules
 
+.vscode/tasks.json
