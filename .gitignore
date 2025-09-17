@@ -44,6 +44,44 @@ next-env.d.ts
 logs
 *.log
 
+# Development artifacts and temporary files
+*.md
+!README.md
+!LICENCE.md
+debug-*.js
+test-*.js
+verify-*.js
+*.bat
+*.ps1
+setup-*.js
+fix-*.js
+clean-*.js
+
+# HTML test files
+public/test-*.html
+public/auth-test.html
+public/load-*.html
+public/system-*.html
+public/sample-*.html
+
+# Test and debug directories
+src/app/test/
+src/app/test-*/
+src/app/seed/
+src/app/api/debug-*/
+src/app/api/test-*/
+src/app/api/quick-*/
+src/app/api/refresh-*/
+src/app/admin/test/
+src/app/admin/debug/
+scripts/
+
+# Sample SQL files (keep only schema.sql)
+supabase/sample*.sql
+supabase/enhanced*.sql
+supabase/enable*.sql
+supabase/simple*.sql
+
 # Supabase
 .supabase/
 supabase/.env

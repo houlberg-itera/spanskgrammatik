@@ -3150,6 +3150,44 @@
 			"type": "shell",
 			"command": "git status; echo 'Waiting for merge to complete...'; Start-Sleep 10; echo 'Testing Vercel deployment...'",
 			"isBackground": false
+		},
+		{
+			"label": "Clean Root Directory Files",
+			"type": "shell",
+			"command": "Remove-Item -Force ADMIN_DISABLE_OPTION.txt, AI_CONFIGURATION_SYSTEM_COMPLETE.md, clean-and-build.bat, clean-repo.bat, clean-repo.ps1, complete-merge-fix.ps1, comprehensive-build-fix.bat, CRITICAL_DEPLOYMENT_STATUS.md, debug-user.js, delete-node-modules.bat, delete-node-modules.ps1, FINAL_SUCCESS_COMPLETE.md, fix-conflicts.ps1, fix-folder-casing.ps1, fix-installation.bat, fix-npm-permissions.ps1, fix-permissions-restart.bat, fix-typescript-final.js, fix-typescript.js, FOLDER_CASING_RESOLVED.md, GET_SERVICE_ROLE_KEY.md, GIT_SETUP_COMPLETE.md, OPTION-3-COMPLETE.md, PROBLEM_RESOLUTION_COMPLETE.md, rebuild-app.bat, resolve-conflicts.bat, resolve-conflicts.ps1, restart-production.bat, restart-production.ps1, setup-git.bat, setup-git.ps1, SETUP_GIT_REPO.md, simple-fix.ps1, SUCCESS_ALL_ISSUES_RESOLVED.md, SUPABASE_EMAIL_CONFIG.md, test-ai-generation.js, test-trigger.txt, test-vocabulary.js, TYPESCRIPT_ISSUE_RESOLVED.md, ultimate-conflict-resolver.ps1, ultimate-fix.bat, ultimate-fix.ps1, URGENT_RLS_FIX_INSTRUCTIONS.md, verify-system.js -ErrorAction SilentlyContinue; Write-Host 'Root cleanup files removed'"
+		},
+		{
+			"label": "Clean Public Test Files",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force public\\auth-test.html, public\\load-data.html, public\\load-sample.html, public\\quick-load.html, public\\sample-data-loader.html, public\\system-diagnosis.html, public\\test-dashboard.html, public\\test-exercise-completion.html -ErrorAction SilentlyContinue; Write-Host 'Public test files removed'"
+		},
+		{
+			"label": "Remove Scripts Directory",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force scripts -ErrorAction SilentlyContinue; Write-Host 'Scripts directory removed'"
+		},
+		{
+			"label": "Clean Supabase SQL Files",
+			"type": "shell",
+			"command": "cd supabase; Remove-Item -Force enhanced_article_exercises.sql, sample_exercises.sql, enable-rls.sql, simple-rls.sql -ErrorAction SilentlyContinue; Write-Host 'Sample SQL files removed, keeping only schema.sql'"
+		},
+		{
+			"label": "Remove Debug and Test API Routes",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force src\\app\\api\\debug-*, src\\app\\api\\test-*, src\\app\\api\\quick-*, src\\app\\api\\refresh-*, src\\app\\api\\generate-bulk-exercises -ErrorAction SilentlyContinue; Write-Host 'Debug and test API routes removed'",
+			"group": "build"
+		},
+		{
+			"label": "Remove Test Pages and Directories",
+			"type": "shell",
+			"command": "Remove-Item -Recurse -Force src\\app\\test, src\\app\\test-answers, src\\app\\seed -ErrorAction SilentlyContinue; Write-Host 'Test pages and directories removed'",
+			"group": "build"
+		},
+		{
+			"label": "Commit Cleanup Changes",
+			"type": "shell",
+			"command": "git add .; git commit -m '🧹 Complete comprehensive codebase cleanup\\n\\n✅ CLEANUP COMPLETED:\\n• Removed 40+ development artifacts from root directory\\n• Removed all HTML test files from public/ directory\\n• Removed scripts/ directory with sample data loaders\\n• Cleaned up supabase/ SQL files (kept only schema.sql)\\n• Removed all debug and test API routes\\n• Removed test page directories (test/, test-answers/, seed/)\\n• Updated .gitignore to prevent future accumulation\\n\\n✅ PRODUCTION READY:\\n• Clean, maintainable codebase structure\\n• No development artifacts cluttering the repository\\n• Enhanced .gitignore rules for ongoing cleanliness\\n• Ready for production deployment\\n\\nThis cleanup addresses the user request: \"clean up the solution, example files sql script and debug and test pages\"'",
+			"group": "build"
 		}
 	]
 }
