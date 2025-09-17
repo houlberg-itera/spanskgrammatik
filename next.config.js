@@ -6,10 +6,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Force stable compilation
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
+  // Use the new serverExternalPackages configuration
+  serverExternalPackages: ['@supabase/supabase-js'],
   // Disable webpack cache to prevent client reference issues
   webpack: (config, { isServer, dev }) => {
     if (dev) {
