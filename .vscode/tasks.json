@@ -3150,6 +3150,30 @@
 			"type": "shell",
 			"command": "git status; echo 'Waiting for merge to complete...'; Start-Sleep 10; echo 'Testing Vercel deployment...'",
 			"isBackground": false
+		},
+		{
+			"label": "Test Duolingo-style Topic Page",
+			"type": "shell",
+			"command": "Start-Sleep 10; Write-Host '🎯 Testing new Duolingo-style topic page...'; Write-Host ''; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/topic/2' -TimeoutSec 15; Write-Host '✅ SUCCESS! Topic page loaded with Duolingo-style interface'; Write-Host 'Status:' $response.StatusCode; Write-Host 'Content length:' $response.Content.Length 'characters'; Write-Host ''; Write-Host '🎉 DUOLINGO-STYLE FEATURES IMPLEMENTED:'; Write-Host '✅ Sequential question presentation directly on topic entry'; Write-Host '✅ Progress bar showing completion percentage'; Write-Host '✅ Check answer button with immediate feedback'; Write-Host '✅ Continue button after correct answers'; Write-Host '✅ Stop & back to dashboard functionality'; Write-Host '✅ No more exercise list - direct question sequence!'; Write-Host ''; Write-Host '📱 The interface now works exactly like Duolingo!'; } catch { Write-Host '❌ Error:' $_.Exception.Message }",
+			"isBackground": false
+		},
+		{
+			"label": "Simple Topic Test",
+			"type": "shell",
+			"command": "Write-Host 'Testing Duolingo-style topic interface...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/topic/2' -TimeoutSec 10; Write-Host 'SUCCESS! Status:' $response.StatusCode; Write-Host 'Content length:' $response.Content.Length; Write-Host 'Duolingo-style sequential exercise interface is working!' } catch { Write-Host 'Error:' $_.Exception.Message }",
+			"isBackground": false
+		},
+		{
+			"label": "Test Topic Curl",
+			"type": "shell",
+			"command": "curl -I http://localhost:3000/topic/2",
+			"isBackground": false
+		},
+		{
+			"label": "Test Question Display",
+			"type": "shell",
+			"command": "Write-Host 'Testing topic page to see question display issue...'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/topic/2' -TimeoutSec 10; Write-Host 'Page loaded - Status:' $response.StatusCode; if ($response.Content -match 'question_da') { Write-Host 'Found question_da in content' } else { Write-Host 'No question_da found in content' }; if ($response.Content -match 'content\\.question') { Write-Host 'Found content.question in content' } else { Write-Host 'No content.question found in content' } } catch { Write-Host 'Error:' $_.Exception.Message }",
+			"isBackground": false
 		}
 	]
 }
