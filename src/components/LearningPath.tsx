@@ -339,10 +339,10 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
               <div className="text-sm text-gray-600 mt-1">Total XP</div>
             </div>
             <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
-              <div className="text-3xl font-bold text-orange-600">
+              <div className="text-3xl font-bold text-green-600">
                 {userStats.totalLessons > 0 ? Math.round((userStats.completedLessons / userStats.totalLessons) * 100) : 0}%
               </div>
-              <div className="text-sm text-gray-600 mt-1">Fremgang</div>
+              <div className="text-sm text-green-600 mt-1 font-medium">Fremgang</div>
             </div>
           </div>
         </div>

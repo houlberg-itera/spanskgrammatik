@@ -206,9 +206,10 @@ export default function TopicPage() {
       // Save current position when moving to next question
       saveTopicProgress(currentIndex + 1);
     } else {
-      // All questions completed - clear progress
+      // All questions completed - clear progress and redirect to level page
       clearTopicProgress();
-      router.push('/dashboard');
+      const level = topic?.level || 'a1'; // Default to a1 if no level found
+      router.push(`/level/${level.toLowerCase()}`);
     }
   };
 
@@ -223,6 +224,29 @@ export default function TopicPage() {
     await saveTopicProgress(currentIndex);
     router.push('/dashboard');
   };
+
+  // Add keyboard event listeners for Enter key
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        
+        if (showContinue) {
+          // If continue button is shown, continue to next question
+          handleContinue();
+        } else if (userAnswer.trim()) {
+          // If user has entered an answer, check it
+          handleCheckAnswer();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [showContinue, userAnswer, currentIndex, questions.length, attempts]); // Dependencies for the keyboard handler
 
   const saveTopicProgress = async (questionIndex: number) => {
     if (!userId) return;

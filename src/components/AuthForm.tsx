@@ -34,7 +34,8 @@ export default function AuthForm() {
             setMessage(error.message);
           }
         } else {
-          router.push('/dashboard');
+          // Redirect to homepage instead of dashboard to let users choose their path
+          router.push('/');
         }
       } else {
         // Use our custom signup API that handles email confirmation
@@ -70,7 +71,8 @@ export default function AuthForm() {
                 });
                 
                 if (!signInError) {
-                  router.push('/dashboard');
+                  // Redirect to homepage instead of dashboard to let users choose their path
+                  router.push('/');
                 } else {
                   setMessage('Konto oprettet! Du kan nu logge ind.');
                   setIsLogin(true);
