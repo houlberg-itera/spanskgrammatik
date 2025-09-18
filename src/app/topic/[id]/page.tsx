@@ -222,7 +222,9 @@ export default function TopicPage() {
   const handleStop = async () => {
     // Save current position before stopping
     await saveTopicProgress(currentIndex);
-    router.push('/dashboard');
+    // Navigate back to the learning tree for this level
+    const level = topic?.level || 'a1'; // Default to a1 if no level found
+    router.push(`/level/${level.toLowerCase()}`);
   };
 
   // Add keyboard event listeners for Enter key

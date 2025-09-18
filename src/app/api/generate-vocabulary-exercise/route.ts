@@ -510,6 +510,12 @@ const VOCABULARY_DATABASE: Record<string, VocabularyWord[]> = {
 };
 
 export async function POST(request: NextRequest) {
+  const requestStartTime = Date.now();
+  const requestId = Math.random().toString(36).substring(2, 8);
+  
+  console.log(`🚀 VOCABULARY EXERCISE GENERATION STARTED [${requestId}]`);
+  console.log(`⏰ Request started at: ${new Date().toISOString()}`);
+
   try {
     console.log('🎯 Vocabulary API called');
     console.log('📥 Request method:', request.method);
@@ -519,16 +525,16 @@ export async function POST(request: NextRequest) {
     try {
       // Get the raw text first to see what we're dealing with
       const rawBody = await request.text();
-      console.log('📥 Raw request body:', rawBody);
+      console.log(`📥 Raw request body [${requestId}]:`, rawBody);
       
       if (!rawBody || rawBody.trim() === '') {
         throw new Error('Empty request body');
       }
       
       body = JSON.parse(rawBody);
-      console.log('📥 Parsed request body:', body);
+      console.log(`📥 Parsed request body [${requestId}]:`, body);
     } catch (parseError) {
-      console.error('❌ JSON Parse Error:', parseError);
+      console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body', details: parseError.message },
         { status: 400 }
@@ -537,8 +543,18 @@ export async function POST(request: NextRequest) {
     
     const { topic, level, exerciseType, questionCount = 5, difficulty = 'medium' } = body;
 
+    console.log(`📝 Vocabulary request parameters [${requestId}]:`, {
+      topic,
+      level,
+      exerciseType,
+      questionCount,
+      difficulty,
+      timestamp: new Date().toISOString()
+    });
+
     // Validation
     if (!topic || !level || !exerciseType) {
+      console.error(`❌ Missing required parameters [${requestId}]:`, { topic, level, exerciseType });
       return NextResponse.json(
         { error: 'Manglende påkrævede parametre: topic, level, exerciseType' },
         { status: 400 }
@@ -575,8 +591,14 @@ export async function POST(request: NextRequest) {
       .slice(0, Math.min(questionCount, filteredWords.length));
 
     // Generate exercise using OpenAI
-    const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount);
+    console.log(`🧠 Starting OpenAI generation [${requestId}]...`);
+    console.log(`📝 Selected words count: ${selectedWords.length}`);
+    console.log(`🎯 Exercise type: ${exerciseType}, Level: ${level}, Topic: ${topic}`);
     
+    const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount);
+    const openaiStartTime = Date.now();
+    
+    console.log(`🤖 Calling OpenAI API [${requestId}]...`);
     const openaiResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -622,14 +644,21 @@ export async function POST(request: NextRequest) {
       max_tokens: 2000
     });
 
+    const openaiTime = Date.now() - openaiStartTime;
+    console.log(`⏱️ OpenAI generation completed in: ${openaiTime}ms (${(openaiTime/1000).toFixed(1)}s) [${requestId}]`);
+
     const content = openaiResponse.choices[0].message?.content;
     if (!content) {
+      console.error(`❌ No content in OpenAI response [${requestId}]`);
       throw new Error('Ingen respons fra OpenAI');
     }
+
+    console.log(`📊 OpenAI response preview [${requestId}]:`, content.substring(0, 200) + '...');
 
     // Parse the JSON response - handle markdown code blocks
     let exerciseData;
     try {
+      console.log(`🔧 Parsing OpenAI response [${requestId}]...`);
       // Remove markdown code blocks if present
       let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
@@ -639,10 +668,14 @@ export async function POST(request: NextRequest) {
       }
       
       exerciseData = JSON.parse(cleanContent);
+      console.log(`✅ Successfully parsed vocabulary exercise [${requestId}]:`, {
+        title: exerciseData.title,
+        questionCount: exerciseData.questions?.length || 0
+      });
     } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.log('Raw OpenAI Response:', content);
-      console.log('Cleaned content attempted:', content.trim().substring(0, 200));
+      console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
+      console.log(`❌ Raw OpenAI Response [${requestId}]:`, content);
+      console.log(`❌ Cleaned content attempted [${requestId}]:`, content.trim().substring(0, 200));
       throw new Error('Fejl i parsning af AI-respons');
     }
 
@@ -660,14 +693,27 @@ export async function POST(request: NextRequest) {
       words_used: selectedWords.length
     };
 
+    const totalRequestTime = Date.now() - requestStartTime;
+    console.log(`🎉 VOCABULARY EXERCISE GENERATION COMPLETE! [${requestId}]`);
+    console.log(`⏱️ Total request time: ${totalRequestTime}ms (${(totalRequestTime/1000).toFixed(1)}s)`);
+    console.log(`📊 Exercise generated:`, {
+      title: exerciseData.title,
+      questions: exerciseData.questions?.length || 0,
+      topic,
+      level
+    });
+
     return NextResponse.json(exerciseData);
 
   } catch (error) {
-    console.error('Vocabulary exercise generation error:', error);
+    const totalRequestTime = Date.now() - requestStartTime;
+    console.error(`❌ Vocabulary exercise generation error [${requestId}]:`, error);
+    console.error(`❌ Request failed after: ${totalRequestTime}ms (${(totalRequestTime/1000).toFixed(1)}s)`);
     return NextResponse.json(
       { 
         error: 'Fejl ved generering af ordforrådsøvelse',
-        details: error instanceof Error ? error.message : 'Ukendt fejl'
+        details: error instanceof Error ? error.message : 'Ukendt fejl',
+        requestId
       },
       { status: 500 }
     );
@@ -747,6 +793,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     available_topics: Object.keys(VOCABULARY_DATABASE),
-    total_words: Object.values(VOCABULARY_DATABASE).reduce((sum, words) => sum + words.length, 0)
+    total_words: Object.keys(VOCABULARY_DATABASE).reduce((sum, key) => sum + VOCABULARY_DATABASE[key].length, 0)
   });
 }

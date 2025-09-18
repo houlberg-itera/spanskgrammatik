@@ -489,11 +489,61 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
       console.error('❌ JSON parse error:', parseError);
       console.error('❌ Raw response that failed to parse:', responseContent);
       console.error('❌ Cleaned response that failed to parse:', cleanedResponse);
+      
+      // Check if this is a content policy refusal
+      if (cleanedResponse.toLowerCase().includes('i\'m sorry') || 
+          cleanedResponse.toLowerCase().includes('cannot') ||
+          cleanedResponse.toLowerCase().includes('unable')) {
+        console.warn('🚫 AI content policy refusal detected - attempting retry with simplified prompt');
+        throw new Error('AI_CONTENT_POLICY_REFUSAL');
+      }
+      
       throw new Error(`Invalid JSON response from AI: ${parseError.message}`);
     }
 
     console.log('✅ JSON parsing successful');
     console.log('📊 Generated questions count:', exerciseContent.questions?.length || 0);
+
+    // Shuffle multiple choice options to prevent answer bias
+    if (exerciseType === 'multiple_choice' && exerciseContent.questions) {
+      console.log('🔀 Shuffling multiple choice options to prevent answer bias...');
+      exerciseContent.questions = exerciseContent.questions.map((question, index) => {
+        if (question.options && Array.isArray(question.options) && question.options.length > 1) {
+          // Handle both string and array correct_answer types
+          const correctAnswer = Array.isArray(question.correct_answer) 
+            ? question.correct_answer[0] 
+            : question.correct_answer;
+          
+          const correctIndex = question.options.indexOf(correctAnswer);
+          
+          // Only shuffle if we found the correct answer in options
+          if (correctIndex === -1) {
+            console.warn(`⚠️ Question ${index + 1}: Correct answer "${correctAnswer}" not found in options, skipping shuffle`);
+            return question;
+          }
+          
+          // Shuffle the options array using Fisher-Yates algorithm
+          const shuffledOptions = [...question.options];
+          for (let i = shuffledOptions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+          }
+          
+          // Update the correct_answer to match the new position
+          const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+          
+          console.log(`📝 Question ${index + 1}: Shuffled options (correct answer moved from position ${correctIndex + 1} to ${newCorrectIndex + 1})`);
+          
+          return {
+            ...question,
+            options: shuffledOptions,
+            correct_answer: correctAnswer // Keep the same answer text, position changed
+          };
+        }
+        return question;
+      });
+      console.log('✅ Multiple choice options shuffled to prevent bias');
+    }
 
     // Validate and enhance the response
     if (!exerciseContent.questions || exerciseContent.questions.length === 0) {

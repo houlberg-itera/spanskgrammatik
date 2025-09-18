@@ -148,8 +148,11 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Indlæser...</div>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg sm:text-xl text-gray-600">Indlæser...</div>
+        </div>
       </div>
     );
   }
@@ -158,26 +161,25 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-3 sm:py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Spanskgrammatik</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Spanskgrammatik</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {user && (
-                <span className="text-gray-700">Hej, {user.full_name || user.email}!</span>
+                <span className="text-sm sm:text-base text-gray-700 hidden sm:block">
+                  Hej, {user.full_name || user.email}!
+                </span>
+              )}
+              {user && (
+                <span className="text-xs text-gray-700 sm:hidden truncate max-w-20">
+                  {user.full_name?.split(' ')[0] || user.email?.split('@')[0]}
+                </span>
               )}
               <button
-                onClick={fetchData}
-                disabled={refreshing}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-                title="Opdater fremgang"
-              >
-                {refreshing ? '🔄 Opdaterer...' : '🔄 Opdater'}
-              </button>
-              <button
                 onClick={handleSignOut}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                className="bg-red-600 text-white px-3 py-2 sm:px-4 text-sm sm:text-base rounded-md hover:bg-red-700 transition-colors"
               >
                 Log ud
               </button>
@@ -187,16 +189,16 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Mit Dashboard</h2>
-          <p className="text-lg text-gray-600">
+      <main className="max-w-7xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">Mit Dashboard</h2>
+          <p className="text-base sm:text-lg text-gray-600">
             Nuværende niveau: <span className="font-semibold text-blue-600">{user?.current_level}</span>
           </p>
         </div>
 
         {/* Levels Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {levels.map((level) => {
             const progress = getLevelProgress(level.name);
             const isUnlocked = isLevelUnlocked(level.name, level.order_index);
@@ -205,34 +207,34 @@ export default function Dashboard() {
             return (
               <div
                 key={level.id}
-                className={`bg-white rounded-lg shadow-md p-6 ${
+                className={`bg-white rounded-lg shadow-md p-4 sm:p-6 ${
                   !isUnlocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'
                 } transition-shadow`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-900">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                     Niveau {level.name}
                   </h3>
                   {!isUnlocked && (
-                    <div className="text-gray-400">
+                    <div className="text-gray-400 text-lg sm:text-xl">
                       🔒
                     </div>
                   )}
                 </div>
                 
-                <p className="text-gray-600 mb-4">{level.description_da}</p>
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">{level.description_da}</p>
                 
                 {isUnlocked && (
                   <>
                     {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <div className="mb-3 sm:mb-4">
+                      <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
                         <span>Fremgang</span>
                         <span>{progressPercentage}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          className="bg-blue-600 h-2 sm:h-2 rounded-full transition-all duration-300"
                           style={{ width: `${progressPercentage}%` }}
                         ></div>
                       </div>
@@ -242,7 +244,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <Link
                         href={`/level/${level.name.toLowerCase()}`}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block"
+                        className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center block text-sm sm:text-base font-medium"
                       >
                         {progressPercentage > 0 ? 'Fortsæt øvelser' : 'Start øvelser'}
                       </Link>
@@ -252,12 +254,16 @@ export default function Dashboard() {
                         <button
                           onClick={() => requestAiAssessment(level.name)}
                           disabled={assessmentLoading === level.name}
-                          className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 text-sm"
+                          className="w-full bg-purple-600 text-white py-2 sm:py-2 px-4 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                         >
                           {assessmentLoading === level.name ? (
-                            'Vurderer med AI...'
+                            <span className="flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                              <span className="hidden sm:inline">Vurderer med AI...</span>
+                              <span className="sm:hidden">Vurderer...</span>
+                            </span>
                           ) : (
-                            '🤖 AI Niveauvurdering'
+                            <span>🤖 <span className="hidden sm:inline">AI Niveauvurdering</span><span className="sm:hidden">AI Test</span></span>
                           )}
                         </button>
                       )}
@@ -265,22 +271,22 @@ export default function Dashboard() {
                     
                     {/* AI Assessment Results */}
                     {assessmentResults[level.name] && (
-                      <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-purple-50 border border-purple-200 rounded-lg">
                         <div className="flex items-center space-x-2 mb-2">
                           <span className="text-purple-600">🤖</span>
-                          <h4 className="font-medium text-purple-800">AI Niveauvurdering</h4>
+                          <h4 className="font-medium text-purple-800 text-sm sm:text-base">AI Niveauvurdering</h4>
                           {assessmentResults[level.name].isCompleted && (
-                            <span className="text-green-600 text-sm">✅ Gennemført</span>
+                            <span className="text-green-600 text-xs sm:text-sm">✅ Gennemført</span>
                           )}
                         </div>
-                        <div className="text-sm text-purple-700 mb-2">
+                        <div className="text-xs sm:text-sm text-purple-700 mb-2">
                           <strong>Statistik:</strong> {assessmentResults[level.name].statistics.completionPercentage.toFixed(1)}% øvelser, {assessmentResults[level.name].statistics.averageScore.toFixed(1)}% gennemsnit
                         </div>
-                        <details className="text-sm">
+                        <details className="text-xs sm:text-sm">
                           <summary className="cursor-pointer text-purple-600 hover:text-purple-800">
                             Vis detaljeret vurdering
                           </summary>
-                          <div className="mt-2 text-purple-700 whitespace-pre-line">
+                          <div className="mt-2 text-purple-700 whitespace-pre-line text-xs sm:text-sm">
                             {assessmentResults[level.name].assessment}
                           </div>
                         </details>
@@ -290,7 +296,7 @@ export default function Dashboard() {
                 )}
 
                 {!isUnlocked && (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-xs sm:text-sm text-gray-500">
                     Kompletter forrige niveau for at låse op
                   </div>
                 )}
@@ -300,54 +306,55 @@ export default function Dashboard() {
         </div>
 
         {/* Enhanced Statistics */}
-        <div className="mt-12 bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">Mine Statistikker</h3>
+        <div className="mt-8 sm:mt-12 bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Mine Statistikker</h3>
             {refreshing && (
-              <div className="text-sm text-blue-600 flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                Opdaterer...
+              <div className="text-xs sm:text-sm text-blue-600 flex items-center">
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span className="hidden sm:inline">Opdaterer...</span>
+                <span className="sm:hidden">...</span>
               </div>
             )}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600">
                 {userProgress.filter(p => p.completed_at).length}
               </div>
-              <div className="text-sm text-gray-600">Afsluttede niveauer</div>
+              <div className="text-xs sm:text-sm text-gray-600">Afsluttede niveauer</div>
               <div className="text-xs text-gray-500 mt-1">
                 af {levels.length} tilgængelige
               </div>
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600">
                 {userProgress.length > 0 ? 
                   Math.round(userProgress.reduce((acc, p) => acc + p.progress_percentage, 0) / userProgress.length) : 0}%
               </div>
-              <div className="text-sm text-gray-600">Gennemsnitlig fremgang</div>
+              <div className="text-xs sm:text-sm text-gray-600">Gennemsnitlig fremgang</div>
               <div className="text-xs text-gray-500 mt-1">
                 på tværs af alle niveauer
               </div>
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600">
                 {user?.current_level || 'A1'}
               </div>
-              <div className="text-sm text-gray-600">Nuværende niveau</div>
+              <div className="text-xs sm:text-sm text-gray-600">Nuværende niveau</div>
               <div className="text-xs text-gray-500 mt-1">
                 kan vælges frit
               </div>
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-600">
                 {userProgress.reduce((acc, p) => acc + (p.progress_percentage > 0 ? 1 : 0), 0)}
               </div>
-              <div className="text-sm text-gray-600">Aktive niveauer</div>
+              <div className="text-xs sm:text-sm text-gray-600">Aktive niveauer</div>
               <div className="text-xs text-gray-500 mt-1">
                 med fremgang &gt; 0%
               </div>
@@ -356,25 +363,29 @@ export default function Dashboard() {
 
           {/* Detailed Progress Breakdown */}
           {userProgress.length > 0 && (
-            <div className="mt-8 border-t pt-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Detaljeret Fremgang</h4>
-              <div className="space-y-3">
+            <div className="mt-6 sm:mt-8 border-t pt-4 sm:pt-6">
+              <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Detaljeret Fremgang</h4>
+              <div className="space-y-2 sm:space-y-3">
                 {userProgress.map((progress) => (
                   <div key={progress.level} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-medium text-gray-900">Niveau {progress.level}</span>
+                    <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                      <span className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                        Niveau {progress.level}
+                      </span>
                       {progress.completed_at && (
-                        <span className="text-green-600 text-sm">✓ Afsluttet</span>
+                        <span className="text-green-600 text-xs sm:text-sm flex-shrink-0">✓ 
+                          <span className="hidden sm:inline ml-1">Afsluttet</span>
+                        </span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+                      <div className="w-20 sm:w-32 bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${progress.progress_percentage}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-700 w-12 text-right">
+                      <span className="text-xs sm:text-sm font-medium text-gray-700 w-8 sm:w-12 text-right">
                         {progress.progress_percentage}%
                       </span>
                     </div>

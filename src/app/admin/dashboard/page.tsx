@@ -278,8 +278,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const [generatingTopics, setGeneratingTopics] = useState<Set<string>>(new Set());
+
   const generateExercisesForTopic = async (topicId: string, count: number) => {
+    // Add topic to generating set to show loading state
+    setGeneratingTopics(prev => new Set(prev).add(topicId));
+    
     try {
+      console.log(`🚀 Starting generation for topic ${topicId}: ${count} exercises`);
+      
+      // Get topic details for better logging
+      const topic = exerciseGenerations.find(g => g.topicId === topicId);
+      const topicName = topic?.topicName || 'Unknown Topic';
+      
       const response = await fetch('/api/generate-bulk-exercises', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -287,19 +298,68 @@ export default function AdminDashboard() {
           topicId,
           exerciseType: 'multiple_choice',
           count,
-          difficulty: 'medium'
+          difficulty: 'medium',
+          level: topic?.level || 'A1',
+          topicName,
+          topicDescription: `AI-generated exercises for ${topicName}`
         })
       });
 
-      if (response.ok) {
-        alert(`Successfully generated ${count} exercises!`);
-        loadExerciseGenerationNeeds(); // Refresh
-      } else {
-        alert('Failed to generate exercises');
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`❌ Generation failed [${response.status}]:`, errorData);
+        
+        let errorMessage = 'Generering fejlede';
+        if (response.status === 429) {
+          errorMessage = '⏳ AI tjeneste er optaget. Prøv igen om et øjeblik.';
+        } else if (response.status === 403) {
+          errorMessage = '🔒 Ikke autoriseret til at generere øvelser.';
+        } else if (response.status === 500) {
+          errorMessage = '🚫 Server fejl under generering.';
+        }
+        
+        alert(`❌ ${errorMessage}\n\nDetaljer: ${errorData}`);
+        return;
       }
+
+      const result = await response.json();
+      console.log(`✅ Generation response:`, result);
+      
+      // Check if the API actually generated the expected number of exercises
+      const actualCount = result.exercisesCreated || 0;
+      const requestedCount = count;
+      
+      if (actualCount === requestedCount) {
+        alert(`✅ Success! Genererede ${actualCount} øvelser for ${topicName}`);
+      } else if (actualCount > 0) {
+        alert(`⚠️ Delvis success: Genererede ${actualCount} af ${requestedCount} øvelser for ${topicName}\n\nNår du ser dette, betyder det at AI'en ikke kunne generere alle øvelser på grund af begrænsninger eller fejl.`);
+      } else {
+        alert(`❌ Ingen øvelser blev genereret for ${topicName}\n\nDette kan skyldes:\n- AI model fejl\n- Netværksproblemer\n- Ugyldig emne data`);
+      }
+      
+      // Refresh the exercise generation needs regardless of success/failure
+      await loadExerciseGenerationNeeds();
+      
     } catch (error) {
-      console.error('Error generating exercises:', error);
-      alert('Error generating exercises');
+      console.error('❌ Network or unexpected error:', error);
+      
+      let errorMessage = 'Uventet fejl under generering';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = '🌐 Netværksfejl - tjek din internetforbindelse';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      alert(`❌ ${errorMessage}\n\nPrøv igen om et øjeblik. Hvis problemet fortsætter, kontakt support.`);
+    } finally {
+      // Remove topic from generating set
+      setGeneratingTopics(prev => {
+        const next = new Set(prev);
+        next.delete(topicId);
+        return next;
+      });
     }
   };
 
@@ -560,10 +620,23 @@ export default function AdminDashboard() {
                               generation.topicId, 
                               generation.recommendedCount - generation.currentCount
                             )}
-                            disabled={generation.currentCount >= generation.recommendedCount}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            disabled={generation.currentCount >= generation.recommendedCount || generatingTopics.has(generation.topicId)}
+                            className={`px-3 py-1 text-sm rounded transition-colors ${
+                              generatingTopics.has(generation.topicId)
+                                ? 'bg-yellow-500 text-white cursor-wait'
+                                : generation.currentCount >= generation.recommendedCount
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
                           >
-                            Generer {generation.recommendedCount - generation.currentCount}
+                            {generatingTopics.has(generation.topicId) ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                <span>Genererer...</span>
+                              </div>
+                            ) : (
+                              `Generer ${generation.recommendedCount - generation.currentCount}`
+                            )}
                           </button>
                         </td>
                       </tr>

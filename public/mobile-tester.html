@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Mobile Testing Tool - Spanish Learning App</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .device-frame {
+            background: #333;
+            border-radius: 25px;
+            padding: 20px;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .device-screen {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        iframe {
+            width: 100%;
+            border: none;
+            display: block;
+        }
+        .device-controls {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .device-controls button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .device-controls button:hover {
+            background: #45a049;
+        }
+        .device-controls button.active {
+            background: #FF6B6B;
+        }
+        .device-info {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+            opacity: 0.8;
+        }
+        .testing-tips {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .testing-tips h3 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        .testing-tips ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .testing-tips li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        .url-input {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+        }
+        .url-input input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .url-input button {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Mobile Testing Tool</h1>
+        
+        <div class="url-input">
+            <input type="text" id="urlInput" placeholder="Enter URL to test mobile responsiveness" 
+                   value="http://localhost:3001/dashboard">
+            <button onclick="loadUrl()">Load</button>
+            <button onclick="refreshFrame()">🔄 Refresh</button>
+        </div>
+        
+        <div class="quick-nav" style="display: flex; justify-content: center; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
+            <button onclick="quickLoad('dashboard')" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">📊 Dashboard</button>
+            <button onclick="quickLoad('level/a1')" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">📚 Learning Path</button>
+            <button onclick="quickLoad('topic/2')" style="background: #FF9800; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">📝 Topic Page</button>
+            <button onclick="quickLoad('auth')" style="background: #9C27B0; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">🔐 Login</button>
+        </div>
+
+        <div class="status" id="status">
+            📱 Ready to test dashboard mobile optimization! Select a device size below.
+        </div>
+
+        <!-- iPhone 13 Pro -->
+        <div class="device-frame" id="iphone13">
+            <div class="device-controls">
+                <button class="active" onclick="setDevice('iphone13', 390, 844, 'iPhone 13 Pro Portrait')">📱 iPhone 13 Pro</button>
+                <button onclick="setDevice('iphone13', 844, 390, 'iPhone 13 Pro Landscape')">📱 Landscape</button>
+                <button onclick="setDevice('iphone13', 375, 667, 'iPhone SE')">📱 iPhone SE</button>
+                <button onclick="setDevice('iphone13', 414, 896, 'iPhone 11')">📱 iPhone 11</button>
+            </div>
+            <div class="device-screen">
+                <iframe id="testFrame" src="about:blank" height="844"></iframe>
+            </div>
+            <div class="device-info" id="deviceInfo">
+                iPhone 13 Pro Portrait - 390 x 844
+            </div>
+        </div>
+
+        <div class="testing-tips">
+            <h3>🎯 Mobile Testing Tips</h3>
+            <ul>
+                <li><strong>Learning Path Centering:</strong> Check if the topic circles are properly centered in the white container</li>
+                <li><strong>Touch Targets:</strong> Ensure all buttons and topic circles are easy to tap (minimum 44px)</li>
+                <li><strong>Text Readability:</strong> Verify all text is readable without zooming</li>
+                <li><strong>Horizontal Scrolling:</strong> Check that content doesn't require horizontal scrolling</li>
+                <li><strong>Spacing:</strong> Ensure proper spacing between elements on smaller screens</li>
+                <li><strong>Landscape Mode:</strong> Test both portrait and landscape orientations</li>
+            </ul>
+            
+            <h3>🔧 Real Device Testing</h3>
+            <ul>
+                <li><strong>Your Network URL:</strong> <code>http://192.168.1.78:3001</code></li>
+                <li><strong>How to test:</strong> Connect your phone to the same WiFi and visit the URL above</li>
+                <li><strong>iPhone Safari:</strong> Add to home screen for app-like testing</li>
+                <li><strong>Touch Performance:</strong> Test tap responsiveness and scrolling smoothness</li>
+            </ul>
+
+            <h3>📏 Quick Screen Sizes</h3>
+            <ul>
+                <li><strong>iPhone SE:</strong> 375 x 667 (smallest modern iPhone)</li>
+                <li><strong>iPhone 13 Pro:</strong> 390 x 844 (current standard)</li>
+                <li><strong>iPhone 11:</strong> 414 x 896 (larger phones)</li>
+                <li><strong>iPad Mini:</strong> 768 x 1024 (tablet testing)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentUrl = 'http://localhost:3001/level/a1';
+        
+        function setDevice(containerId, width, height, deviceName) {
+            const frame = document.getElementById('testFrame');
+            const info = document.getElementById('deviceInfo');
+            const container = document.getElementById(containerId);
+            
+            // Update frame dimensions
+            frame.style.width = width + 'px';
+            frame.style.height = height + 'px';
+            
+            // Update info
+            info.textContent = `${deviceName} - ${width} x ${height}`;
+            
+            // Update active button
+            container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update status
+            document.getElementById('status').textContent = `Testing on ${deviceName} (${width} x ${height})`;
+        }
+        
+        function loadUrl() {
+            const input = document.getElementById('urlInput');
+            const frame = document.getElementById('testFrame');
+            const status = document.getElementById('status');
+            
+            currentUrl = input.value || 'http://localhost:3001/dashboard';
+            
+            status.textContent = 'Loading...';
+            frame.src = currentUrl;
+            
+            // Add load event listener
+            frame.onload = function() {
+                status.textContent = `✅ Loaded: ${currentUrl}`;
+            };
+            
+            frame.onerror = function() {
+                status.textContent = `❌ Failed to load: ${currentUrl}`;
+            };
+        }
+        
+        function quickLoad(page) {
+            const input = document.getElementById('urlInput');
+            input.value = `http://localhost:3001/${page}`;
+            loadUrl();
+        }
+        
+        function refreshFrame() {
+            const frame = document.getElementById('testFrame');
+            frame.src = frame.src;
+            document.getElementById('status').textContent = '🔄 Refreshing...';
+        }
+        
+        // Auto-load default URL
+        window.addEventListener('load', function() {
+            setTimeout(loadUrl, 1000);
+        });
+        
+        // Add keyboard shortcut
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'urlInput') {
+                loadUrl();
+            }
+        });
+    </script>
+</body>
+</html>
