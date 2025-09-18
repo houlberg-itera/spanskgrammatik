@@ -9,7 +9,6 @@ interface LearningPathProps {
   topics: Topic[];
   exercises: Exercise[];
   userProgress: UserProgress[];
-  onRefresh: () => Promise<void>;
 }
 
 interface LessonNode {
@@ -27,7 +26,7 @@ interface LessonNode {
   importance: 'foundation' | 'core' | 'advanced' | 'practice';
 }
 
-export default function LearningPath({ level, topics, exercises, userProgress, onRefresh }: LearningPathProps) {
+export default function LearningPath({ level, topics, exercises, userProgress }: LearningPathProps) {
   const [pathNodes, setPathNodes] = useState<LessonNode[]>([]);
   const [userStats, setUserStats] = useState({
     totalLessons: 0,
@@ -68,6 +67,9 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
 
   useEffect(() => {
     generateLearningPath();
+  }, [topics, exercises, userProgress]);
+
+  useEffect(() => {
     calculateUserStats();
   }, [topics, exercises, userProgress]);
 
@@ -125,14 +127,38 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
       if (categoryTopics.length === 0) return;
 
       categoryTopics.forEach((topic, topicIndex) => {
-        // Get completed exercises for this topic
+        // Get all exercises for this topic
         const topicExercises = exercises.filter(ex => ex.topic_id === topic.id);
         const completedExerciseIds = new Set(
           userProgress.filter(up => up.completed).map(up => up.exercise_id)
         );
-        const topicProgress = topicExercises.filter(ex => 
-          completedExerciseIds.has(ex.id)
-        );
+        
+        // Count total questions and completed questions for this topic
+        let totalQuestions = 0;
+        let completedQuestions = 0;
+        
+        topicExercises.forEach(exercise => {
+          if (exercise.content && exercise.content.questions) {
+            const questionCount = exercise.content.questions.length;
+            totalQuestions += questionCount;
+            
+            // If this exercise is completed, count all its questions as completed
+            if (completedExerciseIds.has(exercise.id)) {
+              completedQuestions += questionCount;
+            }
+          }
+        });
+
+        // Debug logging for mismatches
+        if (topic.id === 2 || topic.id === 3) {
+          console.log(`Topic ${topic.id} (${topic.name_da}):`, {
+            totalQuestions,
+            completedQuestions,
+            exerciseCount: topicExercises.length,
+            completedExercises: topicExercises.filter(ex => completedExerciseIds.has(ex.id)).length,
+            completedExerciseIds: Array.from(completedExerciseIds)
+          });
+        }
 
         // Duolingo-style vertical positioning with slight alternating offset
         const row = globalIndex;
@@ -149,8 +175,8 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
           name: topic.name_da || topic.name_es || 'Unknown Topic',
           type: 'topic',
           topicId: topic.id.toString(),
-          exerciseCount: topicExercises.length,
-          completedCount: topicProgress.length,
+          exerciseCount: totalQuestions,
+          completedCount: completedQuestions,
           unlocked: true, // Allow topic jumping
           difficulty: getDifficultyForTopic(topic, level),
           color: colorScheme[importance as keyof typeof colorScheme].bg,
@@ -177,14 +203,23 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
   };
 
   const calculateUserStats = () => {
-    const totalLessons = pathNodes.length;
-    const completedLessons = pathNodes.filter(node => 
-      node.completedCount >= node.exerciseCount && node.exerciseCount > 0
-    ).length;
+    // Calculate stats based on completed topics, not individual exercises
+    const completedExerciseIds = new Set(
+      userProgress.filter(up => up.completed).map(up => up.exercise_id)
+    );
+    
+    // Count topics that have ALL their exercises completed
+    const completedTopics = topics.filter(topic => {
+      const topicExercises = exercises.filter(ex => ex.topic_id === topic.id);
+      if (topicExercises.length === 0) return false;
+      
+      // Check if ALL exercises in this topic are completed
+      return topicExercises.every(ex => completedExerciseIds.has(ex.id));
+    });
     
     setUserStats({
-      totalLessons,
-      completedLessons,
+      totalLessons: topics.length,
+      completedLessons: completedTopics.length,
       currentStreak: calculateStreak(),
       totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0)
     });
@@ -283,25 +318,17 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
       {/* Enhanced Header Stats */}
       <div className="max-w-6xl mx-auto mb-12">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                🎯 {level} Læringssti
-              </h1>
-              <p className="text-gray-600">Intelligent organiseret efter vigtighed og sværhedsgrad</p>
-            </div>
-            <button
-              onClick={onRefresh}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              🔄 Opdater
-            </button>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              🎯 {level} Læringssti
+            </h1>
+            <p className="text-gray-600">Intelligent organiseret efter vigtighed og sværhedsgrad</p>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
               <div className="text-3xl font-bold text-blue-600">{userStats.completedLessons}</div>
-              <div className="text-sm text-gray-600 mt-1">Fuldførte lektioner</div>
+              <div className="text-sm text-gray-600 mt-1">Fuldførte emner</div>
             </div>
             <div className="text-center bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
               <div className="text-3xl font-bold text-green-600">{userStats.currentStreak}</div>
@@ -389,7 +416,7 @@ export default function LearningPath({ level, topics, exercises, userProgress, o
                   </div>
                   {node.exerciseCount > 0 && (
                     <div className="text-xs text-gray-600">
-                      {node.completedCount}/{node.exerciseCount}
+                      {node.completedCount}/{node.exerciseCount} spørgsmål
                     </div>
                   )}
                 </div>

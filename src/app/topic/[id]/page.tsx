@@ -26,6 +26,7 @@ export default function TopicPage() {
   
   const [topic, setTopic] = useState<Topic | null>(null);
   const [questions, setQuestions] = useState<QuestionWithExercise[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -114,6 +115,7 @@ export default function TopicPage() {
       }
 
       setQuestions(allQuestions);
+      setExercises(exercisesData);
 
       // Get user's completed exercises count and current position for this topic
       const { data: { session } } = await supabase.auth.getSession();
@@ -277,8 +279,18 @@ export default function TopicPage() {
   };
 
   const getProgressPercentage = () => {
-    if (questions.length === 0) return 0;
-    return Math.round(((completedCount + currentIndex) / questions.length) * 100);
+    if (!exercises || exercises.length === 0) return 0;
+    return Math.round((completedCount / exercises.length) * 100);
+  };
+
+  const getCurrentExerciseIndex = () => {
+    if (!questions || !exercises || questions.length === 0 || exercises.length === 0) return 0;
+    const currentQuestion = questions[currentIndex];
+    if (!currentQuestion) return 0;
+    
+    // Find which exercise this question belongs to
+    const exerciseIndex = exercises.findIndex(ex => ex.id === currentQuestion.exerciseId);
+    return exerciseIndex >= 0 ? exerciseIndex : 0;
   };
 
   if (loading) {
@@ -366,20 +378,20 @@ export default function TopicPage() {
                 </svg>
               </button>
               <div className="flex-1 max-w-md">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-                  <span>{topic.name_da}</span>
-                  <span>{currentIndex + 1} af {questions.length}</span>
+                <div className="text-sm text-gray-600 mb-1">
+                  <div>{topic.name_da}</div>
+                  <div>Spørgsmål {currentIndex + 1} af {questions.length}</div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div 
                     className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${getProgressPercentage()}%` }}
+                    style={{ width: `${Math.round(((currentIndex + 1) / questions.length) * 100)}%` }}
                   ></div>
                 </div>
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              {getProgressPercentage()}% fuldført
+              {Math.round(((currentIndex + 1) / questions.length) * 100)}% fuldført
             </div>
           </div>
         </div>
