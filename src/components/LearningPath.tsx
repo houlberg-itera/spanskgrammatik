@@ -28,6 +28,7 @@ interface LessonNode {
 
 export default function LearningPath({ level, topics, exercises, userProgress }: LearningPathProps) {
   const [pathNodes, setPathNodes] = useState<LessonNode[]>([]);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 600, height: 800 });
   const [userStats, setUserStats] = useState({
     totalLessons: 0,
     completedLessons: 0,
@@ -36,6 +37,36 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   });
 
   const supabase = createClient();
+
+  // Handle window resize for responsive positioning
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        // Better responsive width calculation
+        const viewportWidth = window.innerWidth;
+        const isLandscape = window.innerWidth > window.innerHeight;
+        
+        // Adjust container width based on orientation
+        let containerWidth;
+        if (isLandscape) {
+          // In landscape, use more width
+          containerWidth = Math.min(700, viewportWidth - 32);
+        } else {
+          // In portrait, center better with less padding
+          containerWidth = Math.min(600, viewportWidth - 32);
+        }
+        
+        setContainerDimensions({
+          width: containerWidth,
+          height: window.innerHeight
+        });
+      }
+    };
+
+    handleResize(); // Initial call
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Enhanced color scheme with better visual hierarchy
   const colorScheme = {
@@ -86,7 +117,8 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       const topicKey = (topic.name_da || topic.name_es || '').toLowerCase();
       let placed = false;
 
-      for (const [category, keywords] of Object.entries(categories)) {
+      for (const category in categories) {
+        const keywords = categories[category as keyof typeof categories];
         if (Array.isArray(keywords) && keywords.some(keyword => topicKey.includes(keyword))) {
           categorizedTopics[category].push(topic);
           placed = true;
@@ -115,7 +147,8 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     const categorizedTopics = categorizeTopics(sortedTopics);
     
     let globalIndex = 0;
-    const containerWidth = 600; // Narrower like Duolingo
+    // Responsive container width that adapts to screen size
+    const containerWidth = containerDimensions.width;
     const verticalSpacing = 120; // Closer vertical spacing
     const centerX = containerWidth * 0.5;
 
@@ -160,10 +193,28 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
           });
         }
 
-        // Duolingo-style vertical positioning with slight alternating offset
+        // Duolingo-style vertical positioning with improved centering
         const row = globalIndex;
         const isEven = row % 2 === 0;
-        const x = isEven ? centerX - 60 : centerX + 60; // Slight left/right alternation
+        
+        // Better centering logic for different screen orientations
+        const isLandscape = typeof window !== 'undefined' && window.innerWidth > window.innerHeight;
+        const baseCenter = containerWidth * 0.5;
+        
+        // Adjust alternation based on screen size and orientation
+        let alternationOffset;
+        if (containerWidth < 400) {
+          // Very small screens - minimal alternation
+          alternationOffset = 25;
+        } else if (isLandscape) {
+          // Landscape mode - can use more alternation
+          alternationOffset = 70;
+        } else {
+          // Portrait mode - moderate alternation, better centered
+          alternationOffset = 45;
+        }
+        
+        const x = isEven ? baseCenter - alternationOffset : baseCenter + alternationOffset;
         const y = 80 + (row * verticalSpacing);
 
         const importance = categoryName === 'foundation' ? 'foundation' :
@@ -314,18 +365,18 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4 sm:p-6">
       {/* Enhanced Header Stats */}
-      <div className="max-w-6xl mx-auto mb-12">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="max-w-6xl mx-auto mb-8 sm:mb-12">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-4 sm:p-8">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               🎯 {level} Læringssti
             </h1>
-            <p className="text-gray-600">Intelligent organiseret efter vigtighed og sværhedsgrad</p>
+            <p className="text-sm sm:text-base text-gray-600">Intelligent organiseret efter vigtighed og sværhedsgrad</p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
               <div className="text-3xl font-bold text-blue-600">{userStats.completedLessons}</div>
               <div className="text-sm text-gray-600 mt-1">Fuldførte emner</div>
@@ -349,11 +400,12 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       </div>
 
       {/* Enhanced Learning Path */}
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0">
         <div 
-          className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-white/30"
+          className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-4 sm:p-8 shadow-lg border border-white/30 overflow-hidden"
           style={{ 
-            minHeight: `${pathNodes.length > 0 ? Math.max(...pathNodes.map(n => n.position.y)) + 120 : 300}px` 
+            minHeight: `${pathNodes.length > 0 ? Math.max(...pathNodes.map(n => n.position.y)) + 120 : 300}px`,
+            width: '100%'
           }}
         >
           {/* Enhanced lesson nodes */}
@@ -410,7 +462,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
 
               {/* Node label */}
               <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-                <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1 shadow-md max-w-32 border border-gray-100">
+                <div className="bg-white/95 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1 shadow-md max-w-28 sm:max-w-32 border border-gray-100">
                   <div className="text-xs font-semibold text-gray-900 truncate">
                     {node.name}
                   </div>
