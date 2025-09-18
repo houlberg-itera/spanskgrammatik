@@ -27,8 +27,35 @@ interface LessonNode {
 }
 
 export default function LearningPath({ level, topics, exercises, userProgress }: LearningPathProps) {
+  // Calculate initial container dimensions immediately
+  const getInitialDimensions = () => {
+    if (typeof window !== 'undefined') {
+      const viewportWidth = window.innerWidth;
+      const isLandscape = window.innerWidth > window.innerHeight;
+      
+      // Calculate container width considering max-w-4xl (896px) constraint and padding
+      const maxContainerWidth = 896; // max-w-4xl
+      const padding = viewportWidth < 640 ? 32 : 64;
+      const availableWidth = viewportWidth - padding;
+      
+      let containerWidth = Math.min(maxContainerWidth, availableWidth);
+      
+      if (isLandscape) {
+        containerWidth = Math.min(containerWidth, 700);
+      } else {
+        containerWidth = Math.min(containerWidth, viewportWidth < 640 ? viewportWidth - 32 : 600);
+      }
+      
+      return {
+        width: containerWidth,
+        height: window.innerHeight
+      };
+    }
+    return { width: 600, height: 800 };
+  };
+
   const [pathNodes, setPathNodes] = useState<LessonNode[]>([]);
-  const [containerDimensions, setContainerDimensions] = useState({ width: 600, height: 800 });
+  const [containerDimensions, setContainerDimensions] = useState(getInitialDimensions());
   const [userStats, setUserStats] = useState({
     totalLessons: 0,
     completedLessons: 0,
@@ -41,29 +68,11 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   // Handle window resize for responsive positioning
   useEffect(() => {
     const handleResize = () => {
-      if (typeof window !== 'undefined') {
-        // Better responsive width calculation
-        const viewportWidth = window.innerWidth;
-        const isLandscape = window.innerWidth > window.innerHeight;
-        
-        // Adjust container width based on orientation
-        let containerWidth;
-        if (isLandscape) {
-          // In landscape, use more width
-          containerWidth = Math.min(700, viewportWidth - 32);
-        } else {
-          // In portrait, center better with less padding
-          containerWidth = Math.min(600, viewportWidth - 32);
-        }
-        
-        setContainerDimensions({
-          width: containerWidth,
-          height: window.innerHeight
-        });
-      }
+      const newDimensions = getInitialDimensions();
+      setContainerDimensions(newDimensions);
     };
 
-    handleResize(); // Initial call
+    // No need for initial call since we set it in useState
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -205,13 +214,16 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
         let alternationOffset;
         if (containerWidth < 400) {
           // Very small screens - minimal alternation
-          alternationOffset = 25;
+          alternationOffset = 8;
+        } else if (containerWidth < 600 && !isLandscape) {
+          // Mobile portrait - small alternation for centering
+          alternationOffset = 15;
         } else if (isLandscape) {
           // Landscape mode - can use more alternation
-          alternationOffset = 70;
+          alternationOffset = 25;
         } else {
           // Portrait mode - moderate alternation, better centered
-          alternationOffset = 45;
+          alternationOffset = 20;
         }
         
         const x = isEven ? baseCenter - alternationOffset : baseCenter + alternationOffset;
