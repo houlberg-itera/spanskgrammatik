@@ -373,12 +373,6 @@ export default function TopicPage() {
             >
               Tilbage til dashboard
             </Link>
-            <Link 
-              href="/admin/exercise-generator"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Generer øvelser
-            </Link>
           </div>
         </div>
       </div>
