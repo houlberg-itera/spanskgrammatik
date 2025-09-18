@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress, SpanishLevel } from '@/types/database';
 
@@ -9,6 +9,7 @@ interface LearningPathProps {
   topics: Topic[];
   exercises: Exercise[];
   userProgress: UserProgress[];
+  onRefresh?: () => Promise<void>;
 }
 
 interface LessonNode {
@@ -206,23 +207,28 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
         const row = globalIndex;
         const isEven = row % 2 === 0;
         
-        // Better centering logic for different screen orientations
+        // Better centering logic for different screen orientations with container padding adjustment
         const isLandscape = typeof window !== 'undefined' && window.innerWidth > window.innerHeight;
-        const baseCenter = containerWidth * 0.5;
         
-        // Adjust alternation based on screen size and orientation
+        // Account for container padding when calculating center position
+        const leftPadding = 50; // paddingLeft from container
+        const rightPadding = 100; // paddingRight from container
+        const availableWidth = containerWidth - leftPadding - rightPadding;
+        const baseCenter = leftPadding + (availableWidth * 0.5);
+        
+        // Adjust alternation based on screen size and orientation - much smaller for mobile
         let alternationOffset;
         if (containerWidth < 400) {
-          // Very small screens - minimal alternation
-          alternationOffset = 8;
+          // Very small screens - almost no alternation, keep centered
+          alternationOffset = 5;
         } else if (containerWidth < 600 && !isLandscape) {
-          // Mobile portrait - small alternation for centering
-          alternationOffset = 15;
-        } else if (isLandscape) {
-          // Landscape mode - can use more alternation
-          alternationOffset = 25;
+          // Mobile portrait - very small alternation for centering
+          alternationOffset = 8;
+        } else if (isLandscape && containerWidth < 800) {
+          // Mobile landscape - small alternation
+          alternationOffset = 12;
         } else {
-          // Portrait mode - moderate alternation, better centered
+          // Desktop/larger screens - can use more alternation
           alternationOffset = 20;
         }
         
@@ -412,12 +418,14 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       </div>
 
       {/* Enhanced Learning Path */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-0">
+      <div className="max-w-4xl mx-auto px-1 sm:px-2 md:px-4 lg:px-0">
         <div 
-          className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-4 sm:p-8 shadow-lg border border-white/30 overflow-hidden"
+          className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-2 sm:p-4 md:p-8 shadow-lg border border-white/30 overflow-hidden"
           style={{ 
             minHeight: `${pathNodes.length > 0 ? Math.max(...pathNodes.map(n => n.position.y)) + 120 : 300}px`,
-            width: '100%'
+            width: '100%',
+            paddingLeft: '50px', // Reduced for mobile
+            paddingRight: '100px' // Reduced for mobile
           }}
         >
           {/* Enhanced lesson nodes */}
@@ -433,8 +441,19 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
               }}
               onClick={() => handleNodeClick(node)}
             >
+              {/* Progress indicator - positioned to the left with mobile optimization */}
+              {node.exerciseCount > 0 && (
+                <div className="absolute right-full top-1/2 mr-1 sm:mr-2 md:mr-3 lg:mr-4 transform -translate-y-1/2">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 py-1 shadow-md border border-gray-200">
+                    <div className="text-xs font-semibold text-gray-800 whitespace-nowrap">
+                      {node.completedCount}/{node.exerciseCount}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div
-                className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl shadow-xl border-4 transition-all duration-300 relative ${
+                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl border-4 transition-all duration-300 relative ${
                   node.unlocked ? 'border-white hover:shadow-2xl' : 'border-gray-400'
                 } ${node.completedCount >= node.exerciseCount && node.exerciseCount > 0 ? 'ring-4 ring-green-300' : ''}`}
                 style={{
@@ -443,7 +462,10 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
                   boxShadow: `0 8px 20px ${getNodeShadow(node)}`
                 }}
               >
-                <span className="text-white text-xl filter drop-shadow-lg">
+                <span className="text-white text-2xl sm:text-3xl font-bold" style={{ 
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)'
+                }}>
                   {getNodeIcon(node)}
                 </span>
                 
@@ -451,35 +473,23 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
                 {node.completedCount >= node.exerciseCount && node.exerciseCount > 0 && (
                   <>
                     <div className="absolute inset-0 rounded-full bg-green-400 opacity-20 animate-ping"></div>
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                    <div className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                      <span className="text-white text-sm sm:text-base font-bold" style={{ 
+                        filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
+                      }}>✓</span>
                     </div>
                   </>
                 )}
               </div>
               
-              {/* Progress indicator */}
-              {node.exerciseCount > 0 && (
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-white rounded-full px-2 py-1 shadow-md text-xs font-bold border border-gray-200">
-                    <span className={
-                      getProgressPercentage(node) === 100 ? 'text-green-600' :
-                      getProgressPercentage(node) > 0 ? 'text-orange-500' : 'text-gray-500'
-                    }>
-                      {getProgressPercentage(node)}%
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Node label */}
-              <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-                <div className="bg-white/95 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1 shadow-md max-w-28 sm:max-w-32 border border-gray-100">
-                  <div className="text-xs font-semibold text-gray-900 truncate">
+              {/* Node label - positioned to the right with wider mobile-optimized text boxes */}
+              <div className="absolute left-full top-1/2 ml-1 sm:ml-2 md:ml-3 lg:ml-4 transform -translate-y-1/2">
+                <div className="bg-white/98 backdrop-blur-sm rounded-xl px-2 sm:px-3 md:px-4 lg:px-5 py-1.5 sm:py-2 shadow-lg w-28 sm:w-32 md:w-36 lg:w-40 xl:w-44 border border-gray-200">
+                  <div className="text-xs sm:text-xs md:text-sm font-bold text-gray-900 leading-tight break-words hyphens-auto" style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
                     {node.name}
                   </div>
                   {node.exerciseCount > 0 && (
-                    <div className="text-xs text-gray-600">
+                    <div className="text-xs text-gray-700 font-medium mt-1 whitespace-nowrap">
                       {node.completedCount}/{node.exerciseCount} spørgsmål
                     </div>
                   )}
