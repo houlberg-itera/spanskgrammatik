@@ -212,6 +212,12 @@ export default function ExerciseGeneratorAdmin() {
   };
 
   const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0) => {
+    // Check if generation should stop before making API call
+    if (shouldStop) {
+      console.log('🛑 API call cancelled - generation stopped by user');
+      throw new Error('Generation stopped by user');
+    }
+    
     const maxRetries = 3;
     const baseDelay = 2000; // 2 seconds base delay
     // Create or reuse AbortController for this request
@@ -237,12 +243,19 @@ export default function ExerciseGeneratorAdmin() {
 
       if (!response.ok) {
         // Check if it's a rate limit error (429)
-        if (response.status === 429 && retryCount < maxRetries) {
+        if (response.status === 429 && retryCount < maxRetries && !shouldStop) {
           const exponentialDelay = baseDelay * Math.pow(2, retryCount); // 2s, 4s, 8s
           console.log(`Rate limit hit for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1})`);
           
-          // Wait with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, exponentialDelay));
+          // Wait with exponential backoff, but check for stop during wait
+          const startTime = Date.now();
+          while (Date.now() - startTime < exponentialDelay) {
+            if (shouldStop) {
+              console.log('🛑 Retry cancelled - generation stopped by user');
+              throw new Error('Generation stopped by user');
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
           
           // Retry the request
           return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
@@ -253,16 +266,31 @@ export default function ExerciseGeneratorAdmin() {
 
       return await response.json();
     } catch (error: any) {
+      // Check if user stopped generation
+      if (shouldStop) {
+        console.log('🛑 Generation stopped by user during API call');
+        throw new Error('Generation stopped by user');
+      }
+      
       // If we've exhausted retries or it's not a network error, throw
       if (retryCount >= maxRetries || !error.message?.includes('Failed to fetch')) {
         throw error;
       }
       
-      // Retry on network errors too
+      // Retry on network errors too, but check for stop during delay
       const exponentialDelay = baseDelay * Math.pow(2, retryCount);
       console.log(`Network error for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1})`);
       
-      await new Promise(resolve => setTimeout(resolve, exponentialDelay));
+      // Wait with stop checks during network retry delay
+      const startTime = Date.now();
+      while (Date.now() - startTime < exponentialDelay) {
+        if (shouldStop) {
+          console.log('🛑 Network retry cancelled - generation stopped by user');
+          throw new Error('Generation stopped by user');
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
     }
   };
@@ -400,6 +428,21 @@ export default function ExerciseGeneratorAdmin() {
 
       } catch (error) {
         console.error(`Error generating exercises for job ${job.id}:`, error);
+        
+        // Check if error is due to user stopping generation
+        if (error instanceof Error && error.message.includes('Generation stopped by user')) {
+          console.log('🛑 Job cancelled due to user stop request');
+          setGenerationJobs(prev => prev.map(j => 
+            j.id === job.id ? { 
+              ...j, 
+              status: 'error',
+              errorMessage: 'Stopped by user'
+            } : j
+          ));
+          // Exit the loop completely when user stops
+          setIsGenerating(false);
+          return;
+        }
         
         // Check if it's a rate limit error to provide better messaging
         const isRateLimit = error instanceof Error && 
