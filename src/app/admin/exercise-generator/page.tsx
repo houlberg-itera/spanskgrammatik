@@ -447,10 +447,25 @@ export default function ExerciseGeneratorAdmin() {
   const stopGeneration = () => {
     setShouldStop(true);
     setIsPaused(false);
+    setIsGenerating(false);
+    setCurrentJobIndex(0);
+    
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    console.log('🛑 Generation stop requested by user');
+    
+    // Clear and reset generation jobs
+    setGenerationJobs([]);
+    
+    // Reset all job states to provide clean slate
+    setGenerationJobs(prev => prev.map(job => ({
+      ...job,
+      status: job.status === 'generating' ? 'error' : job.status,
+      error: job.status === 'generating' ? 'Stopped by user' : job.error
+    })));
+    
+    console.log('🛑 Complete generation stop - all processes halted by user');
+    alert('Generation stopped. All pending exercises cancelled.');
   };
 
   const getJobStatusColor = (status: string) => {
