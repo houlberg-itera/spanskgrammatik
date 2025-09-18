@@ -489,6 +489,15 @@ HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. 
       console.error('❌ JSON parse error:', parseError);
       console.error('❌ Raw response that failed to parse:', responseContent);
       console.error('❌ Cleaned response that failed to parse:', cleanedResponse);
+      
+      // Check if this is a content policy refusal
+      if (cleanedResponse.toLowerCase().includes('i\'m sorry') || 
+          cleanedResponse.toLowerCase().includes('cannot') ||
+          cleanedResponse.toLowerCase().includes('unable')) {
+        console.warn('🚫 AI content policy refusal detected - attempting retry with simplified prompt');
+        throw new Error('AI_CONTENT_POLICY_REFUSAL');
+      }
+      
       throw new Error(`Invalid JSON response from AI: ${parseError.message}`);
     }
 

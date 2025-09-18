@@ -3619,6 +3619,43 @@
 			"command": "powershell -Command \"npm install -g pnpm --force; pnpm --version\"",
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Test Fixed Exercise Count API",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Write-Host 'Testing fixed exercise generation API...'; $body = '{\"topicId\":7,\"exerciseType\":\"multiple_choice\",\"count\":5,\"difficulty\":\"easy\",\"level\":\"A2\",\"topicName\":\"Test Topic\",\"topicDescription\":\"Test Description\"}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-bulk-exercises' -Method POST -Body $body -ContentType 'application/json' -TimeoutSec 30; Write-Host '✅ SUCCESS! Fixed API response:'; $data = $response.Content | ConvertFrom-Json; Write-Host \"Exercises created: $($data.exercisesCreated)\"; Write-Host \"User requested: 5 exercises\"; Write-Host \"Result: Got $($data.exercisesCreated) exercises (should be 5 or close to 5)\"; if ($data.exercisesCreated -ge 4) { Write-Host '🎉 EXERCISE COUNT FIX SUCCESSFUL!' } else { Write-Host '❌ Still has exercise count bug' } } catch { Write-Host '❌ Error:'; Write-Host $_.Exception.Message }"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Test Fixed Exercise Count API Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Start-Sleep 3; Write-Host 'Testing fixed exercise generation API...'; $body = '{\"topicId\":7,\"exerciseType\":\"multiple_choice\",\"count\":5,\"difficulty\":\"easy\",\"level\":\"A2\",\"topicName\":\"Test Topic\",\"topicDescription\":\"Test Description\"}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-bulk-exercises' -Method POST -Body $body -ContentType 'application/json' -TimeoutSec 30; Write-Host '✅ SUCCESS! Fixed API response:'; $data = $response.Content | ConvertFrom-Json; Write-Host \"Exercises created: $($data.exercisesCreated)\"; Write-Host \"User requested: 5 exercises\"; Write-Host \"Result: Got $($data.exercisesCreated) exercises (should be 5 or close to 5)\"; if ($data.exercisesCreated -ge 4) { Write-Host '🎉 EXERCISE COUNT FIX SUCCESSFUL!' } else { Write-Host '❌ Still has exercise count bug' } } catch { Write-Host '❌ Error:'; Write-Host $_.Exception.Message }"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Test Exercise Count Fix Simple",
+			"type": "shell",
+			"command": "Write-Host",
+			"args": [
+				"Testing exercise count fix - requesting 5 exercises and checking result"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Test Exercise Count Fix with Small Batch",
+			"type": "shell",
+			"command": "Start-Sleep 5; Write-Host '🧪 Testing exercise count fix with smaller batch...'; $body = '{\"topicId\":14,\"exerciseType\":\"multiple_choice\",\"count\":3,\"difficulty\":\"easy\",\"level\":\"A1\",\"topicName\":\"familia\",\"topicDescription\":\"Spanish family vocabulary\"}'; try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/api/generate-bulk-exercises' -Method POST -Body $body -ContentType 'application/json' -TimeoutSec 30; Write-Host '✅ SUCCESS! API response:'; $data = $response.Content | ConvertFrom-Json; Write-Host \"Exercises created: $($data.exercisesCreated)\"; Write-Host \"User requested: 3 exercises\"; Write-Host \"Total questions: $($data.totalQuestions)\"; Write-Host \"Questions per exercise: $($data.questionsPerExercise)\"; if ($data.exercisesCreated -eq 3) { Write-Host '🎉 EXERCISE COUNT FIX WORKING! Got exactly 3 exercises as requested' } else { Write-Host \"❌ Still has issue - got $($data.exercisesCreated) instead of 3\" } } catch { Write-Host '❌ Error:'; Write-Host $_.Exception.Message }"
 		}
 	]
 }
