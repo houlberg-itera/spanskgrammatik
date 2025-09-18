@@ -107,6 +107,10 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   const [loading, setLoading] = useState(false);
   const [showErrorHandler, setShowErrorHandler] = useState(false);
   const [errorDetails, setErrorDetails] = useState<{ exerciseId: number; score: number } | null>(null);
+  const [reorderedQuestions, setReorderedQuestions] = useState<any[]>([]);
+  const [failedQuestionIds, setFailedQuestionIds] = useState<Set<string>>(new Set());
+  const [isRetrySession, setIsRetrySession] = useState(false);
+  const [failedQuestionsLoading, setFailedQuestionsLoading] = useState(true);
   
   const router = useRouter();
   const supabase = createClient();
@@ -115,6 +119,51 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   console.log('🔍 ExercisePlayer received exercise:', exercise);
   console.log('🔍 Exercise content:', exercise?.content);
   console.log('🔍 Exercise content type:', typeof exercise?.content);
+
+  // Fetch failed questions and reorder on component mount
+  useEffect(() => {
+    const fetchFailedQuestions = async () => {
+      try {
+        setFailedQuestionsLoading(true);
+        
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('No user found, using original question order');
+          setFailedQuestionsLoading(false);
+          return;
+        }
+
+        // Fetch failed questions for this exercise
+        const response = await fetch(`/api/failed-questions?exerciseId=${exercise.id}&userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.hasFailedQuestions) {
+            console.log(`🔄 Found ${data.failedCount} failed questions, prioritizing them`);
+            setReorderedQuestions(data.allQuestions);
+            setFailedQuestionIds(new Set(data.failedQuestions.map((q: any) => q.id)));
+            setIsRetrySession(true);
+          } else {
+            console.log('📚 No failed questions found, using original order');
+            setIsRetrySession(false);
+          }
+        } else {
+          console.log('Failed to fetch question priority, using original order');
+        }
+      } catch (error) {
+        console.error('Error fetching failed questions:', error);
+      } finally {
+        setFailedQuestionsLoading(false);
+      }
+    };
+
+    if (exercise?.id) {
+      fetchFailedQuestions();
+    } else {
+      setFailedQuestionsLoading(false);
+    }
+  }, [exercise?.id, supabase]);
 
   // Add null checks for exercise content
   let questions = [];
@@ -155,9 +204,26 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   
   console.log('🔍 Parsed questions:', questions);
   console.log('🔍 Questions length:', questions?.length);
+  console.log('🔍 Reordered questions available:', reorderedQuestions.length > 0);
   
-  // Early return if no questions
-  if (!questions || questions.length === 0) {
+  // Use reordered questions if available (failed questions first), otherwise use original order
+  const finalQuestions = reorderedQuestions.length > 0 ? reorderedQuestions : questions;
+  
+  // Early return if no questions or still loading failed questions
+  if (failedQuestionsLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Indlæser øvelse og kontrollerer tidligere svar...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!finalQuestions || finalQuestions.length === 0) {
     return (
       <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
         <h3 className="text-lg font-semibold text-red-800 mb-2">Øvelse fejl</h3>
@@ -172,9 +238,10 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
-  const allQuestionsAnswered = questions.every(q => answers[q.id] !== undefined && answers[q.id] !== '');
+  const currentQuestion = finalQuestions[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === finalQuestions.length - 1;
+  const allQuestionsAnswered = finalQuestions.every(q => answers[q.id] !== undefined && answers[q.id] !== '');
+  const isCurrentQuestionFromFailedSet = failedQuestionIds.has(currentQuestion?.id || '');
 
   const handleAnswer = (questionId: string, answer: string | string[]) => {
     setAnswers(prev => ({
@@ -222,7 +289,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     let correct = 0;
     let total = 0;
 
-    questions.forEach((question) => {
+    finalQuestions.forEach((question) => {
       const questionPoints = question.points || 1;
       total += questionPoints;
       const userAnswer = answers[question.id];
@@ -369,6 +436,54 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
       // Always update level progress to ensure dashboard stays in sync
       if (!saveResult?.error) {
         console.log(`🔄 Exercise completed successfully, updating level progress for ${exercise.level}`);
+        
+        // Save detailed question results for retry functionality
+        try {
+          console.log('💾 Saving detailed question results for retry functionality');
+          
+          // Calculate question-level results
+          const questionResults: Record<string, any> = {};
+          finalQuestions.forEach(question => {
+            const userAnswer = answers[question.id];
+            let isCorrect = false;
+            
+            if (userAnswer !== undefined && userAnswer !== '' && userAnswer !== null) {
+              if (Array.isArray(question.correct_answer)) {
+                isCorrect = Array.isArray(userAnswer) 
+                  ? userAnswer.sort().join(',').toLowerCase() === question.correct_answer.sort().join(',').toLowerCase()
+                  : false;
+              } else {
+                const correctAnswer = String(question.correct_answer);
+                const givenAnswer = String(userAnswer);
+                isCorrect = compareAnswers(givenAnswer, correctAnswer);
+              }
+            }
+            
+            questionResults[question.id] = {
+              correct: isCorrect,
+              userAnswer: userAnswer,
+              correctAnswer: question.correct_answer,
+              wasFromFailedSet: failedQuestionIds.has(question.id)
+            };
+          });
+
+          // Save to user_exercise_results table
+          await supabase.from('user_exercise_results').upsert({
+            user_id: user.id,
+            exercise_id: exercise.id,
+            score: finalScore,
+            completed: finalScore >= 70,
+            answers: answers,
+            question_results: questionResults,
+            timestamp: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          });
+          
+          console.log('✅ Question results saved successfully');
+        } catch (questionError) {
+          console.error('⚠️ Failed to save question results (non-critical):', questionError);
+        }
+        
         await updateLevelProgress(user.id, exercise.level, supabase);
       } else {
         console.error('❌ Not updating level progress due to save error:', saveResult.error);
@@ -464,7 +579,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
           {/* Review all questions */}
           <div className="space-y-6 mb-8">
             <h3 className="text-xl font-semibold text-gray-900">Gennemgang af svar:</h3>
-            {questions.map((question, index) => (
+            {finalQuestions.map((question, index) => (
               <ExerciseQuestion
                 key={question.id}
                 question={question}
@@ -498,12 +613,33 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-md p-8">
+        {/* Retry Session Banner */}
+        {isRetrySession && !showResults && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800">
+                  📚 Øvelse gentages - fokus på svære spørgsmål
+                </h3>
+                <div className="mt-2 text-sm text-amber-700">
+                  <p>Vi viser først de spørgsmål, du fik forkert sidst. Dette hjælper dig med at forbedre dig på de svære områder!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-gray-900">{exercise.title_da}</h1>
             <span className="text-sm text-gray-500">
-              Spørgsmål {currentQuestionIndex + 1} af {questions.length}
+              Spørgsmål {currentQuestionIndex + 1} af {finalQuestions.length}
             </span>
           </div>
           
@@ -511,7 +647,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+              style={{ width: `${((currentQuestionIndex + 1) / finalQuestions.length) * 100}%` }}
             ></div>
           </div>
         </div>
@@ -525,6 +661,24 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
 
         {/* Current Question */}
         <div className="mb-8">
+          {/* Current Question Retry Indicator */}
+          {isCurrentQuestionFromFailedSet && !showResults && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-4 w-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-2">
+                  <p className="text-sm font-medium text-red-800">
+                    ⚠️ Dette spørgsmål fik du forkert sidst gang - tag ekstra tid til at tænke
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ExerciseQuestion
             key={currentQuestion.id} // Force re-render when question changes
             question={currentQuestion}
@@ -539,16 +693,25 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
 
         {/* Navigation */}
         <div className="flex justify-between items-center">
-          <button
-            onClick={handlePrevious}
-            disabled={currentQuestionIndex === 0}
-            className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Forrige
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleBackToLevel}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              title="Afbryd øvelse og gå tilbage til læringssti"
+            >
+              ✕ Afbryd
+            </button>
+            <button
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Forrige
+            </button>
+          </div>
 
           <div className="text-sm text-gray-600">
-            {Object.values(answers).filter(answer => answer !== undefined && answer !== '' && answer !== null).length} af {questions.length} besvaret
+            {Object.keys(answers).filter(key => answers[key] !== undefined && answers[key] !== '' && answers[key] !== null).length} af {finalQuestions.length} besvaret
           </div>
 
           <button
