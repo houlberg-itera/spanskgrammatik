@@ -1,6 +1,43 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // User is logged in, redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        // User is not logged in, show welcome page
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router, supabase.auth]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checker login status...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="z-10 w-full max-w-5xl items-center justify-center text-center">
