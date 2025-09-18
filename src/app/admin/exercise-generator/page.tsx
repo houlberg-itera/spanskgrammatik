@@ -504,7 +504,7 @@ export default function ExerciseGeneratorAdmin() {
     setGenerationJobs(prev => prev.map(job => ({
       ...job,
       status: job.status === 'generating' ? 'error' : job.status,
-      error: job.status === 'generating' ? 'Stopped by user' : job.error
+      errorMessage: job.status === 'generating' ? 'Stopped by user' : job.errorMessage
     })));
     
     console.log('🛑 Complete generation stop - all processes halted by user');
