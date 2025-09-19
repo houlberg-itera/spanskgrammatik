@@ -27,8 +27,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   ← Tilbage til App
                 </Link>
                 <div className="h-6 w-px bg-gray-300"></div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  🔧 Spanskgrammatik Admin
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  🐥 Ducklingo Admin 🇪🇸
                 </h1>
               </div>
               <div className="text-sm text-gray-500">
@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center text-sm text-gray-500">
             <div>
-              Spanskgrammatik Admin Panel - AI-drevet spansk læring for danske talere
+              Ducklingo Admin Panel - AI-drevet spansk læring for danske talere
             </div>
             <div>
               Udviklet med Next.js, Supabase og OpenAI
