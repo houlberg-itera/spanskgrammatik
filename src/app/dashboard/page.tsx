@@ -230,8 +230,10 @@ export default function Dashboard() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-6">
-            <div className="flex items-center">
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Spanskgrammatik</h1>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">🐥</span>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Ducklingo</h1>
+              <span className="text-2xl">🇪🇸</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               {user && (
@@ -258,7 +260,9 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4">Mit Dashboard</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4 flex items-center gap-3">
+            🐥 Mit Dashboard 🇪🇸
+          </h2>
           <p className="text-base sm:text-lg text-gray-600">
             Nuværende niveau: <span className="font-semibold text-blue-600">{user?.current_level}</span>
           </p>

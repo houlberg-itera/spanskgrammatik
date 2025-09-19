@@ -87,7 +87,7 @@ export default function AdminGuard({ children, loadingComponent }: AdminGuardPro
             onClick={() => router.push('/dashboard')}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Gå til Dashboard
+            🐥 Gå til Dashboard
           </button>
         </div>
       </div>
