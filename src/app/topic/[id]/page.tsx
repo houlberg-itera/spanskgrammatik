@@ -350,7 +350,7 @@ export default function TopicPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Emne ikke fundet</h1>
           <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            🦆 Tilbage til dashboard
+            🐤 Tilbage til dashboard
           </Link>
         </div>
       </div>
@@ -390,7 +390,18 @@ export default function TopicPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Header */}
+      {/* Topic Header */}
+      <div className="bg-white shadow-sm border-b-2 border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="text-center">
+            <div className="text-5xl mb-3">🐤</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{topic.name_da}</h1>
+            <p className="text-gray-600">Ducklingo - Lær spansk med ænderne!</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -405,7 +416,6 @@ export default function TopicPage() {
               </button>
               <div className="flex-1 max-w-md">
                 <div className="text-sm text-gray-600 mb-1">
-                  <div>{topic.name_da}</div>
                   <div>Spørgsmål {currentIndex + 1} af {questions.length}</div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
@@ -419,6 +429,27 @@ export default function TopicPage() {
             <div className="text-sm text-gray-500">
               {Math.round(((currentIndex + 1) / questions.length) * 100)}% fuldført
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Topic Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full shadow-sm mb-3">
+              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                {topic.level} Niveau
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {topic.name_da}
+            </h1>
+            {topic.description_da && (
+              <p className="text-gray-600 max-w-md mx-auto">
+                {topic.description_da}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -304,11 +304,15 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       }
     });
     
+    // Calculate XP using same method as dashboard: 10 XP per correct answer (score >= 70)
+    const correctAnswers = userProgress.filter(up => (up.score || 0) >= 70).length;
+    const totalXP = correctAnswers * 10;
+
     setUserStats({
       totalLessons: topics.length,
       completedLessons: completedTopics.length,
       currentStreak: calculateStreak(),
-      totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0),
+      totalXP: totalXP,
       totalQuestions,
       completedQuestions
     });

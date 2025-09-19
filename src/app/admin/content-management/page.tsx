@@ -21,6 +21,15 @@ interface Exercise {
   content: any; // JSONB content
   ai_generated?: boolean;
   created_at: string;
+  topic_id?: string;
+}
+
+interface EditingExercise {
+  id: string;
+  type: string;
+  title_da: string;
+  title_es: string;
+  content: any;
 }
 
 export default function ContentManagement() {
@@ -31,6 +40,11 @@ export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'level' | 'exercises'>('level');
+  
+  // Edit functionality state
+  const [editingExercise, setEditingExercise] = useState<EditingExercise | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const supabase = createClient();
 
@@ -144,6 +158,82 @@ export default function ContentManagement() {
     } catch (error) {
       console.error('Error deleting exercise:', error);
       alert('Fejl ved sletning af øvelse');
+    }
+  };
+
+  const editExercise = (exercise: Exercise) => {
+    setEditingExercise({
+      id: exercise.id,
+      type: exercise.type,
+      title_da: exercise.title_da,
+      title_es: exercise.title_es || '',
+      content: { ...exercise.content }
+    });
+    setShowEditModal(true);
+  };
+
+  const saveExercise = async () => {
+    if (!editingExercise) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('exercises')
+        .update({
+          title_da: editingExercise.title_da,
+          title_es: editingExercise.title_es,
+          content: editingExercise.content
+        })
+        .eq('id', editingExercise.id);
+
+      if (error) {
+        console.error('Error updating exercise:', error);
+        alert('Fejl ved opdatering af øvelse');
+        return;
+      }
+
+      // Refresh exercises
+      if (selectedTopic) {
+        loadExercises(selectedTopic);
+      }
+      
+      setShowEditModal(false);
+      setEditingExercise(null);
+      alert('Øvelse opdateret succesfuldt');
+    } catch (error) {
+      console.error('Error updating exercise:', error);
+      alert('Fejl ved opdatering af øvelse');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateQuestionInContent = (questionIndex: number, field: string, value: string) => {
+    if (!editingExercise) return;
+
+    const updatedContent = { ...editingExercise.content };
+    if (updatedContent.questions && updatedContent.questions[questionIndex]) {
+      updatedContent.questions[questionIndex] = {
+        ...updatedContent.questions[questionIndex],
+        [field]: value
+      };
+      setEditingExercise({
+        ...editingExercise,
+        content: updatedContent
+      });
+    }
+  };
+
+  const updateOptionInContent = (questionIndex: number, optionIndex: number, value: string) => {
+    if (!editingExercise) return;
+
+    const updatedContent = { ...editingExercise.content };
+    if (updatedContent.questions && updatedContent.questions[questionIndex] && updatedContent.questions[questionIndex].options) {
+      updatedContent.questions[questionIndex].options[optionIndex] = value;
+      setEditingExercise({
+        ...editingExercise,
+        content: updatedContent
+      });
     }
   };
 
@@ -358,12 +448,20 @@ export default function ContentManagement() {
                               {exercise.ai_generated ? 'AI Generated' : 'Manual'}
                             </span>
                           </div>
-                          <button
-                            onClick={() => deleteExercise(exercise.id)}
-                            className="text-red-600 hover:text-red-800 text-xs"
-                          >
-                            🗑️ Slet
-                          </button>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => editExercise(exercise)}
+                              className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded border border-blue-300 hover:bg-blue-50"
+                            >
+                              ✏️ Rediger
+                            </button>
+                            <button
+                              onClick={() => deleteExercise(exercise.id)}
+                              className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-50"
+                            >
+                              🗑️ Slet
+                            </button>
+                          </div>
                         </div>
                         
                         <p className="text-sm text-gray-900 mb-2">
@@ -399,6 +497,217 @@ export default function ContentManagement() {
           </div>
         </div>
       </div>
+
+      {/* Edit Exercise Modal */}
+      {showEditModal && editingExercise && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  ✏️ Rediger Øvelse
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingExercise(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Titel (Dansk)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingExercise.title_da}
+                      onChange={(e) => setEditingExercise({
+                        ...editingExercise,
+                        title_da: e.target.value
+                      })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Titel (Spansk)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingExercise.title_es}
+                      onChange={(e) => setEditingExercise({
+                        ...editingExercise,
+                        title_es: e.target.value
+                      })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Exercise Type Info */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-lg">{getExerciseTypeIcon(editingExercise.type)}</span>
+                    <span className="font-medium text-gray-900">
+                      {editingExercise.type.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Questions Editor */}
+                {editingExercise.content.questions && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      📝 Spørgsmål og Svar
+                    </h3>
+                    <div className="space-y-6">
+                      {editingExercise.content.questions.map((question: any, questionIndex: number) => (
+                        <div key={questionIndex} className="border border-gray-200 rounded-lg p-4">
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Spørgsmål {questionIndex + 1} (Dansk)
+                            </label>
+                            <textarea
+                              value={question.question_da || ''}
+                              onChange={(e) => updateQuestionInContent(questionIndex, 'question_da', e.target.value)}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              rows={2}
+                            />
+                          </div>
+
+                          {question.question_es && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Spørgsmål {questionIndex + 1} (Spansk)
+                              </label>
+                              <textarea
+                                value={question.question_es || ''}
+                                onChange={(e) => updateQuestionInContent(questionIndex, 'question_es', e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                rows={2}
+                              />
+                            </div>
+                          )}
+
+                          {/* Multiple Choice Options */}
+                          {question.options && Array.isArray(question.options) && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Svarmuligheder
+                              </label>
+                              <div className="space-y-2">
+                                {question.options.map((option: string, optionIndex: number) => (
+                                  <div key={optionIndex} className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium text-gray-600 w-4">
+                                      {String.fromCharCode(65 + optionIndex)}:
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={option}
+                                      onChange={(e) => updateOptionInContent(questionIndex, optionIndex, e.target.value)}
+                                      className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    {question.correct_answer === option && (
+                                      <span className="text-green-600 text-sm font-medium">✓ Korrekt</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Correct Answer for non-multiple choice */}
+                          {question.correct_answer && !question.options && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Korrekt Svar
+                              </label>
+                              <input
+                                type="text"
+                                value={question.correct_answer || ''}
+                                onChange={(e) => updateQuestionInContent(questionIndex, 'correct_answer', e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                          )}
+
+                          {/* Explanation */}
+                          {question.explanation && (
+                            <div className="mb-4">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Forklaring
+                              </label>
+                              <textarea
+                                value={question.explanation || ''}
+                                onChange={(e) => updateQuestionInContent(questionIndex, 'explanation', e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                rows={2}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Raw JSON Editor (for advanced users) */}
+                <details className="border border-gray-200 rounded-lg">
+                  <summary className="p-4 cursor-pointer font-medium text-gray-700 hover:bg-gray-50">
+                    🔧 Avanceret: Rediger RAW JSON (til udvikling)
+                  </summary>
+                  <div className="p-4 border-t border-gray-200">
+                    <textarea
+                      value={JSON.stringify(editingExercise.content, null, 2)}
+                      onChange={(e) => {
+                        try {
+                          const parsed = JSON.parse(e.target.value);
+                          setEditingExercise({
+                            ...editingExercise,
+                            content: parsed
+                          });
+                        } catch (error) {
+                          // Invalid JSON, don't update
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                      rows={10}
+                    />
+                  </div>
+                </details>
+              </div>
+
+              {/* Save/Cancel Buttons */}
+              <div className="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingExercise(null);
+                  }}
+                  disabled={saving}
+                  className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Annuller
+                </button>
+                <button
+                  onClick={saveExercise}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Gemmer...' : 'Gem Ændringer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
