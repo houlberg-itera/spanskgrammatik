@@ -433,6 +433,27 @@ export default function TopicPage() {
         </div>
       </div>
 
+      {/* Topic Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full shadow-sm mb-3">
+              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                {topic.level} Niveau
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {topic.name_da}
+            </h1>
+            {topic.description_da && (
+              <p className="text-gray-600 max-w-md mx-auto">
+                {topic.description_da}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Exercise Content */}
       <div className="max-w-2xl mx-auto px-6 py-12">
         <div className="bg-white rounded-2xl shadow-lg p-8">
