@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [levels, setLevels] = useState<Level[]>([]);
-  const [userProgress, setUserProgress] = useState<UserLevelProgress[]>([]);
+  const [userProgress, setUserProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [assessmentLoading, setAssessmentLoading] = useState<string | null>(null);
@@ -80,21 +80,39 @@ export default function Dashboard() {
         setLevels(levelsData);
       }
 
-      // Fetch user progress
+      // Fetch user progress from user_progress table (same as level pages)
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         console.log(`📊 Dashboard: Fetching progress for user ${currentUser.id}`);
-        const { data: progressData, error: progressError } = await supabase
-          .from('user_level_progress')
+        
+        // Fetch user_progress data (individual exercise completions)
+        const { data: userProgressData, error: progressError } = await supabase
+          .from('user_progress')
           .select('*')
           .eq('user_id', currentUser.id);
 
         if (progressError) {
-          console.error('❌ Dashboard: Error fetching progress:', progressError);
-        } else {
-          console.log(`📈 Dashboard: Retrieved progress for ${progressData?.length || 0} levels:`, progressData);
-          setUserProgress(progressData || []);
+          console.error('❌ Dashboard: Error fetching user_progress:', progressError);
+          setUserProgress([]);
+          return;
         }
+
+        // Fetch exercises to calculate progress correctly
+        const { data: exercisesData, error: exercisesError } = await supabase
+          .from('exercises')
+          .select('*');
+
+        if (exercisesError) {
+          console.error('❌ Dashboard: Error fetching exercises:', exercisesError);
+          setUserProgress([]);
+          return;
+        }
+
+        // Calculate level progress the same way as level pages
+        const levelProgressData = calculateLevelProgress(levelsData || [], exercisesData || [], userProgressData || []);
+        
+        console.log(`📈 Dashboard: Calculated progress for ${levelProgressData?.length || 0} levels:`, levelProgressData);
+        setUserProgress(levelProgressData || []);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -103,6 +121,55 @@ export default function Dashboard() {
       setRefreshing(false);
     }
   }, [supabase, loading]);
+
+  // Calculate level progress the same way as the working level pages
+  const calculateLevelProgress = (levels: any[], exercises: any[], userProgressData: any[]) => {
+    const completedExerciseIds = new Set(
+      userProgressData.filter(up => up.completed).map(up => up.exercise_id)
+    );
+
+    return levels.map(level => {
+      // Get exercises for this level
+      const levelExercises = exercises.filter(ex => ex.level === level.name);
+      
+      if (levelExercises.length === 0) {
+        return {
+          level: level.name,
+          progress_percentage: 0,
+          completed_at: null
+        };
+      }
+
+      // Count total questions and completed questions for this level
+      let totalQuestions = 0;
+      let completedQuestions = 0;
+      
+      levelExercises.forEach(exercise => {
+        if (exercise.content && exercise.content.questions) {
+          const questionCount = exercise.content.questions.length;
+          totalQuestions += questionCount;
+          
+          // If this exercise is completed, count all its questions as completed
+          if (completedExerciseIds.has(exercise.id)) {
+            completedQuestions += questionCount;
+          }
+        }
+      });
+
+      const progress_percentage = totalQuestions > 0 ? Math.round((completedQuestions / totalQuestions) * 100) : 0;
+      
+      // Consider level completed if progress is 100%
+      const completed_at = progress_percentage === 100 ? new Date().toISOString() : null;
+
+      console.log(`📊 Level ${level.name}: ${completedQuestions}/${totalQuestions} questions completed (${progress_percentage}%)`);
+
+      return {
+        level: level.name,
+        progress_percentage,
+        completed_at
+      };
+    });
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

@@ -61,7 +61,9 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     totalLessons: 0,
     completedLessons: 0,
     currentStreak: 0,
-    totalXP: 0
+    totalXP: 0,
+    totalQuestions: 0,
+    completedQuestions: 0
   });
 
   const supabase = createClient();
@@ -272,7 +274,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   };
 
   const calculateUserStats = () => {
-    // Calculate stats based on completed topics, not individual exercises
+    // Calculate stats based on completed questions, not just topics
     const completedExerciseIds = new Set(
       userProgress.filter(up => up.completed).map(up => up.exercise_id)
     );
@@ -286,11 +288,29 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       return topicExercises.every(ex => completedExerciseIds.has(ex.id));
     });
     
+    // Calculate total questions and completed questions for more accurate progress
+    let totalQuestions = 0;
+    let completedQuestions = 0;
+    
+    exercises.forEach(exercise => {
+      if (exercise.content && exercise.content.questions) {
+        const questionCount = exercise.content.questions.length;
+        totalQuestions += questionCount;
+        
+        // If this exercise is completed, count all its questions as completed
+        if (completedExerciseIds.has(exercise.id)) {
+          completedQuestions += questionCount;
+        }
+      }
+    });
+    
     setUserStats({
       totalLessons: topics.length,
       completedLessons: completedTopics.length,
       currentStreak: calculateStreak(),
-      totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0)
+      totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0),
+      totalQuestions,
+      completedQuestions
     });
   };
 
@@ -409,7 +429,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
             </div>
             <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
               <div className="text-3xl font-bold text-green-600">
-                {userStats.totalLessons > 0 ? Math.round((userStats.completedLessons / userStats.totalLessons) * 100) : 0}%
+                {userStats.totalQuestions > 0 ? Math.round((userStats.completedQuestions / userStats.totalQuestions) * 100) : 0}%
               </div>
               <div className="text-sm text-green-600 mt-1 font-medium">Fremgang</div>
             </div>
@@ -441,16 +461,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
               }}
               onClick={() => handleNodeClick(node)}
             >
-              {/* Progress indicator - positioned to the left with mobile optimization */}
-              {node.exerciseCount > 0 && (
-                <div className="absolute right-full top-1/2 mr-1 sm:mr-2 md:mr-3 lg:mr-4 transform -translate-y-1/2">
-                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 py-1 shadow-md border border-gray-200">
-                    <div className="text-xs font-semibold text-gray-800 whitespace-nowrap">
-                      {node.completedCount}/{node.exerciseCount}
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <div
                 className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl border-4 transition-all duration-300 relative ${
