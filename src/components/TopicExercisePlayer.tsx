@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Exercise {
   id: string;
@@ -111,7 +112,10 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Topic Exercise Player</h2>
-          <button onClick={handleStop} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">🐥 Stop & Back to Dashboard</button>
+          <button onClick={handleStop} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center gap-2">
+            <Image src="/duck.png" alt="Duck" width={16} height={16} />
+            Stop & Back to Dashboard
+          </button>
         </div>
         <div className="mb-4">
           <div className="text-gray-700 mb-2">Progress: {Math.round(progress)}%</div>

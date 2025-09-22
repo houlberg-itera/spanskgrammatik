@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="z-10 w-full max-w-5xl items-center justify-center text-center">
         <div className="flex items-center justify-center gap-4 mb-8">
-          <span className="text-6xl">🐥</span>
+          <Image src="/duck.png" alt="Duck mascot" width={80} height={80} className="drop-shadow-lg" />
           <h1 className="text-5xl font-bold text-gray-900">
             Velkommen til Ducklingo
           </h1>
@@ -94,7 +95,8 @@ export default function Home() {
 
         <div className="mt-16 bg-white p-8 rounded-lg shadow-md">
           <h2 className="text-2xl font-semibold mb-6 text-gray-900 flex items-center justify-center gap-3">
-            🐥 Hvorfor Ducklingo? 🇪🇸
+            <Image src="/duck.png" alt="Duck mascot" width={32} height={32} className="drop-shadow-md" />
+            Hvorfor Ducklingo? 🇪🇸
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             <div>

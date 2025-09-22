@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress } from '@/types/database';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface QuestionWithExercise {
   questionId: string;
@@ -336,8 +337,9 @@ export default function TopicPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Fejl</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            🦆 Tilbage til dashboard
+          <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <Image src="/duck.png" alt="Duck" width={20} height={20} className="inline" />
+            Tilbage til dashboard
           </Link>
         </div>
       </div>
@@ -349,8 +351,9 @@ export default function TopicPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Emne ikke fundet</h1>
-          <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            🐤 Tilbage til dashboard
+          <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <Image src="/duck.png" alt="Duck" width={20} height={20} className="inline" />
+            Tilbage til dashboard
           </Link>
         </div>
       </div>
@@ -394,7 +397,15 @@ export default function TopicPage() {
       <div className="bg-white shadow-sm border-b-2 border-gray-100">
         <div className="max-w-4xl mx-auto px-6 py-6">
           <div className="text-center">
-            <div className="text-5xl mb-3">🐤</div>
+            <div className="mb-3 flex justify-center">
+              <Image 
+                src="/duck.png" 
+                alt="Duck mascot" 
+                width={80} 
+                height={80}
+                className="drop-shadow-md"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{topic.name_da}</h1>
             <p className="text-gray-600">Ducklingo - Lær spansk med ænderne!</p>
           </div>

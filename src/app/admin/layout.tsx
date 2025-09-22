@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ReactNode } from 'react';
 import AdminGuard from '@/components/AdminGuard';
+import Image from 'next/image';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -28,7 +29,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
                 <div className="h-6 w-px bg-gray-300"></div>
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  🐥 Ducklingo Admin 🇪🇸
+                  <Image src="/duck.png" alt="Duck mascot" width={32} height={32} className="drop-shadow-md" />
+                  Ducklingo Admin 🇪🇸
                 </h1>
               </div>
               <div className="text-sm text-gray-500">

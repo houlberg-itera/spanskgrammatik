@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -85,9 +86,10 @@ export default function AdminGuard({ children, loadingComponent }: AdminGuardPro
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
           >
-            🐥 Gå til Dashboard
+            <Image src="/duck.png" alt="Duck" width={16} height={16} />
+            Gå til Dashboard
           </button>
         </div>
       </div>

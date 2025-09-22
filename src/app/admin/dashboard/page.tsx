@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SpanishLevel } from '@/types/database';
 import VocabularyExerciseGenerator from '@/components/VocabularyExerciseGenerator';
+import Image from 'next/image';
 
 interface UserProficiency {
   userId: string;
@@ -394,8 +395,9 @@ export default function AdminDashboard() {
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">
-              🐥 Ducklingo Admin Dashboard 🇪🇸
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Image src="/duck.png" alt="Duck mascot" width={40} height={40} className="drop-shadow-md" />
+              Ducklingo Admin Dashboard 🇪🇸
             </h1>
             <div className="flex space-x-4">
               {(['users', 'exercises', 'analytics', 'vocabulary'] as const).map(mode => (

@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import TopicExercisePlayer from "@/components/TopicExercisePlayer";
+import Image from "next/image";
 
 export default function TopicPlayerPage() {
   const params = useParams();
@@ -22,7 +23,10 @@ export default function TopicPlayerPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Ugyldigt emne</h1>
-          <button onClick={() => router.push("/dashboard")} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">🐥 Tilbage til dashboard</button>
+          <button onClick={() => router.push("/dashboard")} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <Image src="/duck.png" alt="Duck" width={16} height={16} />
+            Tilbage til dashboard
+          </button>
         </div>
       </div>
     );

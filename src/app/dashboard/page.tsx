@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { User, Level, UserLevelProgress } from '@/types/database';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +40,83 @@ export default function Dashboard() {
   
   const router = useRouter();
   const supabase = createClient();
+
+  // Streak calculation functions
+  const calculateStreak = (userProgressData: any[]): number => {
+    const recentCompletions = userProgressData
+      .filter(up => up.completed && up.completed_at)
+      .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+    
+    if (recentCompletions.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const uniqueDays = new Set<string>();
+    
+    // Group completions by day
+    for (const completion of recentCompletions) {
+      const completionDate = new Date(completion.completed_at);
+      completionDate.setHours(0, 0, 0, 0);
+      const dayKey = completionDate.toISOString().split('T')[0];
+      uniqueDays.add(dayKey);
+    }
+    
+    const sortedDays = Array.from(uniqueDays).sort().reverse();
+    
+    // Calculate streak from most recent day
+    for (let i = 0; i < sortedDays.length; i++) {
+      const dayDate = new Date(sortedDays[i]);
+      const daysDiff = Math.floor((today.getTime() - dayDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === i) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const calculateLongestStreak = (userProgressData: any[]): number => {
+    const recentCompletions = userProgressData
+      .filter(up => up.completed && up.completed_at)
+      .sort((a, b) => new Date(a.completed_at).getTime() - new Date(b.completed_at).getTime());
+    
+    if (recentCompletions.length === 0) return 0;
+    
+    const uniqueDays = new Set<string>();
+    
+    // Group completions by day
+    for (const completion of recentCompletions) {
+      const completionDate = new Date(completion.completed_at);
+      completionDate.setHours(0, 0, 0, 0);
+      const dayKey = completionDate.toISOString().split('T')[0];
+      uniqueDays.add(dayKey);
+    }
+    
+    const sortedDays = Array.from(uniqueDays).sort();
+    
+    let longestStreak = 0;
+    let currentLongestStreak = 1;
+    
+    for (let i = 1; i < sortedDays.length; i++) {
+      const prevDate = new Date(sortedDays[i - 1]);
+      const currDate = new Date(sortedDays[i]);
+      const daysDiff = Math.floor((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 1) {
+        currentLongestStreak++;
+      } else {
+        longestStreak = Math.max(longestStreak, currentLongestStreak);
+        currentLongestStreak = 1;
+      }
+    }
+    
+    return Math.max(longestStreak, currentLongestStreak);
+  };
 
   useEffect(() => {
     checkUser();
@@ -88,9 +166,9 @@ export default function Dashboard() {
       const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
       const totalXP = correctAnswers * 10; // 10 XP per correct answer
 
-      // Calculate streak (simplified)
-      const currentStreak = 5; // Placeholder
-      const longestStreak = 12; // Placeholder
+      // Calculate streak from actual practice days
+      const currentStreak = calculateStreak(results || []);
+      const longestStreak = calculateLongestStreak(results || []);
 
       // Get finished topics count
       const { data: topicsData } = await supabase
@@ -367,7 +445,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-6">
             <div className="flex items-center space-x-2">
-              <span className="text-2xl">🐥</span>
+              <Image src="/duck.png" alt="Duck mascot" width={32} height={32} className="drop-shadow-md" />
               <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Ducklingo</h1>
               <span className="text-2xl">🇪🇸</span>
             </div>
@@ -401,7 +479,8 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
         <div className="mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-4 flex items-center gap-3">
-            🐥 Mit Dashboard 🇪🇸
+            <Image src="/duck.png" alt="Duck mascot" width={40} height={40} className="drop-shadow-md" />
+            Mit Dashboard 🇪🇸
           </h2>
           <p className="text-base sm:text-lg text-gray-600">
             Nuværende niveau: <span className="font-semibold text-blue-600">{user?.current_level}</span>
@@ -433,7 +512,7 @@ export default function Dashboard() {
                   </div>
                   
                   <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">
-                    {level.description}
+                    {level.description_da}
                   </p>
                   
                   <div className="mb-3 sm:mb-4">
@@ -495,7 +574,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-2xl font-bold">{userStats.currentStreak}</div>
-                    <div className="text-orange-100 text-sm">Nuværende række</div>
+                    <div className="text-orange-100 text-sm">Streak</div>
                   </div>
                   <div className="text-2xl">🔥</div>
                 </div>
