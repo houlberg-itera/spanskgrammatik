@@ -1,21 +1,37 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import TopicExercisePlayer from "@/components/TopicExercisePlayer";
 
 export default function TopicPlayerPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
   // params.id can be string or string[]
   let topicId: string = Array.isArray(params.id) ? params.id[0] : params.id;
   const [valid, setValid] = useState(true);
+
+  // Parse retry mode parameters from URL
+  const retryMode = searchParams.get('retryMode') === 'true';
+  const wrongExercisesParam = searchParams.get('wrongExercises');
+  const wrongAnswerExerciseIds = wrongExercisesParam ? wrongExercisesParam.split(',') : undefined;
 
   useEffect(() => {
     if (!topicId) {
       setValid(false);
     }
-  }, [topicId]);
+    
+    // Debug logging for retry mode
+    if (retryMode) {
+      console.log('Player launching in retry mode:', {
+        topicId,
+        retryMode,
+        wrongAnswerExerciseIds
+      });
+    }
+  }, [topicId, retryMode, wrongAnswerExerciseIds]);
 
   if (!valid) {
     return (
@@ -31,7 +47,11 @@ export default function TopicPlayerPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-  <TopicExercisePlayer topicId={topicId} />
+        <TopicExercisePlayer 
+          topicId={topicId} 
+          retryMode={retryMode}
+          wrongAnswerExerciseIds={wrongAnswerExerciseIds}
+        />
       </div>
     </div>
   );

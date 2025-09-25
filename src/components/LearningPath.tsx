@@ -181,11 +181,13 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
           return total;
         }, 0);
         
-        // Count completed questions from user_progress (sum questions in question_results)
+        // Count correctly answered questions for mastery (correct: true)
         const completedQuestions = topicExercises.reduce((total, exercise) => {
           const userProgressForExercise = userProgress.find(up => up.exercise_id === exercise.id);
           if (userProgressForExercise && userProgressForExercise.question_results) {
-            return total + userProgressForExercise.question_results.length;
+            // Count only correctly answered questions for mastery
+            const correctQuestions = userProgressForExercise.question_results.filter(result => result.correct).length;
+            return total + correctQuestions;
           }
           return total;
         }, 0);
@@ -326,11 +328,45 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     return streak;
   };
 
+  // Get exercises with wrong answers for retry mode
+  const getWrongAnswerExercises = (topicId: number): string[] => {
+    const topicExercises = exercises.filter(ex => ex.topic_id === topicId);
+    const wrongAnswerExerciseIds: string[] = [];
+
+    for (const exercise of topicExercises) {
+      const userProgressForExercise = userProgress.find(up => up.exercise_id === exercise.id);
+      if (userProgressForExercise && userProgressForExercise.question_results) {
+        // Check if any questions in this exercise were answered incorrectly
+        const hasWrongAnswers = userProgressForExercise.question_results.some(result => !result.correct);
+        if (hasWrongAnswers) {
+          wrongAnswerExerciseIds.push(exercise.id.toString());
+        }
+      }
+    }
+
+    return wrongAnswerExerciseIds;
+  };
+
   const handleNodeClick = (node: LessonNode) => {
     if (!node.unlocked) return;
 
     if (node.type === 'topic' && node.topicId) {
-      window.location.href = `/topic/${node.topicId}`;
+      const topicId = parseInt(node.topicId);
+      
+      // Check if topic has been attempted and has wrong answers
+      const wrongAnswerExerciseIds = getWrongAnswerExercises(topicId);
+      const hasBeenAttempted = wrongAnswerExerciseIds.length > 0 || node.completedCount > 0;
+      const needsRetry = wrongAnswerExerciseIds.length > 0;
+
+      if (hasBeenAttempted && needsRetry) {
+        // Topic has wrong answers - launch retry mode
+        console.log(`Topic ${topicId} needs retry mode - wrong exercises:`, wrongAnswerExerciseIds);
+        window.location.href = `/topic/${topicId}?retryMode=true&wrongExercises=${wrongAnswerExerciseIds.join(',')}`;
+      } else {
+        // Either never attempted or fully mastered - normal mode
+        console.log(`Topic ${topicId} launching in normal mode`);
+        window.location.href = `/topic/${topicId}`;
+      }
     } else if (node.type === 'practice') {
       window.location.href = `/practice/${level}`;
     }

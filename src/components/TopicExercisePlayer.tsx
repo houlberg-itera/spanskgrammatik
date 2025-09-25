@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 interface Exercise {
-  id: string;
+  id: number;
   question_da: string;
   question_es: string;
   correct_answer: string;
@@ -19,8 +19,18 @@ interface Topic {
   level: string;
 }
 
-export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
+export default function TopicExercisePlayer({ 
+  topicId, 
+  retryMode = false,
+  wrongAnswerExerciseIds = []
+}: { 
+  topicId: string;
+  retryMode?: boolean;
+  wrongAnswerExerciseIds?: string[];
+}) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]); // Track all exercises for mastery calculation
+  const [wrongAnswers, setWrongAnswers] = useState<Set<number>>(new Set()); // Track wrong answers in current session
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -38,15 +48,33 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Always fetch all exercises for mastery tracking
+      const { data: allData, error: allError } = await supabase
         .from('exercises')
         .select('*')
         .eq('topic_id', topicId)
         .order('id', { ascending: true });
-      if (error) throw error;
-      setExercises(data || []);
-      // Set initial progress to show we're on question 1 of total
-      setProgress(data && data.length > 0 ? (1 / data.length) * 100 : 0);
+      
+      if (allError) throw allError;
+      setAllExercises(allData || []);
+
+      // If in retry mode, filter to only show previously wrong exercises
+      let exercisesToShow = allData || [];
+      if (retryMode && wrongAnswerExerciseIds.length > 0) {
+        exercisesToShow = allData?.filter(exercise => 
+          wrongAnswerExerciseIds.map(id => parseInt(id, 10)).includes(exercise.id)
+        ) || [];
+      }
+
+      setExercises(exercisesToShow);
+      // Set initial progress based on current mode
+      const totalForProgress = retryMode ? wrongAnswerExerciseIds.length : allData?.length || 0;
+      setProgress(totalForProgress > 0 ? (1 / totalForProgress) * 100 : 0);
+      
+      // Initialize progress display message
+      if (retryMode && wrongAnswerExerciseIds.length > 0) {
+        console.log(`Starting retry mode with ${wrongAnswerExerciseIds.length} questions to master`);
+      }
     } catch (err) {
       setError('Failed to load exercises');
     } finally {
@@ -57,7 +85,20 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
   const handleCheckAnswer = () => {
     const correct = normalizeText(userAnswer) === normalizeText(exercises[currentIndex].correct_answer);
     setIsCorrect(correct);
-    setShowContinue(true); // ✅ FIXED: Always show continue button after checking answer
+    setShowContinue(true);
+
+    // Track wrong answers for mastery system
+    if (!correct) {
+      setWrongAnswers(prev => new Set([...prev, exercises[currentIndex].id]));
+    } else if (retryMode) {
+      // If in retry mode and answered correctly, remove from wrong answers
+      setWrongAnswers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(exercises[currentIndex].id);
+        return newSet;
+      });
+    }
+
     saveProgress(currentIndex, correct);
   };
 
@@ -65,13 +106,35 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
     setUserAnswer('');
     setIsCorrect(null);
     setShowContinue(false);
+    
     if (currentIndex < exercises.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      setProgress(((nextIndex + 1) / exercises.length) * 100);
+      const totalForProgress = retryMode ? wrongAnswerExerciseIds.length : exercises.length;
+      setProgress(((nextIndex + 1) / totalForProgress) * 100);
     } else {
+      // All current questions completed - check mastery status
       setProgress(100);
-      router.push('/dashboard');
+      
+      if (retryMode) {
+        // In retry mode: check if any wrong answers remain
+        if (wrongAnswers.size === 0) {
+          // All previously wrong questions now correct - topic mastered!
+          router.push('/dashboard?message=topic-mastered');
+        } else {
+          // Still have wrong answers in current session - offer another retry
+          router.push('/dashboard?message=retry-available');
+        }
+      } else {
+        // Initial attempt: check if any wrong answers exist
+        if (wrongAnswers.size === 0) {
+          // Perfect score - topic mastered!
+          router.push('/dashboard?message=topic-mastered');
+        } else {
+          // Some wrong answers - offer retry mode
+          router.push(`/dashboard?message=needs-retry&topicId=${topicId}&wrongAnswers=${Array.from(wrongAnswers).join(',')}`);
+        }
+      }
     }
   };
 
@@ -125,6 +188,16 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
         timestamp: new Date().toISOString()
       };
       console.log('🆕 Created new question result:', newQuestionResult);
+
+      // Track mastery progress
+      if (!correct) {
+        wrongAnswers.add(exercises[index].id);
+        console.log(`❌ Wrong answer tracked for exercise ${exercises[index].id}. Total wrong: ${wrongAnswers.size}`);
+      } else if (retryMode) {
+        // In retry mode, correct answers remove from wrongAnswers set
+        wrongAnswers.delete(exercises[index].id);
+        console.log(`✅ Correct answer in retry mode! Removed ${exercises[index].id}. Remaining wrong: ${wrongAnswers.size}`);
+      }
 
       // Get existing question results array or start with empty array
       let questionResults = [];
@@ -226,7 +299,12 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
           </div>
         </div>
         <div className="mb-6">
-          <div className="font-medium text-gray-900 mb-2">Question {currentIndex + 1} of {exercises.length}</div>
+          <div className="font-medium text-gray-900 mb-2">
+            {retryMode 
+              ? `Retry Question ${currentIndex + 1} of ${exercises.length} (Review wrong answers)`
+              : `Question ${currentIndex + 1} of ${exercises.length}`
+            }
+          </div>
           <div className="text-lg mb-4">{exercise.question_da}</div>
           {exercise.options && exercise.options.length > 0 ? (
             <div className="space-y-2 mb-4">
@@ -264,12 +342,27 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
               Incorrect. The correct answer was: <span className="font-bold">{exercise.correct_answer}</span>
             </div>
           )}
+          
+          {/* Mastery Status Display */}
+          {retryMode && wrongAnswers.size > 0 && (
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-orange-800 text-sm">
+                <span className="font-semibold">Retry Mode:</span> {wrongAnswers.size} question{wrongAnswers.size === 1 ? '' : 's'} still need{wrongAnswers.size === 1 ? 's' : ''} to be answered correctly
+              </p>
+            </div>
+          )}
+          
           {showContinue && (
             <button
               onClick={handleContinue}
               className="mt-6 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              {currentIndex < exercises.length - 1 ? 'Continue to Next Question' : 'Finish Topic'}
+              {currentIndex < exercises.length - 1 
+                ? 'Continue to Next Question' 
+                : retryMode 
+                  ? (wrongAnswers.size === 0 ? 'Complete Mastery!' : 'Finish Retry Session')
+                  : (wrongAnswers.size === 0 ? 'Complete Topic!' : 'Finish for Now')
+              }
             </button>
           )}
         </div>
