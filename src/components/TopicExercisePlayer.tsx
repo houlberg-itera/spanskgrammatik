@@ -45,7 +45,8 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
         .order('id', { ascending: true });
       if (error) throw error;
       setExercises(data || []);
-      setProgress(0);
+      // Set initial progress to show we're on question 1 of total
+      setProgress(data && data.length > 0 ? (1 / data.length) * 100 : 0);
     } catch (err) {
       setError('Failed to load exercises');
     } finally {
@@ -56,7 +57,7 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
   const handleCheckAnswer = () => {
     const correct = normalizeText(userAnswer) === normalizeText(exercises[currentIndex].correct_answer);
     setIsCorrect(correct);
-    setShowContinue(correct);
+    setShowContinue(true); // ✅ FIXED: Always show continue button after checking answer
     saveProgress(currentIndex, correct);
   };
 
@@ -65,8 +66,9 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
     setIsCorrect(null);
     setShowContinue(false);
     if (currentIndex < exercises.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setProgress(((currentIndex + 2) / exercises.length) * 100);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setProgress(((nextIndex + 1) / exercises.length) * 100);
     } else {
       setProgress(100);
       router.push('/dashboard');
@@ -258,14 +260,16 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
             <div className="mt-4 text-green-600 font-semibold">Correct! 🎉</div>
           )}
           {isCorrect === false && (
-            <div className="mt-4 text-red-600 font-semibold">Incorrect. Try again!</div>
+            <div className="mt-4 text-red-600 font-semibold">
+              Incorrect. The correct answer was: <span className="font-bold">{exercise.correct_answer}</span>
+            </div>
           )}
           {showContinue && (
             <button
               onClick={handleContinue}
               className="mt-6 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              Continue
+              {currentIndex < exercises.length - 1 ? 'Continue to Next Question' : 'Finish Topic'}
             </button>
           )}
         </div>
