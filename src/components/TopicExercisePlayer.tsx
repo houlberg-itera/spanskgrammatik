@@ -78,15 +78,119 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
   };
 
   const saveProgress = async (index: number, correct: boolean) => {
-    // Save user progress to Supabase (can be expanded for more details)
+    // Save user progress to Supabase using correct user_progress table
+    console.log('🔥 STARTING PROGRESS SAVE OPERATION');
+    
     try {
-      await supabase.from('user_exercise_results').upsert({
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('❌ No session found - aborting save');
+        return;
+      }
+
+      console.log('✅ Session found, user_id:', session.user.id);
+      console.log('📝 Saving progress for:', {
+        user_id: session.user.id,
         exercise_id: exercises[index].id,
         correct,
-        timestamp: new Date().toISOString(),
+        userAnswer,
+        correctAnswer: exercises[index].correct_answer,
+        question_text: exercises[index].question_da
       });
-    } catch (err) {
-      // Ignore errors for now
+
+      // First, get existing progress to preserve question_results array
+      console.log('📊 Fetching existing progress for exercise:', exercises[index].id);
+      const { data: existingProgress, error: fetchError } = await supabase
+        .from('user_progress')
+        .select('question_results')
+        .eq('user_id', session.user.id)
+        .eq('exercise_id', exercises[index].id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('❌ Error fetching existing progress:', fetchError);
+      } else {
+        console.log('📋 Existing progress found:', existingProgress);
+      }
+
+      // Create new question result object
+      const newQuestionResult = {
+        question_id: exercises[index].id, // ✅ ESSENTIAL: Include question/exercise ID
+        question_text: exercises[index].question_da,
+        correct: correct,
+        userAnswer: userAnswer,
+        correctAnswer: exercises[index].correct_answer,
+        timestamp: new Date().toISOString()
+      };
+      console.log('🆕 Created new question result:', newQuestionResult);
+
+      // Get existing question results array or start with empty array
+      let questionResults = [];
+      if (existingProgress?.question_results) {
+        // If existing data is array, use it; if single object, convert to array
+        if (Array.isArray(existingProgress.question_results)) {
+          questionResults = existingProgress.question_results;
+          console.log('📋 Using existing array of', questionResults.length, 'questions');
+        } else {
+          questionResults = [existingProgress.question_results];
+          console.log('🔄 Converting single object to array format');
+        }
+      } else {
+        console.log('🆕 Starting with empty question results array');
+      }
+
+      // Append new question result
+      questionResults.push(newQuestionResult);
+      console.log('➕ Added new question, total questions now:', questionResults.length);
+
+      const upsertData = {
+        user_id: session.user.id,
+        exercise_id: exercises[index].id,
+        completed: correct,
+        score: correct ? 100 : 0,
+        attempts: 1,
+        completed_at: correct ? new Date().toISOString() : null,
+        question_results: questionResults  // Now an array of all answered questions
+      };
+
+      console.log('💾 ATTEMPTING UPSERT with data:', upsertData);
+
+      const { data: upsertResult, error: upsertError } = await supabase
+        .from('user_progress')
+        .upsert(upsertData, {
+          onConflict: 'user_id,exercise_id'
+        });
+
+      if (upsertError) {
+        console.error('❌ UPSERT ERROR:', {
+          message: upsertError.message,
+          details: upsertError.details,
+          hint: upsertError.hint,
+          code: upsertError.code
+        });
+        throw upsertError;
+      }
+
+      console.log('✅ PROGRESS SAVED SUCCESSFULLY!');
+      console.log('📊 Final question results array length:', questionResults.length);
+      console.log('🎯 Upsert result:', upsertResult);
+      
+    } catch (err: any) {
+      console.error('💥 ERROR IN SAVE PROGRESS:', {
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code,
+        status: err.status,
+        statusText: err.statusText
+      });
+      
+      // Log additional error context
+      if (err.status === 406) {
+        console.error('🚨 HTTP 406 (Not Acceptable) - Server rejected request format');
+      } else if (err.status === 409) {
+        console.error('🚨 HTTP 409 (Conflict) - Data conflict during upsert');
+      }
     }
   };
 
@@ -111,7 +215,7 @@ export default function TopicExercisePlayer({ topicId }: { topicId: string }) {
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Topic Exercise Player</h2>
-          <button onClick={handleStop} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">🐥 Stop & Back to Dashboard</button>
+          <button onClick={handleStop} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Stop & Back to Dashboard</button>
         </div>
         <div className="mb-4">
           <div className="text-gray-700 mb-2">Progress: {Math.round(progress)}%</div>

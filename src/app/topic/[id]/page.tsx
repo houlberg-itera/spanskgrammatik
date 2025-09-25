@@ -117,19 +117,31 @@ export default function TopicPage() {
       setQuestions(allQuestions);
       setExercises(exercisesData);
 
-      // Get user's completed exercises count and current position for this topic
+      // Get user's completed questions count (same method as learning tree - count individual answered questions)
       const { data: { session } } = await supabase.auth.getSession();
       if (session && exercisesData) {
         const exerciseIds = exercisesData.map(ex => ex.id);
         const { data: progressData, error: progressError } = await supabase
           .from('user_progress')
-          .select('exercise_id')
+          .select('exercise_id, question_results')
           .eq('user_id', session.user.id)
-          .eq('completed', true)
           .in('exercise_id', exerciseIds);
 
-        if (!progressError) {
-          setCompletedCount(progressData?.length || 0);
+        if (!progressError && progressData) {
+          // Count individual answered questions from question_results arrays
+          let totalAnsweredQuestions = 0;
+          progressData.forEach(record => {
+            if (record.question_results) {
+              // Handle both array format (new) and single object format (legacy)
+              if (Array.isArray(record.question_results)) {
+                totalAnsweredQuestions += record.question_results.length;
+              } else {
+                // Legacy single object format
+                totalAnsweredQuestions += 1;
+              }
+            }
+          });
+          setCompletedCount(totalAnsweredQuestions);
         }
 
         // Check for saved position in topic sequence
@@ -182,12 +194,15 @@ export default function TopicPage() {
     
     if (correct) {
       setShowContinue(true);
+      // Use the current question's exercise ID to save progress correctly
       saveProgress(currentQuestion.exerciseId, true);
     } else {
       // After 2 incorrect attempts, show the correct answer
       if (attempts >= 1) {
         setShowCorrectAnswer(true);
         setShowContinue(true);
+        // Also save incorrect answer to track all attempts
+        saveProgress(currentQuestion.exerciseId, false);
       }
       // Otherwise, let them try again
     }
@@ -284,23 +299,127 @@ export default function TopicPage() {
   };
 
   const saveProgress = async (exerciseId: number, correct: boolean) => {
+    console.log('🔥 STARTING TOPIC PAGE PROGRESS SAVE OPERATION');
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        console.log('❌ No session found - aborting save');
+        return;
+      }
 
-      await supabase
+      console.log('✅ Session found, user_id:', session.user.id);
+      const currentQuestion = questions[currentIndex];
+      
+      console.log('📝 Saving topic page progress for:', {
+        user_id: session.user.id,
+        exercise_id: exerciseId,
+        topic_id: topicId,
+        current_question_index: currentIndex,
+        correct,
+        userAnswer,
+        correctAnswer: Array.isArray(currentQuestion.correct_answer) 
+          ? currentQuestion.correct_answer[0] 
+          : currentQuestion.correct_answer,
+        question_text: currentQuestion.question_da,
+        attempts: attempts + 1
+      });
+
+      // First, get existing progress to preserve question_results array
+      console.log('📊 Fetching existing progress for exercise:', exerciseId);
+      const { data: existingProgress, error: fetchError } = await supabase
         .from('user_progress')
-        .upsert({
-          user_id: session.user.id,
-          exercise_id: exerciseId,
-          completed: correct,
-          score: correct ? 100 : 0,
-          completed_at: new Date().toISOString()
-        }, {
+        .select('question_results')
+        .eq('user_id', session.user.id)
+        .eq('exercise_id', exerciseId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('❌ Error fetching existing progress:', fetchError);
+      } else {
+        console.log('📋 Existing progress found:', existingProgress);
+      }
+
+      // Create new question result object
+      const newQuestionResult = {
+        question_id: exerciseId, // ✅ ESSENTIAL: Include question/exercise ID
+        question_text: currentQuestion.question_da,
+        correct: correct,
+        userAnswer: userAnswer,
+        correctAnswer: Array.isArray(currentQuestion.correct_answer) 
+          ? currentQuestion.correct_answer[0] 
+          : currentQuestion.correct_answer,
+        attempts: attempts + 1,
+        timestamp: new Date().toISOString()
+      };
+      console.log('🆕 Created new question result:', newQuestionResult);
+
+      // Get existing question results array or start with empty array
+      let questionResults = [];
+      if (existingProgress?.question_results) {
+        // If existing data is array, use it; if single object, convert to array
+        if (Array.isArray(existingProgress.question_results)) {
+          questionResults = existingProgress.question_results;
+          console.log('📋 Using existing array of', questionResults.length, 'questions');
+        } else {
+          questionResults = [existingProgress.question_results];
+          console.log('🔄 Converting single object to array format');
+        }
+      } else {
+        console.log('🆕 Starting with empty question results array');
+      }
+
+      // Append new question result
+      questionResults.push(newQuestionResult);
+      console.log('➕ Added new question, total questions now:', questionResults.length);
+
+      const upsertData = {
+        user_id: session.user.id,
+        exercise_id: exerciseId,
+        completed: correct,
+        score: correct ? 100 : 0,
+        completed_at: new Date().toISOString(),
+        question_results: questionResults  // Now an array of all answered questions
+      };
+
+      console.log('💾 ATTEMPTING TOPIC PAGE UPSERT with data:', upsertData);
+
+      const { data: upsertResult, error: upsertError } = await supabase
+        .from('user_progress')
+        .upsert(upsertData, {
           onConflict: 'user_id,exercise_id'
         });
-    } catch (error) {
-      console.error('Error saving progress:', error);
+
+      if (upsertError) {
+        console.error('❌ TOPIC PAGE UPSERT ERROR:', {
+          message: upsertError.message,
+          details: upsertError.details,
+          hint: upsertError.hint,
+          code: upsertError.code
+        });
+        throw upsertError;
+      }
+
+      console.log('✅ TOPIC PAGE PROGRESS SAVED SUCCESSFULLY!');
+      console.log('📊 Final question results array length:', questionResults.length);
+      console.log('🎯 Upsert result:', upsertResult);
+
+    } catch (error: any) {
+      console.error('💥 ERROR IN TOPIC PAGE SAVE PROGRESS:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        status: error.status,
+        statusText: error.statusText
+      });
+      
+      // Log additional error context
+      if (error.status === 406) {
+        console.error('🚨 HTTP 406 (Not Acceptable) - Server rejected request format');
+      } else if (error.status === 409) {
+        console.error('🚨 HTTP 409 (Conflict) - Data conflict during upsert');
+      }
     }
   };
 
@@ -337,7 +456,7 @@ export default function TopicPage() {
           <h1 className="text-2xl font-bold text-red-600 mb-4">Fejl</h1>
           <p className="text-gray-600 mb-4">{error}</p>
           <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            🦆 Tilbage til dashboard
+            Tilbage til dashboard
           </Link>
         </div>
       </div>
@@ -350,7 +469,7 @@ export default function TopicPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Emne ikke fundet</h1>
           <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            🐤 Tilbage til dashboard
+            Tilbage til dashboard
           </Link>
         </div>
       </div>
@@ -390,18 +509,7 @@ export default function TopicPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Topic Header */}
-      <div className="bg-white shadow-sm border-b-2 border-gray-100">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="text-center">
-            <div className="text-5xl mb-3">🐤</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{topic.name_da}</h1>
-            <p className="text-gray-600">Ducklingo - Lær spansk med ænderne!</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Header */}
+      {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -416,40 +524,20 @@ export default function TopicPage() {
               </button>
               <div className="flex-1 max-w-md">
                 <div className="text-sm text-gray-600 mb-1">
-                  <div>Spørgsmål {currentIndex + 1} af {questions.length}</div>
+                  <div>{topic.name_da}</div>
+                  <div>Spørgsmål {completedCount + 1} af {questions.length}</div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div 
                     className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round(((currentIndex + 1) / questions.length) * 100)}%` }}
+                    style={{ width: `${Math.round(((completedCount + 1) / questions.length) * 100)}%` }}
                   ></div>
                 </div>
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              {Math.round(((currentIndex + 1) / questions.length) * 100)}% fuldført
+              {Math.round(((completedCount + 1) / questions.length) * 100)}% fuldført
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Topic Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full shadow-sm mb-3">
-              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                {topic.level} Niveau
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {topic.name_da}
-            </h1>
-            {topic.description_da && (
-              <p className="text-gray-600 max-w-md mx-auto">
-                {topic.description_da}
-              </p>
-            )}
           </div>
         </div>
       </div>

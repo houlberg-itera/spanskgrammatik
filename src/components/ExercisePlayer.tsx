@@ -467,8 +467,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
             };
           });
 
-          // Save to user_exercise_results table
-          await supabase.from('user_exercise_results').upsert({
+          // Save to user_progress table
+          await supabase.from('user_progress').upsert({
             user_id: user.id,
             exercise_id: exercise.id,
             score: finalScore,
