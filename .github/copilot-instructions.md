@@ -18,6 +18,12 @@
 - **Test changes locally** before committing to ensure they work properly
 - Use meaningful commit messages that describe the actual changes made
 
+## Testing Guidelines
+- **USER HANDLES ALL TESTING** - Do not run test commands or verification scripts
+- **FOCUS ON CODE IMPLEMENTATION** - Implement requested changes and fixes
+- **NO AUTOMATED TESTING** - User will test all functionality manually
+- **PROVIDE IMPLEMENTATION ONLY** - Deliver working code without testing procedures
+
 ## Project Checklist
 - [x] Verify that the copilot-instructions.md file in the .github directory is created.
 

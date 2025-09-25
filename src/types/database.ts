@@ -78,6 +78,15 @@ export interface UserProgress {
   completed_at?: string;
   created_at: string;
   updated_at: string;
+  question_results?: Array<{
+    correct: boolean;
+    attempts: number;
+    timestamp: string;
+    userAnswer: string;
+    question_id: number;
+    correctAnswer: string;
+    question_text: string;
+  }>;
 }
 
 export interface UserLevelProgress {

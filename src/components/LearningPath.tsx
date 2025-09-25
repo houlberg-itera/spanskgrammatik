@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -61,9 +61,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     totalLessons: 0,
     completedLessons: 0,
     currentStreak: 0,
-    totalXP: 0,
-    totalQuestions: 0,
-    completedQuestions: 0
+    totalXP: 0
   });
 
   const supabase = createClient();
@@ -174,34 +172,41 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       categoryTopics.forEach((topic, topicIndex) => {
         // Get all exercises for this topic
         const topicExercises = exercises.filter(ex => ex.topic_id === topic.id);
-        const completedExerciseIds = new Set(
-          userProgress.filter(up => up.completed).map(up => up.exercise_id)
-        );
         
-        // Count total questions and completed questions for this topic
-        let totalQuestions = 0;
-        let completedQuestions = 0;
-        
-        topicExercises.forEach(exercise => {
+        // Count total questions for this topic (sum all questions in all exercises)
+        const totalQuestions = topicExercises.reduce((total, exercise) => {
           if (exercise.content && exercise.content.questions) {
-            const questionCount = exercise.content.questions.length;
-            totalQuestions += questionCount;
-            
-            // If this exercise is completed, count all its questions as completed
-            if (completedExerciseIds.has(exercise.id)) {
-              completedQuestions += questionCount;
-            }
+            return total + exercise.content.questions.length;
           }
-        });
+          return total;
+        }, 0);
+        
+        // Count completed questions from user_progress (sum questions in question_results)
+        const completedQuestions = topicExercises.reduce((total, exercise) => {
+          const userProgressForExercise = userProgress.find(up => up.exercise_id === exercise.id);
+          if (userProgressForExercise && userProgressForExercise.question_results) {
+            return total + userProgressForExercise.question_results.length;
+          }
+          return total;
+        }, 0);
 
-        // Debug logging for mismatches
+        // Debug logging for verification
         if (topic.id === 2 || topic.id === 3) {
-          console.log(`Topic ${topic.id} (${topic.name_da}):`, {
+          console.log(`Topic ${topic.id} (${topic.name_da}) - QUESTION-BASED CALCULATION:`, {
             totalQuestions,
             completedQuestions,
-            exerciseCount: topicExercises.length,
-            completedExercises: topicExercises.filter(ex => completedExerciseIds.has(ex.id)).length,
-            completedExerciseIds: Array.from(completedExerciseIds)
+            exerciseIds: topicExercises.map(ex => ex.id),
+            exerciseQuestionCounts: topicExercises.map(ex => ({
+              id: ex.id,
+              questions: ex.content?.questions?.length || 0
+            })),
+            userProgressQuestionCounts: topicExercises.map(ex => {
+              const up = userProgress.find(up => up.exercise_id === ex.id);
+              return {
+                exerciseId: ex.id,
+                questionResults: up?.question_results?.length || 0
+              };
+            })
           });
         }
 
@@ -274,7 +279,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   };
 
   const calculateUserStats = () => {
-    // Calculate stats based on completed questions, not just topics
+    // Calculate stats based on completed topics, not individual exercises
     const completedExerciseIds = new Set(
       userProgress.filter(up => up.completed).map(up => up.exercise_id)
     );
@@ -288,33 +293,11 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       return topicExercises.every(ex => completedExerciseIds.has(ex.id));
     });
     
-    // Calculate total questions and completed questions for more accurate progress
-    let totalQuestions = 0;
-    let completedQuestions = 0;
-    
-    exercises.forEach(exercise => {
-      if (exercise.content && exercise.content.questions) {
-        const questionCount = exercise.content.questions.length;
-        totalQuestions += questionCount;
-        
-        // If this exercise is completed, count all its questions as completed
-        if (completedExerciseIds.has(exercise.id)) {
-          completedQuestions += questionCount;
-        }
-      }
-    });
-    
-    // Calculate XP using same method as dashboard: 10 XP per correct answer (score >= 70)
-    const correctAnswers = userProgress.filter(up => (up.score || 0) >= 70).length;
-    const totalXP = correctAnswers * 10;
-
     setUserStats({
       totalLessons: topics.length,
       completedLessons: completedTopics.length,
       currentStreak: calculateStreak(),
-      totalXP: totalXP,
-      totalQuestions,
-      completedQuestions
+      totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0)
     });
   };
 
@@ -433,7 +416,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
             </div>
             <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
               <div className="text-3xl font-bold text-green-600">
-                {userStats.totalQuestions > 0 ? Math.round((userStats.completedQuestions / userStats.totalQuestions) * 100) : 0}%
+                {userStats.totalLessons > 0 ? Math.round((userStats.completedLessons / userStats.totalLessons) * 100) : 0}%
               </div>
               <div className="text-sm text-green-600 mt-1 font-medium">Fremgang</div>
             </div>
@@ -465,7 +448,16 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
               }}
               onClick={() => handleNodeClick(node)}
             >
-
+              {/* Progress indicator - positioned to the left with mobile optimization */}
+              {node.exerciseCount > 0 && (
+                <div className="absolute right-full top-1/2 mr-1 sm:mr-2 md:mr-3 lg:mr-4 transform -translate-y-1/2">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 py-1 shadow-md border border-gray-200">
+                    <div className="text-xs font-semibold text-gray-800 whitespace-nowrap">
+                      {node.completedCount}/{node.exerciseCount}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div
                 className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl border-4 transition-all duration-300 relative ${
