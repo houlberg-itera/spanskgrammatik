@@ -26,7 +26,7 @@ export default function TopicPlayerPage() {
     
     // Debug logging for special modes
     if (retryMode) {
-      console.log('Player launching in retry mode:', {
+      console.log('🔄 PLAYER LAUNCHING IN RETRY MODE:', {
         topicId,
         retryMode,
         wrongAnswerExerciseIds
@@ -34,9 +34,15 @@ export default function TopicPlayerPage() {
     }
     
     if (reviewMode) {
-      console.log('Player launching in review mode:', {
+      console.log('📚 PLAYER LAUNCHING IN REVIEW MODE:', {
         topicId,
         reviewMode
+      });
+    }
+
+    if (!retryMode && !reviewMode) {
+      console.log('🎯 PLAYER LAUNCHING IN NORMAL MODE:', {
+        topicId
       });
     }
   }, [topicId, retryMode, reviewMode, wrongAnswerExerciseIds]);

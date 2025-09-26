@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Exercise {
   id: number;
@@ -10,6 +11,9 @@ interface Exercise {
   correct_answer: string;
   options?: string[];
   type: string;
+  explanation_da?: string; // Added explanation field
+  originalExerciseId?: number; // For tracking the original exercise ID in retry mode
+  questionIndex?: number; // For tracking which question within the original exercise
 }
 
 interface Topic {
@@ -22,10 +26,12 @@ interface Topic {
 export default function TopicExercisePlayer({ 
   topicId, 
   retryMode = false,
+  reviewMode = false,
   wrongAnswerExerciseIds = []
 }: { 
   topicId: string;
   retryMode?: boolean;
+  reviewMode?: boolean;
   wrongAnswerExerciseIds?: string[];
 }) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -41,12 +47,35 @@ export default function TopicExercisePlayer({
   const router = useRouter();
   const supabase = createClient();
 
+  // 🔍 DEBUG: Log component initialization
+  console.log('🚀 TOPIC EXERCISE PLAYER INITIALIZED:', {
+    topicId,
+    retryMode,
+    reviewMode,
+    wrongAnswerExerciseIds,
+    wrongAnswerCount: wrongAnswerExerciseIds?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+
   useEffect(() => {
+    console.log('🔄 useEffect triggered for fetchExercises');
     fetchExercises();
   }, [topicId]);
 
   const fetchExercises = async () => {
     setLoading(true);
+    
+    // 🔍 DEBUG: Log initial state and parameters
+    console.log('🔍 FETCH EXERCISES DEBUG:', {
+      topicId,
+      retryMode,
+      reviewMode,
+      wrongAnswerExerciseIds,
+      wrongAnswerCount: wrongAnswerExerciseIds?.length || 0,
+      currentUrl: typeof window !== 'undefined' ? window.location.href : 'SSR',
+      searchParams: typeof window !== 'undefined' ? Object.fromEntries(new URLSearchParams(window.location.search)) : 'SSR'
+    });
+    
     try {
       // Always fetch all exercises for mastery tracking
       const { data: allData, error: allError } = await supabase
@@ -58,24 +87,223 @@ export default function TopicExercisePlayer({
       if (allError) throw allError;
       setAllExercises(allData || []);
 
-      // If in retry mode, filter to only show previously wrong exercises
-      let exercisesToShow = allData || [];
-      if (retryMode && wrongAnswerExerciseIds.length > 0) {
-        exercisesToShow = allData?.filter(exercise => 
-          wrongAnswerExerciseIds.map(id => parseInt(id, 10)).includes(exercise.id)
-        ) || [];
+      // 📊 DEBUG: Log all exercises found
+      console.log('📊 ALL EXERCISES LOADED:', {
+        totalCount: allData?.length || 0,
+        exerciseIds: allData?.map(e => e.id) || [],
+        exerciseDetails: allData?.map(ex => ({
+          id: ex.id,
+          questionCount: ex.content?.questions?.length || 0,
+          hasMultipleQuestions: (ex.content?.questions?.length || 0) > 1,
+          questions: ex.content?.questions || [],
+          firstQuestion: ex.content?.questions?.[0] || null,
+          allQuestions: ex.content?.questions?.map((q, idx) => `Q${idx + 1}: ${q.question_da || q.question || 'No question'}`) || [],
+          fullContent: ex.content
+        })) || []
+      });
+
+      // ✅ FIX: Check for retry mode with no wrong answers OR review mode logic
+      // 🚨 CRITICAL: Only trigger early exit for RETRY mode when no wrong answers exist
+      // For REVIEW mode, show available exercises regardless of wrongAnswerExerciseIds
+      if (retryMode && wrongAnswerExerciseIds && wrongAnswerExerciseIds.length === 0) {
+        console.log('🎆 EARLY EXIT: Retry mode detected with no wrong answers to retry');
+        console.log('🔄 Mode: RETRY, redirecting to dashboard with mastery message');
+        setExercises([]); // Empty exercises to trigger completion UI
+        setProgress(100); // Show completed state
+        setLoading(false);
+        // Show mastery message and redirect after delay
+        setTimeout(() => {
+          router.push('/dashboard?message=all-questions-mastered');
+        }, 2000);
+        return;
       }
 
-      setExercises(exercisesToShow);
-      // Set initial progress based on current mode
-      const totalForProgress = retryMode ? wrongAnswerExerciseIds.length : allData?.length || 0;
-      setProgress(totalForProgress > 0 ? (1 / totalForProgress) * 100 : 0);
+      // 🚨 FIX: Proper exercise filtering logic for all three modes
+      let exercisesToShow: any[] = [];
+      
+      if (!retryMode && !reviewMode) {
+        // 📚 NORMAL MODE: Use all exercises from database
+        exercisesToShow = allData || [];
+        console.log('🎯 NORMAL MODE: Using all exercises', {
+          totalExercises: exercisesToShow.length,
+          exercises: exercisesToShow.map(e => e.id)
+        });
+      } else if (reviewMode) {
+        // 🔄 REVIEW MODE: Use ALL exercises for practice/review
+        exercisesToShow = allData || [];
+        console.log('🔄 REVIEW MODE: Using all exercises for practice', {
+          totalExercises: exercisesToShow.length,
+          exercises: exercisesToShow.map(e => e.id),
+          exerciseDetails: exercisesToShow.map(e => ({
+            id: e.id,
+            questionCount: e.content?.questions?.length || 1,
+            title: e.content?.question_da || 'Unknown exercise'
+          }))
+        });
+      } else if (retryMode && wrongAnswerExerciseIds.length > 0) {
+        // 🔄 RETRY MODE: Create individual question exercises ONLY for wrong questions
+        console.log('🔄 RETRY MODE: Creating individual questions for wrong answers only');
+        
+        // Parse wrongAnswerExerciseIds to get specific question IDs (format: exerciseId + questionIndex)
+        const wrongQuestionIds = wrongAnswerExerciseIds.map(id => parseInt(id, 10));
+        console.log('🔄 RETRY FILTERING DETAILED DEBUG:', {
+          wrongAnswerExerciseIds,
+          wrongQuestionIds,
+          allAvailableExerciseIds: allData?.map(e => e.id) || [],
+          totalAvailableExercises: allData?.length || 0
+        });
+
+        // Find exercises and identify specific wrong questions
+        exercisesToShow = [];
+        for (const wrongQuestionId of wrongQuestionIds) {
+          // Extract original exercise ID and question index from compound ID
+          const originalExerciseId = Math.floor(wrongQuestionId / 1000);
+          const questionIndex = wrongQuestionId % 1000;
+          
+          // Find the original exercise
+          const exercise = allData?.find(e => e.id === originalExerciseId);
+          if (exercise && exercise.content?.questions && Array.isArray(exercise.content.questions)) {
+            const question = exercise.content.questions[questionIndex];
+            if (question) {
+              // Create individual exercise object for this specific wrong question
+              exercisesToShow.push({
+                ...exercise,
+                id: wrongQuestionId, // Use the compound ID
+                content: {
+                  ...exercise.content,
+                  questions: [question], // Only this specific question
+                  question_da: question.question_da, // Direct access for compatibility
+                  originalExerciseId: originalExerciseId,
+                  questionIndex: questionIndex
+                }
+              });
+            }
+          }
+        }
+        
+        // 🔍 DEBUG: Log retry mode filtering results
+        console.log('🔄 RETRY FILTERING RESULTS:', {
+          wrongQuestionIds: wrongQuestionIds.length,
+          individualQuestionsCreated: exercisesToShow.length,
+          questionDetails: exercisesToShow.map(e => ({ 
+            id: e.id, 
+            originalId: e.content.originalExerciseId,
+            questionIndex: e.content.questionIndex,
+            question: e.content.questions[0].question_da 
+          }))
+        });
+      } else {
+        // 🔄 RETRY MODE with no wrong exercises: Use empty array (redirect will happen later)
+        exercisesToShow = [];
+        console.log('🔄 RETRY MODE: No wrong exercises found, will redirect');
+      }
+
+      // 🔧 DEBUG: Log transformation details before setting exercises
+      console.log('🔧 EXERCISE TRANSFORMATION DEBUG:', {
+        mode: reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL'),
+        exercisesToShowCount: exercisesToShow.length,
+        transformationDetails: exercisesToShow.map(dbExercise => ({
+          exerciseId: dbExercise.id,
+          totalQuestionsInExercise: dbExercise.content?.questions?.length || 1,
+          firstQuestionText: dbExercise.content?.questions?.[0]?.question_da || 'No question',
+          allQuestionsText: dbExercise.content?.questions?.map(q => q.question_da) || [],
+          willExpandAllQuestions: reviewMode // In review mode, expand all questions!
+        }))
+      });
+
+      // 🎯 FIX: For review mode, expand multi-question exercises into individual questions
+      const expandedExercises: Exercise[] = [];
+      
+      exercisesToShow.forEach(dbExercise => {
+        const questions = dbExercise.content?.questions || [];
+        
+        if (reviewMode && questions.length > 1) {
+          // 🔄 REVIEW MODE: Expand all questions from multi-question exercise
+          questions.forEach((question, questionIndex) => {
+            expandedExercises.push({
+              id: dbExercise.id * 1000 + questionIndex, // Compound ID for unique identification
+              question_da: question?.question_da || '',
+              question_es: question?.question_es || '',
+              correct_answer: question?.correct_answer || '',
+              options: question?.options || [],
+              type: question?.type || 'translation',
+              explanation_da: question?.explanation_da || '',
+              // Store original exercise info for progress saving
+              originalExerciseId: dbExercise.id,
+              questionIndex: questionIndex
+            } as Exercise);
+          });
+        } else {
+          // 🔄 NORMAL/RETRY MODE or single-question exercise: Use first question only
+          const firstQuestion = questions[0] || dbExercise.content;
+          expandedExercises.push({
+            id: dbExercise.id,
+            question_da: firstQuestion?.question_da || dbExercise.content?.question_da || '',
+            question_es: firstQuestion?.question_es || dbExercise.content?.question_es || '',
+            correct_answer: firstQuestion?.correct_answer || dbExercise.content?.correct_answer || '',
+            options: firstQuestion?.options || dbExercise.content?.options || [],
+            type: firstQuestion?.type || dbExercise.content?.type || 'translation',
+            explanation_da: firstQuestion?.explanation_da || dbExercise.content?.explanation_da || '',
+            // Store original exercise info for progress saving
+            originalExerciseId: dbExercise.content?.originalExerciseId || dbExercise.id,
+            questionIndex: dbExercise.content?.questionIndex || 0
+          } as Exercise);
+        }
+      });
+
+      console.log('🎉 EXERCISE EXPANSION COMPLETE:', {
+        originalExercises: exercisesToShow.length,
+        expandedExercises: expandedExercises.length,
+        expansionDetails: expandedExercises.map(ex => ({
+          id: ex.id,
+          originalExerciseId: ex.originalExerciseId,
+          questionIndex: ex.questionIndex,
+          questionPreview: ex.question_da?.substring(0, 50) + '...'
+        }))
+      });
+
+      setExercises(expandedExercises);
+      
+      // ✅ FIX: Proper progress calculation for each mode
+      let totalForProgress: number;
+      if (reviewMode) {
+        // Review mode: use all exercises
+        totalForProgress = allData?.length || 0;
+      } else if (retryMode) {
+        // Retry mode: use wrong answer exercises
+        totalForProgress = wrongAnswerExerciseIds.length;
+      } else {
+        // Normal mode: use all exercises
+        totalForProgress = allData?.length || 0;
+      }
+      
+      const safeTotal = Math.max(totalForProgress, 1); // Ensure minimum of 1
+      const safeCurrentIndex = Math.min(currentIndex, safeTotal - 1);
+      const initialProgress = totalForProgress > 0 ? Math.min(((safeCurrentIndex + 1) / safeTotal) * 100, 100) : 0;
+      
+      // 📊 DEBUG: Log progress calculation
+      console.log('📊 PROGRESS CALCULATION DEBUG:', {
+        mode: reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL'),
+        currentIndex,
+        totalForProgress,
+        safeTotal,
+        safeCurrentIndex,
+        initialProgress,
+        exercisesToShowCount: exercisesToShow.length,
+        allDataLength: allData?.length || 0
+      });
+      
+      setProgress(initialProgress);
       
       // Initialize progress display message
       if (retryMode && wrongAnswerExerciseIds.length > 0) {
-        console.log(`Starting retry mode with ${wrongAnswerExerciseIds.length} questions to master`);
+        console.log(`🔄 Starting retry mode with ${wrongAnswerExerciseIds.length} questions to master`);
+      } else if (!retryMode) {
+        console.log(`📚 Starting normal mode with ${allData?.length || 0} total questions`);
       }
+      
     } catch (err) {
+      console.error('❌ ERROR in fetchExercises:', err);
       setError('Failed to load exercises');
     } finally {
       setLoading(false);
@@ -95,11 +323,20 @@ export default function TopicExercisePlayer({
       setWrongAnswers(prev => {
         const newSet = new Set(prev);
         newSet.delete(exercises[currentIndex].id);
+        console.log('✅ Correct answer in retry mode! Removed', exercises[currentIndex].id, 'Remaining wrong:', newSet.size);
         return newSet;
       });
     }
 
-    saveProgress(currentIndex, correct);
+    // Only save progress in normal mode (not in retry or review mode)
+    if (!retryMode && !reviewMode) {
+      saveProgress(currentIndex, correct);
+      console.log('💾 Progress saved in normal mode');
+    } else if (retryMode) {
+      console.log('🔄 Retry mode: No progress saved');
+    } else if (reviewMode) {
+      console.log('📖 Review mode: No progress saved');
+    }
   };
 
   const handleContinue = () => {
@@ -107,31 +344,94 @@ export default function TopicExercisePlayer({
     setIsCorrect(null);
     setShowContinue(false);
     
+    // 🔍 DEBUG: Log continue state
+    console.log('🔍 HANDLE CONTINUE DEBUG:', {
+      currentIndex,
+      exercisesLength: exercises.length,
+      mode: reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL'),
+      retryMode,
+      reviewMode,
+      wrongAnswerExerciseIds,
+      wrongAnswersSize: wrongAnswers.size,
+      wrongAnswersArray: Array.from(wrongAnswers)
+    });
+    
+    // 🎯 RETRY MODE COMPLETION CHECK: If retry mode and no more wrong answers, complete immediately
+    if (retryMode && wrongAnswers.size === 0) {
+      console.log('🎆 RETRY COMPLETED! All wrong answers mastered - switching to review mode...');
+      setProgress(100);
+      router.push(`/topic/${topicId}/player?mode=review`);
+      return;
+    }
+    
     if (currentIndex < exercises.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      const totalForProgress = retryMode ? wrongAnswerExerciseIds.length : exercises.length;
-      setProgress(((nextIndex + 1) / totalForProgress) * 100);
+      
+      // ✅ FIX: Prevent division by zero in progress calculation
+      const totalForProgress = (retryMode || reviewMode) ? wrongAnswerExerciseIds.length : exercises.length;
+      const safeTotal = Math.max(totalForProgress, 1); // Ensure minimum of 1
+      const safeNextIndex = Math.min(nextIndex + 1, totalForProgress);
+      const newProgress = totalForProgress > 0 ? Math.min((safeNextIndex / safeTotal) * 100, 100) : 100;
+      
+      // 📊 DEBUG: Log progress update calculation
+      console.log('📊 PROGRESS UPDATE DEBUG:', {
+        nextIndex,
+        totalForProgress,
+        safeTotal,
+        safeNextIndex,
+        calculatedProgress: (safeNextIndex / safeTotal) * 100,
+        finalProgress: newProgress,
+        mode: reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL')
+      });
+      
+      setProgress(newProgress);
+      
+      // 📋 DEBUG: Show current question progress
+      console.log(`📋 QUESTION ${nextIndex + 1} of ${exercises.length} (Mode: ${reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL')}, Progress: ${newProgress.toFixed(1)}%)`);
+      
     } else {
       // All current questions completed - check mastery status
+      console.log('🎯 ALL QUESTIONS COMPLETED - Determining next action...');
       setProgress(100);
       
       if (retryMode) {
-        // In retry mode: check if any wrong answers remain
+        console.log('🔄 RETRY MODE COMPLETION:', {
+          remainingWrongAnswers: wrongAnswers.size,
+          wrongAnswersArray: Array.from(wrongAnswers)
+        });
+        
+        // In retry mode: check if all wrong questions are now correct
         if (wrongAnswers.size === 0) {
-          // All previously wrong questions now correct - topic mastered!
-          router.push('/dashboard?message=topic-mastered');
+          // All retry questions answered correctly - switch to review mode without saving progress
+          console.log('� RETRY COMPLETED! Switching to review mode...');
+          
+          // Redirect to the same topic in review mode
+          router.push(`/topic/${topicId}/player?mode=review`);
+          return;
         } else {
-          // Still have wrong answers in current session - offer another retry
+          // Still have wrong answers - offer another retry
+          console.log('🔄 RETRY AVAILABLE: Some questions still need practice');
           router.push('/dashboard?message=retry-available');
         }
+      } else if (reviewMode) {
+        console.log('🔄 REVIEW MODE COMPLETION - No progress saved');
+        // Review mode completed - just return to dashboard
+        router.push('/dashboard?message=review-completed');
       } else {
+        console.log('📚 NORMAL MODE COMPLETION:', {
+          totalWrongAnswers: wrongAnswers.size,
+          wrongAnswersArray: Array.from(wrongAnswers)
+        });
+        
         // Initial attempt: check if any wrong answers exist
         if (wrongAnswers.size === 0) {
           // Perfect score - topic mastered!
+          console.log('🎆 PERFECT SCORE! Topic mastered on first attempt');
           router.push('/dashboard?message=topic-mastered');
         } else {
           // Some wrong answers - offer retry mode
+          console.log(`🔄 RETRY NEEDED: ${wrongAnswers.size} questions need practice`);
           router.push(`/dashboard?message=needs-retry&topicId=${topicId}&wrongAnswers=${Array.from(wrongAnswers).join(',')}`);
         }
       }
@@ -146,6 +446,12 @@ export default function TopicExercisePlayer({
     // Save user progress to Supabase using correct user_progress table
     console.log('🔥 STARTING PROGRESS SAVE OPERATION');
     
+    // Prevent unnecessary saves in retry/review mode when all questions already mastered
+    if ((retryMode || reviewMode) && wrongAnswerExerciseIds.length === 0) {
+      console.log(`📝 SAVE PREVENTION: ${reviewMode ? 'Review' : 'Retry'} mode with all questions mastered, skipping save operation`);
+      return;
+    }
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -154,9 +460,16 @@ export default function TopicExercisePlayer({
       }
 
       console.log('✅ Session found, user_id:', session.user.id);
+      
+      // 🚀 RETRY MODE FIX: Use original exercise ID for progress saving
+      const exerciseIdForSaving = exercises[index].originalExerciseId || exercises[index].id;
+      const questionIndexForSaving = exercises[index].questionIndex || 0;
+      
       console.log('📝 Saving progress for:', {
         user_id: session.user.id,
-        exercise_id: exercises[index].id,
+        exercise_id: exerciseIdForSaving, // Use original exercise ID
+        display_id: exercises[index].id, // The modified ID for display
+        question_index: questionIndexForSaving,
         correct,
         userAnswer,
         correctAnswer: exercises[index].correct_answer,
@@ -164,12 +477,12 @@ export default function TopicExercisePlayer({
       });
 
       // First, get existing progress to preserve question_results array
-      console.log('📊 Fetching existing progress for exercise:', exercises[index].id);
+      console.log('📊 Fetching existing progress for exercise:', exerciseIdForSaving);
       const { data: existingProgress, error: fetchError } = await supabase
         .from('user_progress')
         .select('question_results')
         .eq('user_id', session.user.id)
-        .eq('exercise_id', exercises[index].id)
+        .eq('exercise_id', exerciseIdForSaving)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -180,8 +493,10 @@ export default function TopicExercisePlayer({
 
       // Create new question result object
       const newQuestionResult = {
-        question_id: exercises[index].id, // ✅ ESSENTIAL: Include question/exercise ID
+        question_id: exercises[index].id, // Use the display ID (includes question index info)
         question_text: exercises[index].question_da,
+        question_index: questionIndexForSaving, // Track which question within the exercise
+        original_exercise_id: exerciseIdForSaving, // Track the original exercise ID
         correct: correct,
         userAnswer: userAnswer,
         correctAnswer: exercises[index].correct_answer,
@@ -214,13 +529,30 @@ export default function TopicExercisePlayer({
         console.log('🆕 Starting with empty question results array');
       }
 
-      // Append new question result
-      questionResults.push(newQuestionResult);
-      console.log('➕ Added new question, total questions now:', questionResults.length);
+      // In retry mode, replace the wrong answer instead of appending
+      if (retryMode && correct) {
+        // Find and replace any existing result for this specific question
+        const existingIndex = questionResults.findIndex(result => 
+          result.question_id === exercises[index].id || 
+          (result.original_exercise_id === exerciseIdForSaving && result.question_index === questionIndexForSaving)
+        );
+        
+        if (existingIndex !== -1) {
+          console.log(`🔄 RETRY MODE: Replacing wrong answer at index ${existingIndex} with correct answer for question ${questionIndexForSaving}`);
+          questionResults[existingIndex] = newQuestionResult;
+        } else {
+          console.log('🔄 RETRY MODE: No existing wrong answer found for this specific question, adding new result');
+          questionResults.push(newQuestionResult);
+        }
+      } else {
+        // Normal mode or wrong answer - append new question result
+        questionResults.push(newQuestionResult);
+        console.log('➕ Added new question, total questions now:', questionResults.length);
+      }
 
       const upsertData = {
         user_id: session.user.id,
-        exercise_id: exercises[index].id,
+        exercise_id: exercises[index].originalExerciseId || exercises[index].id, // Use original exercise ID for database
         completed: correct,
         score: correct ? 100 : 0,
         attempts: 1,
@@ -228,6 +560,7 @@ export default function TopicExercisePlayer({
         question_results: questionResults  // Now an array of all answered questions
       };
 
+      console.log('💾 ATTEMPTING UPSERT with ORIGINAL EXERCISE ID:', exercises[index].originalExerciseId, 'instead of compound:', exercises[index].id);
       console.log('💾 ATTEMPTING UPSERT with data:', upsertData);
 
       const { data: upsertResult, error: upsertError } = await supabase
@@ -277,94 +610,281 @@ export default function TopicExercisePlayer({
     return <div className="p-8 text-center">Loading exercises...</div>;
   }
   if (error) {
-    return <div className="p-8 text-center text-red-600">{error}</div>;
-  }
-  if (exercises.length === 0) {
-    return <div className="p-8 text-center">No exercises found for this topic.</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Fejl</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Link href="/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Tilbage til dashboard
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const exercise = exercises[currentIndex];
+  if (exercises.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-400 text-6xl mb-4">📚</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Ingen øvelser endnu</h1>
+          <p className="text-gray-600 mb-6">
+            Der er ikke oprettet øvelser for dette emne endnu.
+          </p>
+          <div className="space-x-4">
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Tilbage til dashboard
+            </Link>
+            <Link 
+              href="/admin/exercise-generator"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Generer øvelser
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Duolingo-style exercise interface matching the working topic page
+  const currentQuestion = exercises[currentIndex];
+
+  // Debug logging for retry mode
+  if (retryMode) {
+    console.log('🔍 Retry Mode Debug:', {
+      exercises: exercises.length,
+      currentIndex,
+      currentQuestion: !!currentQuestion,
+      wrongAnswerExerciseIds,
+      firstExerciseId: exercises[0]?.id
+    });
+  }
+
+  // Debug logging for current question
+  console.log('🔍 Current Question Debug:', {
+    currentIndex,
+    exercisesLength: exercises.length,
+    currentQuestion: currentQuestion ? {
+      id: currentQuestion.id,
+      hasQuestionDa: !!currentQuestion.question_da,
+      questionDa: currentQuestion.question_da,
+      questionType: currentQuestion.type,
+      hasOptions: !!currentQuestion.options?.length
+    } : 'currentQuestion is undefined'
+  });
+
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md mx-4 text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <div className="text-xl font-semibold text-gray-800 mb-4">No question available</div>
+          <div className="text-sm text-gray-600 mb-6">
+            {retryMode ? (
+              <>
+                Retry mode: Looking for exercises {wrongAnswerExerciseIds?.join(', ')}<br />
+                Found {exercises.length} matching exercises
+              </>
+            ) : (
+              <>
+                {reviewMode ? 'Review mode' : 'Normal mode'}: {exercises.length} exercises available
+              </>
+            )}
+          </div>
+          <button 
+            onClick={() => window.history.back()}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const completedCount = currentIndex; // For progress calculation
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Topic Exercise Player</h2>
-          <button onClick={handleStop} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Stop & Back to Dashboard</button>
-        </div>
-        <div className="mb-4">
-          <div className="text-gray-700 mb-2">Progress: {Math.round(progress)}%</div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
-          </div>
-        </div>
-        <div className="mb-6">
-          <div className="font-medium text-gray-900 mb-2">
-            {retryMode 
-              ? `Retry Question ${currentIndex + 1} of ${exercises.length} (Review wrong answers)`
-              : `Question ${currentIndex + 1} of ${exercises.length}`
-            }
-          </div>
-          <div className="text-lg mb-4">{exercise.question_da}</div>
-          {exercise.options && exercise.options.length > 0 ? (
-            <div className="space-y-2 mb-4">
-              {exercise.options.map((opt, idx) => (
-                <button
-                  key={idx}
-                  className={`block w-full px-4 py-2 border rounded-lg text-left ${normalizeText(userAnswer) === normalizeText(opt) ? 'bg-blue-100 border-blue-400' : 'bg-white border-gray-300'}`}
-                  onClick={() => setUserAnswer(opt)}
-                >
-                  {opt}
-                </button>
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* Header matching working topic page */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={handleStop}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="flex-1 max-w-md">
+                <div className="text-sm text-gray-600 mb-1">
+                  <div>
+                    {retryMode 
+                      ? `Retry Mode - Spørgsmål ${Math.min(currentIndex + 1, exercises.length)} af ${exercises.length}`
+                      : reviewMode 
+                        ? `Review Mode - Spørgsmål ${Math.min(currentIndex + 1, exercises.length)} af ${exercises.length}`
+                        : `Spørgsmål ${Math.min(currentIndex + 1, exercises.length)} af ${exercises.length}`
+                    }
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.round(((completedCount + 1) / exercises.length) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <input
-              type="text"
-              value={userAnswer}
-              onChange={e => setUserAnswer(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
-              placeholder="Skriv dit svar her..."
-            />
-          )}
-          <button
-            onClick={handleCheckAnswer}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            disabled={userAnswer === '' || isCorrect !== null}
-          >
-            Check Answer
-          </button>
+            <div className="text-sm text-gray-500">
+              {Math.round(((completedCount + 1) / exercises.length) * 100)}% fuldført
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Exercise Content matching working topic page */}
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          {/* Question */}
+          <div className="mb-8">
+            <div className="text-sm text-gray-500 mb-2">Oversæt til spansk</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {currentQuestion.question_da}
+            </h2>
+            {currentQuestion.question_es && (
+              <div className="text-sm text-gray-600 italic">
+                Hint: {currentQuestion.question_es}
+              </div>
+            )}
+          </div>
+
+          {/* Answer Input matching working topic page */}
+          <div className="mb-6">
+            {currentQuestion.options && currentQuestion.options.length > 0 ? (
+              // Multiple choice with beautiful styling
+              <div className="space-y-3">
+                {currentQuestion.options.map((option, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-full p-4 border-2 rounded-xl text-left font-medium transition-all ${
+                      normalizeText(userAnswer) === normalizeText(option)
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    } ${isCorrect !== null ? 'pointer-events-none' : ''}`}
+                    onClick={() => setUserAnswer(option)}
+                    disabled={isCorrect !== null}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // Text input with beautiful styling
+              <div>
+                <input
+                  type="text"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+                  placeholder="Skriv dit svar på spansk..."
+                  disabled={isCorrect !== null}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && userAnswer.trim() && isCorrect === null) {
+                      handleCheckAnswer();
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Feedback matching working topic page */}
           {isCorrect === true && (
-            <div className="mt-4 text-green-600 font-semibold">Correct! 🎉</div>
-          )}
-          {isCorrect === false && (
-            <div className="mt-4 text-red-600 font-semibold">
-              Incorrect. The correct answer was: <span className="font-bold">{exercise.correct_answer}</span>
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-center gap-2 text-green-700 font-semibold mb-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Rigtig! 🎉
+              </div>
+              {currentQuestion.explanation_da && (
+                <p className="text-green-600 text-sm">
+                  {currentQuestion.explanation_da}
+                </p>
+              )}
             </div>
           )}
-          
+
+          {isCorrect === false && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Ikke rigtigt
+              </div>
+              <p className="text-red-600 text-sm mb-2">
+                Det rigtige svar er: <strong>{Array.isArray(currentQuestion.correct_answer) ? currentQuestion.correct_answer[0] : currentQuestion.correct_answer}</strong>
+              </p>
+              {currentQuestion.explanation_da && (
+                <p className="text-red-600 text-sm">
+                  {currentQuestion.explanation_da}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Mastery Status Display */}
-          {retryMode && wrongAnswers.size > 0 && (
-            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <p className="text-orange-800 text-sm">
-                <span className="font-semibold">Retry Mode:</span> {wrongAnswers.size} question{wrongAnswers.size === 1 ? '' : 's'} still need{wrongAnswers.size === 1 ? 's' : ''} to be answered correctly
+          {(retryMode || reviewMode) && wrongAnswers.size > 0 && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+              <div className="flex items-center gap-2 text-orange-700 font-semibold mb-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {reviewMode ? 'Gennemgang' : 'Forsøg igen'}
+              </div>
+              <p className="text-orange-600 text-sm">
+                {wrongAnswers.size} spørgsmål skal stadig besvares korrekt
               </p>
             </div>
           )}
-          
-          {showContinue && (
-            <button
-              onClick={handleContinue}
-              className="mt-6 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              {currentIndex < exercises.length - 1 
-                ? 'Continue to Next Question' 
-                : retryMode 
-                  ? (wrongAnswers.size === 0 ? 'Complete Mastery!' : 'Finish Retry Session')
-                  : (wrongAnswers.size === 0 ? 'Complete Topic!' : 'Finish for Now')
-              }
-            </button>
-          )}
+
+          {/* Action Buttons matching working topic page */}
+          <div className="flex gap-4">
+            {isCorrect === null ? (
+              <button
+                onClick={handleCheckAnswer}
+                disabled={!userAnswer.trim()}
+                className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
+                  userAnswer.trim()
+                    ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Tjek svar
+              </button>
+            ) : (
+              <button
+                onClick={handleContinue}
+                className="flex-1 py-4 px-6 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-xl"
+              >
+                {currentIndex < exercises.length - 1 
+                  ? 'Fortsæt' 
+                  : (retryMode || reviewMode)
+                    ? (wrongAnswers.size === 0 ? 'Fuldført!' : `Afslut ${reviewMode ? 'gennemgang' : 'forsøg'}`)
+                    : (wrongAnswers.size === 0 ? 'Afslut emne!' : 'Afslut')
+                }
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

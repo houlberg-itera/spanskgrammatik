@@ -328,23 +328,37 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     return streak;
   };
 
-  // Get exercises with wrong answers for retry mode
+  // Get specific wrong questions as compound IDs for retry mode
   const getWrongAnswerExercises = (topicId: number): string[] => {
     const topicExercises = exercises.filter(ex => ex.topic_id === topicId);
-    const wrongAnswerExerciseIds: string[] = [];
+    const wrongQuestionIds: string[] = [];
 
     for (const exercise of topicExercises) {
       const userProgressForExercise = userProgress.find(up => up.exercise_id === exercise.id);
       if (userProgressForExercise && userProgressForExercise.question_results) {
-        // Check if any questions in this exercise were answered incorrectly
-        const hasWrongAnswers = userProgressForExercise.question_results.some(result => !result.correct);
-        if (hasWrongAnswers) {
-          wrongAnswerExerciseIds.push(exercise.id.toString());
-        }
+        // Only consider questions where the latest attempt was incorrect
+        userProgressForExercise.question_results.forEach((result, questionIndex) => {
+          // Only add to retry if the question is still incorrect (not mastered)
+          // We consider it mastered if exercise score >= 70 OR this specific question was answered correctly
+          const exerciseMastered = (userProgressForExercise.score || 0) >= 70;
+          const questionCorrect = result.correct;
+          
+          if (!questionCorrect && !exerciseMastered) {
+            // Create compound ID: exerciseId * 1000 + questionIndex
+            const compoundQuestionId = exercise.id * 1000 + questionIndex;
+            wrongQuestionIds.push(compoundQuestionId.toString());
+          }
+        });
       }
     }
 
-    return wrongAnswerExerciseIds;
+    console.log('🔍 LEARNING PATH - Wrong questions for retry:', {
+      topicId,
+      wrongQuestionIds,
+      totalExercises: topicExercises.length
+    });
+
+    return wrongQuestionIds;
   };
 
   const handleNodeClick = (node: LessonNode) => {
@@ -357,14 +371,28 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       const wrongAnswerExerciseIds = getWrongAnswerExercises(topicId);
       const hasBeenAttempted = wrongAnswerExerciseIds.length > 0 || node.completedCount > 0;
       const needsRetry = wrongAnswerExerciseIds.length > 0;
+      const isFullyCompleted = node.completedCount >= node.exerciseCount && node.exerciseCount > 0;
+
+      console.log(`🎯 LEARNING PATH DEBUG - Topic ${topicId} click:`, {
+        hasBeenAttempted,
+        needsRetry,
+        isFullyCompleted,
+        completedCount: node.completedCount,
+        exerciseCount: node.exerciseCount,
+        wrongAnswerExerciseIds
+      });
 
       if (hasBeenAttempted && needsRetry) {
         // Topic has wrong answers - launch retry mode
-        console.log(`Topic ${topicId} needs retry mode - wrong exercises:`, wrongAnswerExerciseIds);
-        window.location.href = `/topic/${topicId}?retryMode=true&wrongExercises=${wrongAnswerExerciseIds.join(',')}`;
+        console.log(`Topic ${topicId} needs retry mode - wrong questions:`, wrongAnswerExerciseIds);
+        window.location.href = `/topic/${topicId}/player?retryMode=true&wrongAnswers=${wrongAnswerExerciseIds.join(',')}`;
+      } else if (isFullyCompleted) {
+        // Topic is fully completed with all correct answers - launch review mode
+        console.log(`Topic ${topicId} is fully completed - launching review mode`);
+        window.location.href = `/topic/${topicId}/player?reviewMode=true`;
       } else {
-        // Either never attempted or fully mastered - normal mode
-        console.log(`Topic ${topicId} launching in normal mode`);
+        // Never attempted or partially completed - go to normal topic page (not player)
+        console.log(`Topic ${topicId} has unanswered questions - launching normal topic page`);
         window.location.href = `/topic/${topicId}`;
       }
     } else if (node.type === 'practice') {
