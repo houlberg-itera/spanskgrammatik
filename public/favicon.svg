@@ -1,0 +1,8 @@
+<!-- Simple favicon placeholder -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Duck head simplified for favicon -->
+  <circle cx="16" cy="16" r="14" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+  <ellipse cx="8" cy="18" rx="4" ry="2" fill="#FF8C00"/>
+  <circle cx="14" cy="12" r="2" fill="#000"/>
+  <circle cx="15" cy="11" r="0.5" fill="#FFF"/>
+</svg>
