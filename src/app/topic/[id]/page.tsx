@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress } from '@/types/database';
 import Link from 'next/link';
+import AppHeader from '@/components/AppHeader';
 
 interface QuestionWithExercise {
   questionId: string;
@@ -509,7 +510,22 @@ export default function TopicPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Header */}
+      {/* Shared App Header */}
+      <AppHeader showUserInfo={true} pageTitle={`${topic?.name_da || 'Emne'} - Øvelser`} />
+      
+      {/* Level Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm font-medium">
+              {topic?.level?.toUpperCase()}
+            </span>
+            <h1 className="text-xl font-bold">{topic?.name_da}</h1>
+          </div>
+        </div>
+      </div>
+      
+      {/* Progress Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">

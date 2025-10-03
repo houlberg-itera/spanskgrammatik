@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress, SpanishLevel } from '@/types/database';
 import Link from 'next/link';
 import ArticleTip from '@/components/ArticleTip';
+import AppHeader from '@/components/AppHeader';
 import dynamic from 'next/dynamic';
 
 // Dynamically import LearningPath to avoid SSR issues
@@ -176,22 +177,20 @@ export default function LevelPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-blue-600 hover:text-blue-700"
-              >
-                ← Tilbage til dashboard
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Niveau {level}</h1>
-            </div>
-          </div>
+      {/* Shared App Header */}
+      <AppHeader showUserInfo={true} pageTitle={`Niveau ${level} - Læringssti`} />
+      
+      {/* Navigation */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Link
+            href="/dashboard"
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+          >
+            ← Tilbage til dashboard
+          </Link>
         </div>
-      </header>
+      </div>
 
       {/* Duolingo-Style Learning Path */}
       <Suspense fallback={

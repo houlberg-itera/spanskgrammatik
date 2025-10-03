@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress, SpanishLevel } from '@/types/database';
+import { calculateXP } from '@/lib/rewards';
 
 interface LearningPathProps {
   level: SpanishLevel;
@@ -295,11 +296,41 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       return topicExercises.every(ex => completedExerciseIds.has(ex.id));
     });
     
+    // Calculate XP using the same method as dashboard (standardized calculation)
+    let totalCorrectAnswers = 0;
+    let perfectScores = 0;
+    
+    for (const progress of userProgress) {
+      const score = progress.score || 0;
+      
+      // Count correct answers based on question_results or score threshold
+      if (progress.question_results && typeof progress.question_results === 'object') {
+        if (Array.isArray(progress.question_results)) {
+          // Array format - count correct answers
+          totalCorrectAnswers += progress.question_results.filter((q: any) => q.correct === true).length;
+        } else {
+          // Single question format
+          const result = progress.question_results as any;
+          if (result.correct === true) {
+            totalCorrectAnswers += 1;
+          }
+        }
+      } else if (score >= 70) {
+        // Fallback: use score to estimate correct answers
+        totalCorrectAnswers += 1;
+      }
+
+      // Count perfect scores (100%)
+      if (score === 100) {
+        perfectScores += 1;
+      }
+    }
+    
     setUserStats({
       totalLessons: topics.length,
       completedLessons: completedTopics.length,
       currentStreak: calculateStreak(),
-      totalXP: userProgress.reduce((sum, up) => sum + (up.score || 0), 0)
+      totalXP: calculateXP(totalCorrectAnswers, perfectScores)
     });
   };
 

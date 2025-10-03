@@ -1,0 +1,25 @@
+-- Duolingo-Style Reward System Schema
+-- Application-layer calculations (no database functions)
+
+-- The reward system uses the existing user_progress table for calculations:
+-- 
+-- Medal Progression (calculated in TypeScript):
+-- - BRONZE: 0 XP (starting medal)
+-- - SILVER: 100 XP 
+-- - GOLD: 500 XP
+-- - PLATINUM: 1500 XP
+-- - DIAMOND: 4000 XP
+-- - EMERALD: 10000 XP
+--
+-- XP Calculation: 10 points per correct answer (score >= 70)
+-- Streak Calculation: Consecutive days with exercise completion
+-- Achievements: Based on milestones (streak days, accuracy %, questions answered)
+--
+-- Leaderboard Ranking: Users ranked by total XP descending
+--
+-- Data Sources:
+-- - user_progress table: Provides score, created_at for XP and streak calculations
+-- - Existing database schema: No additional tables needed
+--
+-- All calculations performed in src/lib/rewards.ts
+-- API endpoints: /api/rewards and /api/rewards/leaderboard
