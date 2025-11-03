@@ -209,26 +209,26 @@ export default function ContentManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">
+        <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-gray-200">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
             📚 Indhold Styring
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Administrer emner og øvelser på tværs af alle niveauer
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Filters and Controls */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Niveau:</label>
+          <div className="flex flex-col space-y-4 sm:flex-row sm:flex-wrap sm:gap-4 sm:space-y-0 mb-6">
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Niveau:</label>
               <select
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value as SpanishLevel | '')}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[40px] w-full sm:w-auto"
               >
                 <option value="">Alle niveauer</option>
                 <option value="A1">A1 - Begynder</option>
@@ -237,12 +237,12 @@ export default function ContentManagement() {
               </select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Sorter efter:</label>
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sorter efter:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[40px] w-full sm:w-auto"
               >
                 <option value="level">Niveau</option>
                 <option value="name">Navn</option>
@@ -250,25 +250,35 @@ export default function ContentManagement() {
               </select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Søg:</label>
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Søg:</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Søg efter emne..."
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-64"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[40px] w-full sm:w-64"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {/* Topics List */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Emner ({sortedTopics.length})
-              </h2>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mb-4">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                  Emner ({sortedTopics.length})
+                </h2>
+                {sortedTopics.length > 0 && (
+                  <button
+                    onClick={() => bulkDeleteExercises(sortedTopics)}
+                    className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
+                  >
+                    Slet alle øvelser
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3 max-h-[500px] sm:max-h-[600px] overflow-y-auto">
                 {loading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -282,32 +292,34 @@ export default function ContentManagement() {
                   sortedTopics.map(topic => (
                     <div
                       key={topic.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                      className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-colors ${
                         selectedTopic === topic.id
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => setSelectedTopic(topic.id)}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-semibold text-gray-900">
+                      <div className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-start sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                               {topic.name_da}
                             </h3>
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 self-start">
                               {topic.level}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">
                             {topic.name_es}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {topic.description_da}
-                          </p>
+                          {topic.description_da && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {topic.description_da}
+                            </p>
+                          )}
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-700">
+                        <div className="flex items-center justify-between sm:justify-end sm:space-x-2 mt-2 sm:mt-0">
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">
                             {topic.exercises.length} øvelser
                           </span>
                           {topic.exercises.length > 0 && (
@@ -316,7 +328,7 @@ export default function ContentManagement() {
                                 e.stopPropagation();
                                 bulkDeleteExercises(topic.id);
                               }}
-                              className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-50 min-h-[28px] flex items-center whitespace-nowrap"
                             >
                               Slet alle
                             </button>
@@ -330,24 +342,24 @@ export default function ContentManagement() {
             </div>
 
             {/* Exercises List */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="mt-6 lg:mt-0">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                 Øvelser {selectedTopic && `(${exercises.length})`}
               </h2>
               {selectedTopic ? (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <div className="space-y-3 max-h-[500px] sm:max-h-[600px] overflow-y-auto">
                   {exercises.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 text-sm">
                       Ingen øvelser fundet for dette emne
                     </div>
                   ) : (
                     exercises.map(exercise => (
                       <div
                         key={exercise.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-gray-300 transition-colors"
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-start sm:space-y-0 mb-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="text-lg">
                               {getExerciseTypeIcon(exercise.type)}
                             </span>
@@ -360,38 +372,40 @@ export default function ContentManagement() {
                           </div>
                           <button
                             onClick={() => deleteExercise(exercise.id)}
-                            className="text-red-600 hover:text-red-800 text-xs"
+                            className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-50 min-h-[28px] flex items-center whitespace-nowrap"
                           >
                             🗑️ Slet
                           </button>
                         </div>
                         
-                        <p className="text-sm text-gray-900 mb-2">
-                          <strong>Titel (DA):</strong> {exercise.title_da}
-                        </p>
-                        
-                        {exercise.title_es && (
-                          <p className="text-sm text-gray-700 mb-2">
-                            <strong>Titel (ES):</strong> {exercise.title_es}
+                        <div className="space-y-2">
+                          <p className="text-xs sm:text-sm text-gray-900">
+                            <strong>Titel (DA):</strong> {exercise.title_da}
                           </p>
-                        )}
-                        
-                        <div className="text-xs text-gray-600 mb-2">
-                          <strong>Indhold:</strong>
-                          <pre className="mt-1 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
-                            {JSON.stringify(exercise.content, null, 2).substring(0, 200)}...
-                          </pre>
+                          
+                          {exercise.title_es && (
+                            <p className="text-xs sm:text-sm text-gray-700">
+                              <strong>Titel (ES):</strong> {exercise.title_es}
+                            </p>
+                          )}
+                          
+                          <div className="text-xs text-gray-600">
+                            <strong>Indhold:</strong>
+                            <pre className="mt-1 p-2 bg-gray-50 rounded text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                              {JSON.stringify(exercise.content, null, 2).substring(0, 150)}...
+                            </pre>
+                          </div>
+                          
+                          <p className="text-xs text-gray-400">
+                            Oprettet: {new Date(exercise.created_at).toLocaleDateString('da-DK')}
+                          </p>
                         </div>
-                        
-                        <p className="text-xs text-gray-400 mt-2">
-                          Oprettet: {new Date(exercise.created_at).toLocaleDateString('da-DK')}
-                        </p>
                       </div>
                     ))
                   )}
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
                   Vælg et emne for at se øvelser
                 </div>
               )}
