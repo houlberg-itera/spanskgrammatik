@@ -129,14 +129,13 @@ export default function ExerciseGeneratorAdmin() {
   const loadAIConfiguration = async () => {
     try {
       console.log('Loading AI configuration...');
-      const response = await fetch('/api/ai-config/configurations');
+      const response = await fetch('/api/ai-config');
       
       if (response.ok) {
         const data = await response.json();
-        const activeConfig = data.data?.find((config: any) => config.is_active);
-        if (activeConfig) {
-          setCurrentModel(activeConfig.model_name || 'gpt-4o');
-          console.log('Loaded AI model:', activeConfig.model_name);
+        if (data.success && data.config) {
+          setCurrentModel(data.config.model_name || 'gpt-4o');
+          console.log('Loaded AI model:', data.config.model_name);
         }
       } else {
         console.log('No AI configuration found, using default model');
@@ -522,92 +521,64 @@ export default function ExerciseGeneratorAdmin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8">
+          {/* Header - Mobile Responsive */}
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">
               🤖 AI Øvelse Generator - Admin Panel
             </h1>
             
-            {/* Current Model Display and Config Link */}
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-sm text-gray-500">Nuværende AI Model</div>
-                <div className="font-semibold text-gray-900">{currentModel}</div>
-              </div>
-              
-              {/* Quick Model Switcher */}
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-500 mb-1">Hurtig Model Skift</label>
-                <select
-                  value={currentModel}
-                  onChange={async (e) => {
-                    const newModel = e.target.value;
-                    setCurrentModel(newModel);
-                    
-                    // Update the active AI configuration
-                    try {
-                      const response = await fetch('/api/ai-config/configurations', {
-                        method: 'GET'
-                      });
-                      
-                      if (response.ok) {
-                        const data = await response.json();
-                        const activeConfig = data.data?.find((config: any) => config.is_active);
-                        
-                        if (activeConfig) {
-                          // Update the existing active configuration
-                          const updateResponse = await fetch(`/api/ai-config/configurations/${activeConfig.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              ...activeConfig,
-                              model_name: newModel
-                            })
-                          });
-                          
-                          if (updateResponse.ok) {
-                            console.log(`✅ Model updated to: ${newModel}`);
-                          } else {
-                            console.error('❌ Failed to update model');
-                          }
-                        }
-                      }
-                    } catch (error) {
-                      console.error('❌ Error updating model:', error);
-                    }
-                  }}
-                  className="text-sm px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
-                  <option value="gpt-5">GPT-5</option>
-                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                  <option value="gpt-4">GPT-4</option>
-                </select>
+            {/* Current Model Display and Config Link - Mobile Stacked */}
+            <div className="space-y-3 md:space-y-0 md:flex md:items-center md:justify-between">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:flex md:items-center md:space-x-4">
+                <div className="text-center md:text-right">
+                  <div className="text-sm text-gray-500">Nuværende AI Model</div>
+                  <div className="font-semibold text-gray-900">{currentModel}</div>
+                </div>
+                
+                {/* Quick Model Switcher */}
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-500 mb-1">Hurtig Model Skift</label>
+                  <select
+                    value={currentModel}
+                    onChange={(e) => {
+                      const newModel = e.target.value;
+                      setCurrentModel(newModel);
+                      console.log(`✅ Model switched to: ${newModel}`);
+                    }}
+                    className="text-sm px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 w-full"
+                  >
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    <option value="gpt-5">GPT-5</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-4">GPT-4</option>
+                  </select>
+                </div>
               </div>
               
               <a
                 href="/admin/ai-config"
-                className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
+                className="block text-center md:inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
               >
                 ⚙️ Konfigurer AI
               </a>
             </div>
           </div>
 
-          {/* Level Selection */}
-          <div className="mb-8">
+          {/* Level Selection - Mobile Friendly */}
+          <div className="mb-6 md:mb-8">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Vælg Niveau
             </label>
-            <div className="flex space-x-4">
+            <div className="grid grid-cols-3 gap-2 md:flex md:space-x-4">
               {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
                 <button
                   key={level}
                   onClick={() => setSelectedLevel(level)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
                     selectedLevel === level
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -619,23 +590,23 @@ export default function ExerciseGeneratorAdmin() {
             </div>
           </div>
 
-          {/* Preset Configurations */}
-          <div className="mb-8">
+          {/* Preset Configurations - Mobile Responsive */}
+          <div className="mb-6 md:mb-8">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               📋 Forudindstillede Konfigurationer
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {Object.entries(presets).map(([key, preset]) => (
                 <button
                   key={key}
                   onClick={() => applyPreset(key as keyof typeof presets)}
-                  className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left"
+                  className="p-3 md:p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left"
                 >
-                  <div className="font-medium text-gray-900 mb-1">{preset.name}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="font-medium text-gray-900 mb-1 text-sm md:text-base">{preset.name}</div>
+                  <div className="text-xs md:text-sm text-gray-600">
                     {preset.exercisesPerTopic} øvelser per emne
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">
                     Let: {preset.difficultyDistribution.easy}% | 
                     Mellem: {preset.difficultyDistribution.medium}% | 
                     Svær: {preset.difficultyDistribution.hard}%
@@ -643,24 +614,24 @@ export default function ExerciseGeneratorAdmin() {
                 </button>
               ))}
             </div>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs md:text-sm text-gray-500 mt-2">
               💡 Klik på en forudindstilling for at anvende den automatisk
             </p>
           </div>
 
-          {/* Quick All-Levels Generation */}
-          <div className="mb-8 border-2 border-green-200 rounded-lg bg-green-50 p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-4">
+          {/* Quick All-Levels Generation - Mobile Responsive */}
+          <div className="mb-6 md:mb-8 border-2 border-green-200 rounded-lg bg-green-50 p-4 md:p-6">
+            <h3 className="text-lg font-semibold text-green-900 mb-3 md:mb-4">
               🎯 Hurtig Total Regenerering
             </h3>
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-lg border border-green-200">
-                <h4 className="font-medium text-green-800 mb-2">🚀 Generer for ALLE niveauer</h4>
-                <p className="text-sm text-green-700 mb-3">
+            <div className="space-y-3 md:space-y-4">
+              <div className="bg-white p-3 md:p-4 rounded-lg border border-green-200">
+                <h4 className="font-medium text-green-800 mb-2 text-sm md:text-base">🚀 Generer for ALLE niveauer</h4>
+                <p className="text-xs md:text-sm text-green-700 mb-3 leading-relaxed">
                   Anvender "Omfattende" forudindstilling (100 øvelser per emne) for A1, A2 og B1 niveauer automatisk.
                   Dette vil generere ~1200-1500 øvelser i alt.
                 </p>
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-3 sm:gap-0">
                   <button
                     onClick={() => {
                       if (!confirm('🎯 Dette vil anvende Omfattende forudindstilling og forberede total regenerering. Fortsæt?')) return;
@@ -668,7 +639,7 @@ export default function ExerciseGeneratorAdmin() {
                       alert('✅ Omfattende forudindstilling anvendt! Vælg nu niveauer og emner manuelt for at generere.');
                     }}
                     disabled={isGenerating}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm md:text-base ${
                       isGenerating
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-green-600 text-white hover:bg-green-700'
@@ -683,7 +654,7 @@ export default function ExerciseGeneratorAdmin() {
                       alert('💎 Produktions forudindstilling anvendt! 200 øvelser per emne for maksimal dækning.');
                     }}
                     disabled={isGenerating}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm md:text-base ${
                       isGenerating
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-purple-600 text-white hover:bg-purple-700'
@@ -696,9 +667,8 @@ export default function ExerciseGeneratorAdmin() {
             </div>
           </div>
 
-          {/* Exercise Configuration */}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Exercise Configuration - Mobile Responsive */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Øvelser per emne
@@ -709,9 +679,9 @@ export default function ExerciseGeneratorAdmin() {
                 max="500"
                 value={exercisesPerTopic}
                 onChange={(e) => setExercisesPerTopic(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               />
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs md:text-sm text-gray-500 mt-1 leading-relaxed">
                 Anbefalet: 100-200 øvelser for omfattende dækning og proficienstestning
               </p>
             </div>
@@ -722,7 +692,7 @@ export default function ExerciseGeneratorAdmin() {
               </label>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Let ({difficultyDistribution.easy}%)</span>
+                  <span className="text-xs md:text-sm">Let ({difficultyDistribution.easy}%)</span>
                   <input
                     type="range"
                     min="0"
@@ -732,11 +702,11 @@ export default function ExerciseGeneratorAdmin() {
                       ...prev,
                       easy: parseInt(e.target.value)
                     }))}
-                    className="w-32"
+                    className="w-24 md:w-32"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Medium ({difficultyDistribution.medium}%)</span>
+                  <span className="text-xs md:text-sm">Medium ({difficultyDistribution.medium}%)</span>
                   <input
                     type="range"
                     min="0"
@@ -746,11 +716,11 @@ export default function ExerciseGeneratorAdmin() {
                       ...prev,
                       medium: parseInt(e.target.value)
                     }))}
-                    className="w-32"
+                    className="w-24 md:w-32"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Svær ({difficultyDistribution.hard}%)</span>
+                  <span className="text-xs md:text-sm">Svær ({difficultyDistribution.hard}%)</span>
                   <input
                     type="range"
                     min="0"
@@ -760,7 +730,7 @@ export default function ExerciseGeneratorAdmin() {
                       ...prev,
                       hard: parseInt(e.target.value)
                     }))}
-                    className="w-32"
+                    className="w-24 md:w-32"
                   />
                 </div>
               </div>
@@ -768,54 +738,54 @@ export default function ExerciseGeneratorAdmin() {
           </div>
 
           {/* Topic Selection */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900">
                 Vælg Emner (Niveau {selectedLevel})
               </h2>
-              <div className="space-x-2">
+              <div className="flex space-x-2">
                 <button
                   onClick={selectAllTopics}
-                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  className="px-3 py-1 text-xs md:text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                 >
                   Vælg Alle
                 </button>
                 <button
                   onClick={clearSelection}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                  className="px-3 py-1 text-xs md:text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
                 >
                   Ryd Valg
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {topics.map(topic => (
                 <div
                   key={topic.id}
                   onClick={() => handleTopicSelection(topic.id)}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  className={`p-3 md:p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedTopics.includes(topic.id)
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{topic.name_da}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{topic.description_da}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 text-sm md:text-base leading-tight">{topic.name_da}</h3>
+                      <p className="text-xs md:text-sm text-gray-600 mt-1 leading-relaxed">{topic.description_da}</p>
                       <p className="text-xs text-gray-500 mt-2">
                         Nuværende øvelser: {topic.exercise_count || 0}
                       </p>
                     </div>
-                    <div className="ml-2">
-                      <div className={`w-4 h-4 rounded border-2 ${
+                    <div className="ml-2 flex-shrink-0">
+                      <div className={`w-5 h-5 md:w-4 md:h-4 rounded border-2 ${
                         selectedTopics.includes(topic.id)
                           ? 'border-blue-500 bg-blue-500'
                           : 'border-gray-300'
                       }`}>
                         {selectedTopics.includes(topic.id) && (
-                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 md:w-3 md:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         )}
@@ -829,33 +799,33 @@ export default function ExerciseGeneratorAdmin() {
 
           {/* Generation Summary */}
           {selectedTopics.length > 0 && (
-            <div className="bg-blue-50 rounded-lg p-6 mb-8">
-              <h3 className="text-lg font-semibold text-blue-900 mb-4">
+            <div className="bg-blue-50 rounded-lg p-4 md:p-6 mb-6 md:mb-8">
+              <h3 className="text-base md:text-lg font-semibold text-blue-900 mb-4">
                 📊 Omfattende Genereringssammendrag
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{selectedTopics.length}</div>
-                  <div className="text-sm text-blue-700">Emner</div>
+                  <div className="text-xl md:text-2xl font-bold text-blue-600">{selectedTopics.length}</div>
+                  <div className="text-xs md:text-sm text-blue-700">Emner</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{calculateTotalExercises()}</div>
-                  <div className="text-sm text-blue-700">Total Øvelser</div>
+                  <div className="text-xl md:text-2xl font-bold text-blue-600">{calculateTotalExercises()}</div>
+                  <div className="text-xs md:text-sm text-blue-700">Total Øvelser</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{exerciseTypes.length}</div>
-                  <div className="text-sm text-blue-700">Øvelsestyper</div>
+                  <div className="text-xl md:text-2xl font-bold text-blue-600">{exerciseTypes.length}</div>
+                  <div className="text-xs md:text-sm text-blue-700">Øvelsestyper</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">~{Math.ceil(calculateTotalExercises() * 3 / 60)}</div>
-                  <div className="text-sm text-blue-700">Minutter (AI Gen)</div>
+                  <div className="text-xl md:text-2xl font-bold text-blue-600">~{Math.ceil(calculateTotalExercises() * 3 / 60)}</div>
+                  <div className="text-xs md:text-sm text-blue-700">Minutter (AI Gen)</div>
                 </div>
               </div>
               
               {/* Detailed Breakdown */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mt-4 text-xs md:text-sm">
                 <div className="bg-blue-100 p-3 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">📈 Sværhedsgrad Fordeling:</h4>
+                  <h4 className="font-medium text-blue-900 mb-2 text-sm md:text-base">📈 Sværhedsgrad Fordeling:</h4>
                   <div className="space-y-1">
                     <div>Let: <span className="font-medium">{Math.round(calculateTotalExercises() * difficultyDistribution.easy / 100)}</span> øvelser ({difficultyDistribution.easy}%)</div>
                     <div>Mellem: <span className="font-medium">{Math.round(calculateTotalExercises() * difficultyDistribution.medium / 100)}</span> øvelser ({difficultyDistribution.medium}%)</div>
@@ -864,7 +834,7 @@ export default function ExerciseGeneratorAdmin() {
                 </div>
                 
                 <div className="bg-green-100 p-3 rounded-lg">
-                  <h4 className="font-medium text-green-900 mb-2">🎯 Øvelsestype Fordeling:</h4>
+                  <h4 className="font-medium text-green-900 mb-2 text-sm md:text-base">🎯 Øvelsestype Fordeling:</h4>
                   <div className="space-y-1">
                     {exerciseTypes.map(type => (
                       <div key={type.id}>
@@ -876,7 +846,7 @@ export default function ExerciseGeneratorAdmin() {
               </div>
               
               <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                <p className="text-sm text-yellow-800">
+                <p className="text-xs md:text-sm text-yellow-800 leading-relaxed">
                   <strong>⚡ AI Model:</strong> {currentModel.toUpperCase()} | 
                   <strong> 📚 Proficienstestning:</strong> Med {exercisesPerTopic} øvelser per emne får eleverne tilstrækkelig variation til præcis vurdering | 
                   <strong> 🎮 Engagement:</strong> Blandet sværhedsgrad holder elever motiverede gennem hele læreprocessen
@@ -886,28 +856,42 @@ export default function ExerciseGeneratorAdmin() {
           )}
 
           {/* Danger Zone - Database Management */}
-          <div className="mb-8 border-2 border-red-200 rounded-lg bg-red-50 p-6">
-            <h3 className="text-lg font-semibold text-red-900 mb-4">
-              ⚠️ Farezone - Database Styring
-            </h3>
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-lg border border-red-200">
-                <h4 className="font-medium text-red-800 mb-2">🗑️ Ryd Øvelses Database</h4>
-                <p className="text-sm text-red-700 mb-3">
+          <div className="mb-6 md:mb-8 border-2 border-red-200 rounded-lg bg-red-50 p-4 md:p-6">
+            <div className="flex items-start sm:items-center space-x-3 mb-4">
+              <div className="text-xl md:text-2xl flex-shrink-0">⚠️</div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base md:text-lg font-semibold text-red-900">
+                  Farezone - Database Styring
+                </h3>
+                <p className="text-xs md:text-sm text-red-700 mt-1 leading-relaxed">
+                  Permanente dataoperationer - brug med forsigtighed
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 md:space-y-4">
+              <div className="bg-white p-3 md:p-4 rounded-lg border border-red-200">
+                <div className="flex items-start space-x-2 mb-2">
+                  <div className="text-base md:text-lg flex-shrink-0">🗑️</div>
+                  <h4 className="font-medium text-red-800 text-sm md:text-base">
+                    Ryd Øvelses Database
+                  </h4>
+                </div>
+                <p className="text-xs md:text-sm text-red-700 mb-3 leading-relaxed">
                   Slet alle eksisterende øvelser for at forberede komplet regenerering med nye parametre.
-                  <strong> Denne handling kan ikke fortrydes!</strong>
+                  <strong className="block mt-1"> Denne handling kan ikke fortrydes!</strong>
                 </p>
                 <button
                   onClick={clearExerciseDatabase}
                   disabled={isGenerating}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full py-2.5 md:py-2 px-4 rounded-lg font-medium transition-all duration-200 text-sm md:text-base ${
                     isGenerating
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-red-600 text-white hover:bg-red-700 hover:scale-105'
                   }`}
                 >
                   {isGenerating ? (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-center space-x-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
                       <span>Behandler...</span>
                     </div>
@@ -920,12 +904,12 @@ export default function ExerciseGeneratorAdmin() {
           </div>
 
           {/* Generation Control Panel */}
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             {!isGenerating ? (
               <button
                 onClick={startBulkGeneration}
                 disabled={selectedTopics.length === 0}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-lg font-semibold text-base md:text-lg transition-all duration-200 ${
                   selectedTopics.length === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
@@ -934,20 +918,20 @@ export default function ExerciseGeneratorAdmin() {
                 🚀 Start AI Generering
               </button>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {/* Generation Status */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                      <span className="text-blue-700 font-medium">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-2 md:space-x-3 min-w-0">
+                      <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-blue-600 flex-shrink-0"></div>
+                      <span className="text-blue-700 font-medium text-sm md:text-base truncate">
                         {isPaused ? '⏸️ Pauseret' : '🤖 Genererer øvelser...'}
                       </span>
-                      <span className="text-blue-600">
+                      <span className="text-blue-600 text-xs md:text-sm whitespace-nowrap">
                         Job {currentJobIndex + 1} af {generationJobs.length}
                       </span>
                     </div>
-                    <div className="text-sm text-blue-600">
+                    <div className="text-xs md:text-sm text-blue-600 font-medium">
                       {Math.round(((currentJobIndex) / generationJobs.length) * 100)}% færdig
                     </div>
                   </div>
@@ -962,18 +946,18 @@ export default function ExerciseGeneratorAdmin() {
                 </div>
 
                 {/* Control Buttons */}
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                   {!isPaused ? (
                     <button
                       onClick={pauseGeneration}
-                      className="flex-1 py-3 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+                      className="flex-1 py-2.5 md:py-3 px-3 md:px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm md:text-base"
                     >
                       ⏸️ Pause Generering
                     </button>
                   ) : (
                     <button
                       onClick={resumeGeneration}
-                      className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      className="flex-1 py-2.5 md:py-3 px-3 md:px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm md:text-base"
                     >
                       ▶️ Fortsæt Generering
                     </button>
@@ -981,7 +965,7 @@ export default function ExerciseGeneratorAdmin() {
                   
                   <button
                     onClick={stopGeneration}
-                    className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    className="flex-1 py-2.5 md:py-3 px-3 md:px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm md:text-base"
                   >
                     🛑 Stop Generering
                   </button>
@@ -993,8 +977,8 @@ export default function ExerciseGeneratorAdmin() {
             {!isGenerating && selectedTopics.length > 0 && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2 text-blue-700">
-                  <div className="animate-pulse">⚡</div>
-                  <span className="text-sm font-medium">
+                  <div className="animate-pulse flex-shrink-0">⚡</div>
+                  <span className="text-xs md:text-sm font-medium leading-relaxed">
                     AI generering er startet! Følg fremskridt nedenfor...
                   </span>
                 </div>
@@ -1004,12 +988,12 @@ export default function ExerciseGeneratorAdmin() {
 
           {/* Generation Progress */}
           {generationJobs.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 md:p-6 border border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 mb-4">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">
                   📊 Genererings Status
                 </h3>
-                <div className="text-sm text-gray-600">
+                <div className="text-xs md:text-sm text-gray-600 font-medium">
                   {generationJobs.filter(j => j.status === 'completed').length} / {generationJobs.length} færdig
                 </div>
               </div>
@@ -1026,10 +1010,10 @@ export default function ExerciseGeneratorAdmin() {
               
               <div className="space-y-2">
                 {generationJobs.map(job => (
-                  <div key={job.id} className="flex items-center justify-between p-3 bg-white rounded border shadow-sm">
-                    <div className="flex-1">
-                      <div className="font-medium">{job.topic} - {job.exerciseType}</div>
-                      <div className={getJobStatusColor(job.status)}>
+                  <div key={job.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded border shadow-sm space-y-2 sm:space-y-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base truncate">{job.topic} - {job.exerciseType}</div>
+                      <div className={`${getJobStatusColor(job.status)} text-xs md:text-sm`}>
                         Status: {job.status}
                         {job.status === 'completed' && (
                           <span className="ml-2 text-green-600">✔️</span>
@@ -1042,11 +1026,11 @@ export default function ExerciseGeneratorAdmin() {
                         )}
                       </div>
                       {job.status === 'error' && job.errorMessage && (
-                        <div className="text-xs text-red-500 mt-1">{job.errorMessage}</div>
+                        <div className="text-xs text-red-500 mt-1 leading-relaxed">{job.errorMessage}</div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm text-gray-600">{job.generatedCount} / {job.requestedCount}</span>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-xs md:text-sm text-gray-600 font-medium">{job.generatedCount} / {job.requestedCount}</span>
                     </div>
                   </div>
                 ))}

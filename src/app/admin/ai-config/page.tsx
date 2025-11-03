@@ -108,11 +108,11 @@ export default function AIConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <nav className="flex items-center space-x-2 text-sm mb-6">
+        <div className="mb-6 sm:mb-8">
+          <nav className="flex items-center space-x-2 text-xs sm:text-sm mb-4 sm:mb-6">
             <Link href="/admin/dashboard" className="text-blue-600 hover:text-blue-800">
               Admin Dashboard
             </Link>
@@ -120,17 +120,17 @@ export default function AIConfigPage() {
             <span className="text-gray-600">AI Configuration</span>
           </nav>
           
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">🤖 AI Configuration</h1>
-              <p className="text-gray-600 mt-2">Manage OpenAI models and prompts dynamically</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">🤖 AI Configuration</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">Manage OpenAI models and prompts dynamically</p>
             </div>
             <button
               onClick={() => {
                 setEditingConfig(null);
                 setShowForm(true);
               }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               + Add Configuration
             </button>
@@ -138,11 +138,11 @@ export default function AIConfigPage() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 text-sm sm:text-base">{error}</p>
             <button
               onClick={() => setError(null)}
-              className="mt-2 text-sm text-red-600 hover:text-red-800"
+              className="mt-2 text-xs sm:text-sm text-red-600 hover:text-red-800"
             >
               Dismiss
             </button>
@@ -150,85 +150,87 @@ export default function AIConfigPage() {
         )}
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-blue-600">{configs.length}</div>
-            <div className="text-gray-600">Total Configurations</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">{configs.length}</div>
+            <div className="text-sm sm:text-base text-gray-600">Total Configurations</div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {configs.filter(c => c.is_active).length}
             </div>
-            <div className="text-gray-600">Active Configurations</div>
+            <div className="text-sm sm:text-base text-gray-600">Active Configurations</div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-purple-600">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm sm:col-span-2 lg:col-span-1">
+            <div className="text-xl sm:text-2xl font-bold text-purple-600">
               {new Set(configs.map(c => c.model_name)).size}
             </div>
-            <div className="text-gray-600">Unique Models</div>
+            <div className="text-sm sm:text-base text-gray-600">Unique Models</div>
           </div>
         </div>
 
         {/* Configurations List */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {configs.length > 0 ? (
             configs.map((config) => (
-              <div key={config.id} className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between">
+              <div key={config.id} className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-semibold text-gray-900">{config.name}</h3>
-                      <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
-                        {config.model_name}
-                      </span>
-                      {config.is_active && (
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                          Active
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{config.name}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                          {config.model_name}
                         </span>
-                      )}
+                        {config.is_active && (
+                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                            Active
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-600 mb-4">{config.description}</p>
+                    <p className="text-sm sm:text-base text-gray-600 mb-4">{config.description}</p>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                       <div>
-                        <span className="text-sm text-gray-500">Temperature</span>
-                        <p className="font-medium">{config.temperature}</p>
+                        <span className="text-xs sm:text-sm text-gray-500">Temperature</span>
+                        <p className="font-medium text-sm sm:text-base">{config.temperature}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-500">Max Tokens</span>
-                        <p className="font-medium">{config.max_tokens}</p>
+                        <span className="text-xs sm:text-sm text-gray-500">Max Tokens</span>
+                        <p className="font-medium text-sm sm:text-base">{config.max_tokens}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-500">Created</span>
-                        <p className="font-medium">{new Date(config.created_at).toLocaleDateString()}</p>
+                        <span className="text-xs sm:text-sm text-gray-500">Created</span>
+                        <p className="font-medium text-sm sm:text-base">{new Date(config.created_at).toLocaleDateString()}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-500">Updated</span>
-                        <p className="font-medium">{new Date(config.updated_at).toLocaleDateString()}</p>
+                        <span className="text-xs sm:text-sm text-gray-500">Updated</span>
+                        <p className="font-medium text-sm sm:text-base">{new Date(config.updated_at).toLocaleDateString()}</p>
                       </div>
                     </div>
 
                     <div className="mb-4">
-                      <span className="text-sm text-gray-500">System Prompt (preview)</span>
-                      <p className="text-sm bg-gray-50 p-2 rounded mt-1 font-mono">
+                      <span className="text-xs sm:text-sm text-gray-500">System Prompt (preview)</span>
+                      <p className="text-xs sm:text-sm bg-gray-50 p-2 rounded mt-1 font-mono">
                         {config.system_prompt?.substring(0, 100)}...
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex flex-row sm:flex-col lg:flex-row gap-2 mt-4 lg:mt-0 lg:ml-4">
                     <button
                       onClick={() => {
                         setEditingConfig(config);
                         setShowForm(true);
                       }}
-                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                      className="flex-1 sm:flex-none px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(config.id)}
-                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                      className="flex-1 sm:flex-none px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                     >
                       Delete
                     </button>
@@ -237,14 +239,14 @@ export default function AIConfigPage() {
               </div>
             ))
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">No AI configurations found</p>
+            <div className="text-center py-8 sm:py-12">
+              <p className="text-gray-500 mb-4 text-sm sm:text-base">No AI configurations found</p>
               <button
                 onClick={() => {
                   setEditingConfig(null);
                   setShowForm(true);
                 }}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
               >
                 Create Your First Configuration
               </button>
@@ -297,21 +299,21 @@ function ConfigurationForm({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+            <h2 className="text-xl sm:text-2xl font-bold">
               {config ? 'Edit Configuration' : 'New Configuration'}
             </h2>
             <button
               type="button"
               onClick={onCancel}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 self-end sm:self-auto"
             >
               ✕
             </button>
           </div>
 
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -321,7 +323,7 @@ function ConfigurationForm({
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   required
                 />
               </div>
@@ -333,7 +335,7 @@ function ConfigurationForm({
                 <select
                   value={formData.model_name}
                   onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 >
                   <option value="gpt-4o">GPT-4o</option>
                   <option value="gpt-4">GPT-4</option>
@@ -350,11 +352,11 @@ function ConfigurationForm({
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Temperature
@@ -366,7 +368,7 @@ function ConfigurationForm({
                   step="0.1"
                   value={formData.temperature}
                   onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 />
               </div>
 
@@ -380,11 +382,11 @@ function ConfigurationForm({
                   max="4000"
                   value={formData.max_tokens}
                   onChange={(e) => setFormData({ ...formData, max_tokens: parseInt(e.target.value) })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 />
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center sm:col-span-2 lg:col-span-1">
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -405,7 +407,7 @@ function ConfigurationForm({
                 value={formData.system_prompt}
                 onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
                 rows={4}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
                 placeholder="Enter system prompt with template variables like {{level}}, {{topic}}, etc."
               />
             </div>
@@ -418,23 +420,23 @@ function ConfigurationForm({
                 value={formData.user_prompt_template}
                 onChange={(e) => setFormData({ ...formData, user_prompt_template: e.target.value })}
                 rows={6}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
                 placeholder="Enter user prompt template with variables like {{questionCount}}, {{exerciseType}}, etc."
               />
             </div>
           </div>
 
-          <div className="flex gap-4 mt-6 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 pt-6 border-t">
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
             >
               {config ? 'Update Configuration' : 'Create Configuration'}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              className="w-full sm:w-auto px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base"
             >
               Cancel
             </button>

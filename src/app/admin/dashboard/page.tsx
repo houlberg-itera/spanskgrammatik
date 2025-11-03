@@ -393,16 +393,16 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-6 space-y-4 sm:space-y-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 text-center sm:text-left">
               📊 Spanskgrammatik Admin Dashboard
             </h1>
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               {(['users', 'exercises', 'analytics', 'vocabulary'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
                     viewMode === mode
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -423,22 +423,22 @@ export default function AdminDashboard() {
         {viewMode === 'users' && (
           <div className="space-y-6">
             {/* Bulk Actions Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <div className="text-center lg:text-left">
                   <h3 className="text-lg font-medium text-gray-900">Bulk Handlinger</h3>
                   <p className="text-sm text-gray-600">Administrer bruger data for alle brugere</p>
                 </div>
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                   <button
                     onClick={() => deleteAllUserProgress()}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   >
                     🗑️ Slet Al Bruger Fremgang
                   </button>
                   <button
                     onClick={() => exportUserData()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
                     📊 Eksporter Data
                   </button>
@@ -447,12 +447,14 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                   Bruger Proficiency Analyse ({users.length} brugere)
                 </h2>
               </div>
-              <div className="overflow-x-auto">
+              
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -546,6 +548,88 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden p-4 space-y-4">
+                {users.map(user => (
+                  <div key={user.userId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {user.email}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ID: {user.userId.substring(0, 8)}...
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {user.currentLevel}
+                          </span>
+                          {user.recommendedLevel !== user.currentLevel && (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              → {user.recommendedLevel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Tillid: </span>
+                          <span className={`font-medium ${getConfidenceColor(user.confidenceScore)}`}>
+                            {user.confidenceScore.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Øvelser: </span>
+                          <span className="text-gray-900">{user.exercisesNeeded}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-gray-500">Fremgang: </span>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full" 
+                            style={{ width: `${user.progressToNextLevel}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {user.progressToNextLevel.toFixed(1)}%
+                        </span>
+                      </div>
+
+                      {user.weaknessAreas.length > 0 && (
+                        <div>
+                          <span className="text-xs text-gray-500 block mb-1">Svagheder:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {user.weaknessAreas.slice(0, 2).map(area => (
+                              <span key={area} className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
+                                {area}
+                              </span>
+                            ))}
+                            {user.weaknessAreas.length > 2 && (
+                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                +{user.weaknessAreas.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-xs text-gray-500">
+                        <span>Sidste aktivitet: </span>
+                        {user.lastActivity !== 'No activity' 
+                          ? new Date(user.lastActivity).toLocaleDateString('da-DK')
+                          : 'Ingen aktivitet'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -553,15 +637,17 @@ export default function AdminDashboard() {
         {viewMode === 'exercises' && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                   Øvelses Generering Behov
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
                   Emner der har brug for flere AI-genererede øvelser
                 </p>
               </div>
-              <div className="overflow-x-auto">
+              
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -644,38 +730,105 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden p-4 space-y-4">
+                {exerciseGenerations
+                  .sort((a, b) => {
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    return priorityOrder[b.priority] - priorityOrder[a.priority];
+                  })
+                  .map(generation => (
+                  <div key={generation.topicId} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 mr-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {generation.topicName}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {generation.level}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(generation.priority)}`}>
+                            {generation.priority.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Nuværende: </span>
+                          <span className="font-medium text-gray-900">{generation.currentCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Anbefalet: </span>
+                          <span className="font-medium text-gray-900">{generation.recommendedCount}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <button
+                          onClick={() => generateExercisesForTopic(
+                            generation.topicId, 
+                            generation.recommendedCount - generation.currentCount
+                          )}
+                          disabled={generation.currentCount >= generation.recommendedCount || generatingTopics.has(generation.topicId)}
+                          className={`w-full px-3 py-2 text-sm rounded transition-colors ${
+                            generatingTopics.has(generation.topicId)
+                              ? 'bg-yellow-500 text-white cursor-wait'
+                              : generation.currentCount >= generation.recommendedCount
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {generatingTopics.has(generation.topicId) ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              <span>Genererer...</span>
+                            </div>
+                          ) : (
+                            `Generer ${generation.recommendedCount - generation.currentCount}`
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {viewMode === 'analytics' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 📊 Generel Statistik
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Brugere:</span>
-                  <span className="font-semibold">{analytics.totalUsers}</span>
+                  <span className="text-gray-600 text-sm sm:text-base">Total Brugere:</span>
+                  <span className="font-semibold text-sm sm:text-base">{analytics.totalUsers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Gennemsnitlig Fremgang:</span>
-                  <span className="font-semibold">{analytics.averageProgress.toFixed(1)}%</span>
+                  <span className="text-gray-600 text-sm sm:text-base">Gennemsnitlig Fremgang:</span>
+                  <span className="font-semibold text-sm sm:text-base">{analytics.averageProgress.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 📈 Niveau Fordeling
               </h3>
               <div className="space-y-2">
                 {Object.entries(analytics.levelDistribution).map(([level, count]) => (
                   <div key={level} className="flex justify-between items-center">
-                    <span className="text-gray-600">{level}:</span>
+                    <span className="text-gray-600 text-sm sm:text-base">{level}:</span>
                     <div className="flex items-center">
-                      <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                      <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2 mr-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full" 
                           style={{ width: `${(count / analytics.totalUsers) * 100}%` }}
@@ -688,15 +841,15 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 🎯 Top Svagheder
               </h3>
               <div className="space-y-2">
                 {analytics.topWeakAreas.map(({ area, count }) => (
                   <div key={area} className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm truncate">{area}</span>
-                    <span className="font-semibold text-red-600">{count}</span>
+                    <span className="text-gray-600 text-sm truncate mr-2">{area}</span>
+                    <span className="font-semibold text-red-600 text-sm flex-shrink-0">{count}</span>
                   </div>
                 ))}
               </div>
@@ -706,22 +859,24 @@ export default function AdminDashboard() {
 
         {viewMode === 'vocabulary' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                   🗣️ Ordforråds Øvelse Generator
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600">
                   Generer tilpassede ordforrådsøvelser for alle niveauer med AI-drevet indhold
                 </p>
               </div>
 
               <div className="space-y-6">
                 {/* Level Selection for Vocabulary Exercises */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                   {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
                     <div key={level} className="bg-gray-50 rounded-lg p-4 border">
-                      <h4 className="font-semibold text-gray-900 mb-2">Niveau {level}</h4>
+                      <h4 className="font-semibold text-gray-900 mb-3 text-center lg:text-left">
+                        Niveau {level}
+                      </h4>
                       <VocabularyExerciseGenerator 
                         level={level}
                         onExerciseGenerated={(exercise) => {
