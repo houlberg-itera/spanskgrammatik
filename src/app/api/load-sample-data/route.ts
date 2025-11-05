@@ -3,14 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Loading sample data...');
-    
+    \n    
     // Create server-side Supabase client with service role for admin operations
     const supabase = await createClient();
     
     // For sample data loading, we'll use admin privileges
-    console.log('Loading sample data with admin privileges...');
-
+    \n
     // Sample exercise data to insert directly
     const sampleExercises = [
       {
@@ -234,8 +232,7 @@ export async function POST(request: NextRequest) {
     // Insert each sample exercise
     for (let i = 0; i < sampleExercises.length; i++) {
       const exercise = sampleExercises[i];
-      console.log(`Inserting exercise ${i + 1}/${sampleExercises.length}: ${exercise.title_da}`);
-      
+      \n      
       try {
         const { data, error } = await supabase
           .from('exercises')
@@ -246,8 +243,7 @@ export async function POST(request: NextRequest) {
           console.error(`Error inserting exercise ${i + 1}:`, error);
           results.push({ exercise: i + 1, error: error.message });
         } else {
-          console.log(`Exercise ${i + 1} inserted successfully:`, data[0]?.id);
-          results.push({ exercise: i + 1, success: true, id: data[0]?.id });
+          \n          results.push({ exercise: i + 1, success: true, id: data[0]?.id });
         }
       } catch (err) {
         console.error(`Exception inserting exercise ${i + 1}:`, err);
@@ -260,8 +256,7 @@ export async function POST(request: NextRequest) {
       .from('exercises')
       .select('id', { count: 'exact' });
 
-    console.log('Total exercises after loading:', exerciseCount?.length || 0);
-
+    \n
     return NextResponse.json({
       message: 'Sample data loading completed',
       results,

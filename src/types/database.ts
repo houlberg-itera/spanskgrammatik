@@ -63,6 +63,7 @@ export interface Question {
   correct_answer: string | string[];
   explanation_da?: string;
   explanation_es?: string;
+  sentence_translation_da?: string; // Added Danish translation of full sentence for student reference
   points?: number;
   proficiency_indicator?: string;
   difficulty_level?: string;

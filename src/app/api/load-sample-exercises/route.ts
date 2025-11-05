@@ -19,8 +19,7 @@ export async function POST() {
       }
     );
 
-    console.log('Loading sample exercises...');
-
+    \n
     // Check if sample exercises already exist
     const { data: existingExercises, error: checkError } = await supabase
       .from('exercises')
@@ -230,8 +229,7 @@ export async function POST() {
       throw insertError;
     }
 
-    console.log('Sample exercises inserted successfully:', insertedExercises?.length);
-
+    \n
     return NextResponse.json({
       success: true,
       message: `Successfully loaded ${insertedExercises?.length || 0} sample exercises`,

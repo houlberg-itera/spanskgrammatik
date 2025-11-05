@@ -5,10 +5,7 @@ export async function POST(request: NextRequest) {
     try {
         const { action, email, password, fullName } = await request.json()
         
-        console.log('=== AUTH COMPREHENSIVE TEST ===')
-        console.log('Action:', action)
-        console.log('Input:', { email, password: password ? '[PROVIDED]' : '[MISSING]', fullName })
-        
+        \n        \n        \n        
         const supabase = await createClient()
         
         if (action === 'register') {

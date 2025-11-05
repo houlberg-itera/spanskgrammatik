@@ -9,8 +9,11 @@ interface Topic {
   name_da: string;
   name_es: string;
   description_da: string;
+  description_es?: string;
   level: SpanishLevel;
+  order_index?: number;
   exercises: Exercise[];
+  exercise_count?: number;
 }
 
 interface Exercise {
@@ -23,6 +26,15 @@ interface Exercise {
   created_at: string;
 }
 
+interface TopicFormData {
+  name_da: string;
+  name_es: string;
+  description_da: string;
+  description_es: string;
+  level: SpanishLevel;
+  order_index: number;
+}
+
 export default function ContentManagement() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
@@ -31,6 +43,19 @@ export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'level' | 'exercises'>('level');
+
+  // Topic editing states
+  const [showTopicForm, setShowTopicForm] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
+  const [topicFormData, setTopicFormData] = useState<TopicFormData>({
+    name_da: '',
+    name_es: '',
+    description_da: '',
+    description_es: '',
+    level: 'A1',
+    order_index: 0
+  });
+  const [formLoading, setFormLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -49,48 +74,29 @@ export default function ContentManagement() {
     try {
       console.log('🔍 Loading topics with selectedLevel:', selectedLevel);
       
-      let query = supabase
-        .from('topics')
-        .select(`
-          id,
-          name_da,
-          name_es,
-          description_da,
-          level,
-          exercises(
-            id,
-            type,
-            title_da,
-            title_es,
-            content,
-            ai_generated,
-            created_at
-          )
-        `);
+      // Use the new enhanced topics API
+      const url = selectedLevel 
+        ? `/api/admin/topics?level=${selectedLevel}`
+        : '/api/admin/topics';
+      
+      const response = await fetch(url);
+      const result = await response.json();
 
-      if (selectedLevel) {
-        console.log('🎯 Filtering by level:', selectedLevel);
-        query = query.eq('level', selectedLevel);
-      } else {
-        console.log('📋 Loading all topics (no filter)');
-      }
-
-      const { data, error } = await query.order('name_da', { ascending: true });
-
-      console.log('📊 Topics query result:', { data, error, count: data?.length });
-
-      if (error) {
-        console.error('Error loading topics:', error);
+      if (!response.ok) {
+        console.error('Error loading topics:', result.error);
         return;
       }
 
-      // Process the data to count exercises
-      const processedTopics = (data || []).map(topic => ({
+      console.log('📊 Topics loaded from API:', result.topics?.length);
+      
+      // Transform API data to match UI expectations
+      const processedTopics = (result.topics || []).map((topic: any) => ({
         ...topic,
-        exercises: topic.exercises || []
+        exercises: [], // We'll load exercises separately when needed
+        exercise_count: topic.exercise_count || 0
       }));
 
-      console.log('✅ Processed topics:', processedTopics);
+      console.log('✅ Processed topics:', processedTopics.length);
       setTopics(processedTopics);
     } catch (error) {
       console.error('Error loading topics:', error);
@@ -172,6 +178,112 @@ export default function ContentManagement() {
     } catch (error) {
       console.error('Error bulk deleting exercises:', error);
       alert('Fejl ved bulk sletning af øvelser');
+    }
+  };
+
+  // Topic management functions
+  const openTopicForm = (topic?: Topic) => {
+    if (topic) {
+      setEditingTopic(topic);
+      setTopicFormData({
+        name_da: topic.name_da,
+        name_es: topic.name_es,
+        description_da: topic.description_da,
+        description_es: topic.description_es || '',
+        level: topic.level,
+        order_index: topic.order_index || 0
+      });
+    } else {
+      setEditingTopic(null);
+      setTopicFormData({
+        name_da: '',
+        name_es: '',
+        description_da: '',
+        description_es: '',
+        level: 'A1',
+        order_index: 0
+      });
+    }
+    setShowTopicForm(true);
+  };
+
+  const closeTopicForm = () => {
+    setShowTopicForm(false);
+    setEditingTopic(null);
+    setFormLoading(false);
+  };
+
+  const handleTopicSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+
+    try {
+      const url = editingTopic 
+        ? `/api/admin/topics/${editingTopic.id}`
+        : '/api/admin/topics';
+      
+      const method = editingTopic ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(topicFormData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save topic');
+      }
+
+      alert(editingTopic ? 'Emne opdateret succesfuldt!' : 'Nyt emne oprettet succesfuldt!');
+      closeTopicForm();
+      loadTopics(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving topic:', error);
+      alert(error instanceof Error ? error.message : 'Fejl ved gemning af emne');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const deleteTopic = async (topic: Topic) => {
+    const exerciseCount = topic.exercise_count || topic.exercises?.length || 0;
+    
+    if (exerciseCount > 0) {
+      if (!confirm(`Dette emne har ${exerciseCount} øvelser. Er du sikker på at du vil slette emnet og alle dets øvelser? Dette kan ikke fortrydes!`)) {
+        return;
+      }
+    } else {
+      if (!confirm('Er du sikker på at du vil slette dette emne?')) {
+        return;
+      }
+    }
+
+    try {
+      const response = await fetch(`/api/admin/topics/${topic.id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete topic');
+      }
+
+      alert('Emne slettet succesfuldt!');
+      loadTopics(); // Refresh the list
+      
+      // Clear selection if the deleted topic was selected
+      if (selectedTopic === topic.id) {
+        setSelectedTopic(null);
+        setExercises([]);
+      }
+    } catch (error) {
+      console.error('Error deleting topic:', error);
+      alert(error instanceof Error ? error.message : 'Fejl ved sletning af emne');
     }
   };
 
@@ -269,14 +381,26 @@ export default function ContentManagement() {
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                   Emner ({sortedTopics.length})
                 </h2>
-                {sortedTopics.length > 0 && (
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                   <button
-                    onClick={() => bulkDeleteExercises(sortedTopics)}
-                    className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
+                    onClick={() => openTopicForm()}
+                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
                   >
-                    Slet alle øvelser
+                    + Nyt Emne
                   </button>
-                )}
+                  {sortedTopics.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Er du sikker på, at du vil slette alle øvelser fra alle emner?')) {
+                          sortedTopics.forEach(topic => bulkDeleteExercises(topic.id));
+                        }
+                      }}
+                      className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
+                    >
+                      Slet alle øvelser
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-3 max-h-[500px] sm:max-h-[600px] overflow-y-auto">
                 {loading ? (
@@ -322,17 +446,40 @@ export default function ContentManagement() {
                           <span className="text-xs sm:text-sm font-medium text-gray-700">
                             {topic.exercises.length} øvelser
                           </span>
-                          {topic.exercises.length > 0 && (
+                          <div className="flex items-center space-x-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                bulkDeleteExercises(topic.id);
+                                openTopicForm(topic);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded border border-blue-300 hover:bg-blue-50 min-h-[28px] flex items-center whitespace-nowrap"
+                              title="Rediger emne"
+                            >
+                              Rediger
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteTopic(topic);
                               }}
                               className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-50 min-h-[28px] flex items-center whitespace-nowrap"
+                              title="Slet emne"
                             >
-                              Slet alle
+                              Slet
                             </button>
-                          )}
+                            {topic.exercises.length > 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  bulkDeleteExercises(topic.id);
+                                }}
+                                className="text-orange-600 hover:text-orange-800 text-xs px-2 py-1 rounded border border-orange-300 hover:bg-orange-50 min-h-[28px] flex items-center whitespace-nowrap"
+                                title="Slet alle øvelser"
+                              >
+                                Slet øvelser
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -413,6 +560,145 @@ export default function ContentManagement() {
           </div>
         </div>
       </div>
+
+      {/* Topic Form Modal */}
+      {showTopicForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleTopicSubmit} className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">
+                  {editingTopic ? 'Rediger Emne' : 'Nyt Emne'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeTopicForm}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid gap-6">
+                {/* Level Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Niveau
+                  </label>
+                  <select
+                    value={topicFormData.level}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, level: e.target.value as SpanishLevel })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="A1">A1 - Begynder</option>
+                    <option value="A2">A2 - Grundlæggende</option>
+                    <option value="B1">B1 - Mellemliggende</option>
+                    <option value="B2">B2 - Øvre mellemliggende</option>
+                    <option value="C1">C1 - Avanceret</option>
+                    <option value="C2">C2 - Mesterskab</option>
+                  </select>
+                </div>
+
+                {/* Danish Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Navn (Dansk) *
+                  </label>
+                  <input
+                    type="text"
+                    value={topicFormData.name_da}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, name_da: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="F.eks. Substantiver og artikler"
+                    required
+                  />
+                </div>
+
+                {/* Spanish Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Navn (Spansk) *
+                  </label>
+                  <input
+                    type="text"
+                    value={topicFormData.name_es}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, name_es: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="F.eks. Sustantivos y artículos"
+                    required
+                  />
+                </div>
+
+                {/* Danish Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Beskrivelse (Dansk) *
+                  </label>
+                  <textarea
+                    value={topicFormData.description_da}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, description_da: e.target.value })}
+                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Beskriv hvad dette emne handler om..."
+                    required
+                  />
+                </div>
+
+                {/* Spanish Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Beskrivelse (Spansk)
+                  </label>
+                  <textarea
+                    value={topicFormData.description_es}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, description_es: e.target.value })}
+                    rows={3}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Descripción en español (opcional)"
+                  />
+                </div>
+
+                {/* Order Index */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rækkefølge
+                  </label>
+                  <input
+                    type="number"
+                    value={topicFormData.order_index}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, order_index: parseInt(e.target.value) || 0 })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                    placeholder="0"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Lavere tal vises først i listen
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex gap-4 mt-6 pt-6 border-t">
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {formLoading ? 'Gemmer...' : (editingTopic ? 'Opdater Emne' : 'Opret Emne')}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeTopicForm}
+                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Annuller
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

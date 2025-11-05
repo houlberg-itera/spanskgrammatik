@@ -5,12 +5,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Retry function with exponential backoff for API rate limiting
-// Optimized for GPT-5 with high rate limits (500 RPM, 500K TPM)
+// OPTIMIZED: Retry function with reduced delays for faster generation  
+// Optimized for current OpenAI API limits with better responsiveness
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 8,  // Increased from 5 to 8 retries for rate limits
-  baseDelay: number = 2000  // Increased from 500ms to 2000ms for rate limit recovery
+  maxRetries: number = 5,  // OPTIMIZED: Reduced from 8 to 5 retries for faster failure detection
+  baseDelay: number = 500  // OPTIMIZED: Reduced from 2000ms to 500ms for faster generation
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -28,9 +28,9 @@ async function retryWithBackoff<T>(
         throw error;
       }
       
-      // Calculate delay with exponential backoff and jitter for rate limits
-      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 2000;  // More jitter for rate limits
-      console.log(`Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      // Calculate delay with exponential backoff and jitter for rate limits  
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;  // OPTIMIZED: Reduced jitter from 2000ms to 500ms
+      console.log(`Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1}) - OPTIMIZED DELAYS`);
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));

@@ -74,7 +74,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
   const defaults = {
     'bulk_generation': {
       model: 'gpt-4o',
-      temperature: 0.7,
+      temperature: 1,
       maxTokens: 2000,
       systemPrompt: 'You are an expert Spanish language teacher creating educational exercises for Danish students.',
       userPromptTemplate: 'Generate {count} {exerciseType} exercises for {level} level on topic: {topic}',
@@ -83,7 +83,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
     },
     'exercise_generation': {
       model: 'gpt-4o',
-      temperature: 0.8,
+      temperature: 1,
       maxTokens: 1500,
       systemPrompt: 'You are a Spanish language teacher creating individual exercises.',
       userPromptTemplate: 'Create a {exerciseType} exercise for {level} level on: {topic}',
@@ -92,7 +92,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
     },
     'vocabulary_generation': {
       model: 'gpt-4o',
-      temperature: 0.7,
+      temperature: 1,
       maxTokens: 1800,
       systemPrompt: 'You are a Spanish vocabulary teacher creating exercises for Danish students.',
       userPromptTemplate: 'Generate {count} vocabulary exercises about {topic} for {level} level',

@@ -277,6 +277,20 @@ export default function Dashboard() {
                       const currentMedal = userRewards.medal_type || 'bronze';
                       const currentRequirements = MEDAL_REQUIREMENTS[currentMedal];
                       
+                      // Handle case where currentMedal is 'none' and no requirements exist
+                      if (!currentRequirements) {
+                        return (
+                          <div className="space-y-2 text-sm text-gray-700">
+                            <div className="text-center p-4 bg-gray-100 rounded">
+                              <span className="text-gray-500">Ingen medalje opnået endnu</span>
+                            </div>
+                            <div className="mt-3 p-2 bg-blue-100 rounded text-xs">
+                              <strong>💪 Fortsæt!</strong> Svar korrekt på spørgsmål for at opnå din første medalje.
+                            </div>
+                          </div>
+                        );
+                      }
+                      
                       return (
                         <div className="space-y-2 text-sm text-gray-700">
                           <div className="flex justify-between items-center">
@@ -305,12 +319,18 @@ export default function Dashboard() {
                     const nextMedalType = getNextMedal(currentMedal);
                     
                     if (nextMedalType) {
+                      // Check if requirements exist for the next medal type
+                      const nextMedalRequirements = MEDAL_REQUIREMENTS[nextMedalType];
+                      if (!nextMedalRequirements) {
+                        return null; // Skip this section if requirements don't exist
+                      }
+                      
                       const nextMedalInfo = {
                         type: nextMedalType,
                         name: getMedalDisplay(nextMedalType).name,
-                        questions: MEDAL_REQUIREMENTS[nextMedalType].questions,
-                        xp: MEDAL_REQUIREMENTS[nextMedalType].xp,
-                        accuracy: MEDAL_REQUIREMENTS[nextMedalType].accuracy
+                        questions: nextMedalRequirements.questions,
+                        xp: nextMedalRequirements.xp,
+                        accuracy: nextMedalRequirements.accuracy
                       };
                       
                       const currentQuestions = userRewards.questions_answered || 0;

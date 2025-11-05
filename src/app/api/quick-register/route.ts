@@ -3,8 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
     try {
-        console.log('=== QUICK USER REGISTRATION TEST ===')
-        
+        \n        
         // Test user credentials
         const testUser = {
             email: 'test@example.com',
@@ -12,8 +11,7 @@ export async function GET() {
             fullName: 'Test User'
         }
         
-        console.log('Attempting to register:', testUser.email)
-        
+        \n        
         // Create admin client
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,8 +68,7 @@ export async function GET() {
             })
         }
         
-        console.log('User created successfully:', userData.user?.id)
-        
+        \n        
         // Get updated user count
         const { data: updatedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
         

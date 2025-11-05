@@ -116,6 +116,23 @@ export async function GET() {
       };
     }
 
+    // Test 7: Check AI configurations table
+    try {
+      const { data, error } = await supabase.from('ai_configurations').select('*').order('created_at', { ascending: false });
+      debugInfo.tests.aiConfigurationsTable = {
+        success: !error,
+        error: error?.message,
+        totalConfigs: data?.length || 0,
+        activeConfigs: data?.filter(c => c.is_active) || [],
+        allConfigs: data || []
+      };
+    } catch (err) {
+      debugInfo.tests.aiConfigurationsTable = {
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error'
+      };
+    }
+
     return NextResponse.json(debugInfo);
 
   } catch (error) {
