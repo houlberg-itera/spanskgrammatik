@@ -513,22 +513,22 @@ export async function POST(request: NextRequest) {
   const requestStartTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 8);
   
-  \n  console.log(`⏰ Request started at: ${new Date().toISOString()}`);
+  console.log(`⏰ Request started at: ${new Date().toISOString()}`);
 
   try {
-    \n    \n    console.log('📥 Request headers:', Object.fromEntries(request.headers.entries()));
+    console.log('📥 Request headers:', Object.fromEntries(request.headers.entries()));
     
     let body;
     try {
       // Get the raw text first to see what we're dealing with
       const rawBody = await request.text();
-      \n      
+      
       if (!rawBody || rawBody.trim() === '') {
         throw new Error('Empty request body');
       }
       
       body = JSON.parse(rawBody);
-      \n    } catch (parseError) {
+     } catch (parseError) {
       console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body', details: parseError.message },
@@ -586,11 +586,11 @@ export async function POST(request: NextRequest) {
       .slice(0, Math.min(questionCount, filteredWords.length));
 
     // Generate exercise using OpenAI
-    \n    \n    \n    
+    
     const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount);
     const openaiStartTime = Date.now();
     
-    \n    const openaiResponse = await openai.chat.completions.create({
+    const openaiResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -649,7 +649,7 @@ export async function POST(request: NextRequest) {
     // Parse the JSON response - handle markdown code blocks
     let exerciseData;
     try {
-      \n      // Remove markdown code blocks if present
+      // Remove markdown code blocks if present
       let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
@@ -658,9 +658,9 @@ export async function POST(request: NextRequest) {
       }
       
       exerciseData = JSON.parse(cleanContent);
-      \n    } catch (parseError) {
+    } catch (parseError) {
       console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
-      \n      console.log(`❌ Cleaned content attempted [${requestId}]:`, content.trim().substring(0, 200));
+      console.log(`❌ Cleaned content attempted [${requestId}]:`, content.trim().substring(0, 200));
       throw new Error('Fejl i parsning af AI-respons');
     }
 
@@ -679,8 +679,8 @@ export async function POST(request: NextRequest) {
     };
 
     const totalRequestTime = Date.now() - requestStartTime;
-    \n    console.log(`⏱️ Total request time: ${totalRequestTime}ms (${(totalRequestTime/1000).toFixed(1)}s)`);
-    \n
+    console.log(`⏱️ Total request time: ${totalRequestTime}ms (${(totalRequestTime/1000).toFixed(1)}s)`);
+
     return NextResponse.json(exerciseData);
 
   } catch (error) {

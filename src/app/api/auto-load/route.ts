@@ -5,21 +5,18 @@ export async function GET() {
     // Test the sample data loading by calling our own API
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
-    \n    
     // First check current state
     const checkResponse = await fetch(`${baseUrl}/api/load-sample-data`);
     const currentState = await checkResponse.json();
     
-    \n    
     // If we have fewer than 5 exercises, load sample data
-    if (currentState.totalExercises < 5) {
-      \n      
+    if (currentState.totalExercises < 5) {      
       const loadResponse = await fetch(`${baseUrl}/api/load-sample-data-simple`, {
         method: 'POST'
       });
       
       const loadResult = await loadResponse.json();
-      \n      
+      
       // Check final state
       const finalResponse = await fetch(`${baseUrl}/api/load-sample-data`);
       const finalState = await finalResponse.json();

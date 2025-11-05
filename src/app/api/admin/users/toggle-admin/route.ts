@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
     // or use a database-based admin role system instead of environment variables
     // For now, this returns the updated status but doesn't persist the change
     
-    \n    console.log('Updated admin emails list:', adminEmails.join(', '));
-    \n
+    console.log('Updated admin emails list:', adminEmails.join(', '));
+
     return NextResponse.json({
       success: true,
       message: `Admin role ${isAdmin ? 'granted to' : 'revoked from'} user ${userEmail}`,

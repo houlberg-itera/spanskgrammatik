@@ -5,7 +5,6 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
     
-    \n
     // Get all topics
     const { data: topics, error: topicsError } = await supabase
       .from('topics')

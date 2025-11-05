@@ -4804,6 +4804,168 @@
 			"label": "Verify Process Termination",
 			"type": "shell",
 			"command": "Write-Host '🛑 PROCESS TERMINATION COMPLETE'; Write-Host ''; Write-Host '✅ All Node.js processes stopped'; Write-Host '✅ All NPM processes stopped'; Write-Host '✅ Development server terminated'; Write-Host '✅ Build processes terminated'; Write-Host ''; Write-Host '🔍 Verifying no processes remain...'; $nodeProcesses = Get-Process -Name node -ErrorAction SilentlyContinue; $npmProcesses = Get-Process -Name npm -ErrorAction SilentlyContinue; if ($nodeProcesses) { Write-Host '⚠️ Found remaining Node processes:' $nodeProcesses.Count } else { Write-Host '✅ No Node processes running' }; if ($npmProcesses) { Write-Host '⚠️ Found remaining NPM processes:' $npmProcesses.Count } else { Write-Host '✅ No NPM processes running' }; Write-Host ''; Write-Host '🎯 All processes successfully terminated!'"
+		},
+		{
+			"label": "Production Build",
+			"type": "shell",
+			"command": "Write-Host '🏗️ Starting production build process...'; Write-Host ''; Write-Host '1. Cleaning previous build artifacts...'; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Write-Host '✅ Build cache cleared'; Write-Host ''; Write-Host '2. Starting Next.js production build...'; npm run build"
+		},
+		{
+			"label": "NextJS Production Build",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Production Build Process",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Write-Host '🏗️ CREATING PRODUCTION BUILD FOR SPANISH LEARNING APP'; Write-Host ''; Write-Host '📦 Project: Spanskgrammatik'; Write-Host '🔧 Framework: Next.js 15.5.2'; Write-Host '⚛️ React: 19.0.0'; Write-Host ''; Write-Host '1. Cleaning build cache...'; Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Write-Host '✅ Cache cleared'; Write-Host ''; Write-Host '2. Starting Next.js production build...'; Write-Host ''; npm run build"
+			]
+		},
+		{
+			"label": "Direct Next Build",
+			"type": "shell",
+			"command": "npx next",
+			"args": [
+				"build"
+			]
+		},
+		{
+			"label": "Production Build with Output",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check Running Processes",
+			"type": "shell",
+			"command": "Get-Process",
+			"args": [
+				"-Name",
+				"node,npm",
+				"-ErrorAction",
+				"SilentlyContinue"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Verbose Production Build",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"cd 'c:\\source\\repos\\Spanskgrammatik'; Write-Host 'Starting production build...'; npm run build; if ($LASTEXITCODE -eq 0) { Write-Host 'Build completed successfully'; ls .next\\static } else { Write-Host 'Build failed with exit code:' $LASTEXITCODE }"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check Static Directory",
+			"type": "shell",
+			"command": "Test-Path",
+			"args": [
+				"-Path",
+				".next\\static",
+				"-ErrorAction",
+				"SilentlyContinue"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Detailed Next Directory Check",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"if (Test-Path '.next') { Write-Host '.next directory exists'; Get-ChildItem '.next' -Recurse | Select-Object Name, FullName | Out-String } else { Write-Host '.next directory does not exist' }"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Clear Build Cache",
+			"type": "shell",
+			"command": "Remove-Item",
+			"args": [
+				"-Recurse",
+				"-Force",
+				".next"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Fresh Production Build",
+			"type": "shell",
+			"command": "npm run build",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build with Logging",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue; Write-Host 'Starting Next.js production build...'; $env:NODE_ENV='production'; npm run build 2>&1 | Tee-Object -FilePath build.log; if (Test-Path '.next\\static') { Write-Host 'BUILD SUCCESS: Static directory created'; Get-ChildItem '.next' } else { Write-Host 'BUILD INCOMPLETE: No static directory found'; Get-Content build.log }"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Production Build After Syntax Fixes",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Direct Next Build",
+			"type": "shell",
+			"command": "npx next build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Check Build Progress After First Fixes",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Build with Debug Output",
+			"type": "shell",
+			"command": "npx next build --debug",
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Production Build Test",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build"
+		},
+		{
+			"label": "TypeScript Check",
+			"type": "shell",
+			"command": "npx tsc --noEmit",
+			"group": "build"
 		}
 	]
 }

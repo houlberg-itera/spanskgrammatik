@@ -147,10 +147,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    \n    });
-
     if (action === 'promote' || action === 'demote') {
-      \n    }
+    }
 
     return NextResponse.json({
       success: true,

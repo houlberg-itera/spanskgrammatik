@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (adminError) {
       // If admin creation fails, fall back to normal signup
-      \n      
+    
       const normalSupabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

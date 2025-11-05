@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST() {
   try {
-    \n    
+    
     const supabase = await createClient();
     
     // Test basic connection first
@@ -20,7 +20,6 @@ export async function POST() {
       }, { status: 500 });
     }
     
-    \n    
     // Sample exercises with enhanced content
     const sampleExercises = [
       {
@@ -160,11 +159,11 @@ export async function POST() {
       }
     ];
     
-    \n    const results = [];
+    const results = [];
     
     for (let i = 0; i < sampleExercises.length; i++) {
       const exercise = sampleExercises[i];
-      \n      
+      
       try {
         const { data, error } = await supabase
           .from('exercises')
@@ -190,7 +189,7 @@ export async function POST() {
             });
           }
         } else {
-          \n          results.push({ 
+          results.push({ 
             exercise: i + 1, 
             success: true, 
             id: data[0]?.id,

@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function GET() {
     try {
-        \n        
         // Test user credentials
         const testUser = {
             email: 'test@example.com',
@@ -11,7 +10,7 @@ export async function GET() {
             fullName: 'Test User'
         }
         
-        \n        
+               
         // Create admin client
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,7 +67,7 @@ export async function GET() {
             })
         }
         
-        \n        
+      
         // Get updated user count
         const { data: updatedUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
         

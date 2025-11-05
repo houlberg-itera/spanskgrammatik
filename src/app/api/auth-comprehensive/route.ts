@@ -5,7 +5,6 @@ export async function POST(request: NextRequest) {
     try {
         const { action, email, password, fullName } = await request.json()
         
-        \n        \n        \n        
         const supabase = await createClient()
         
         if (action === 'register') {

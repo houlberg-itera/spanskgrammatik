@@ -21,7 +21,7 @@ interface ProgressEntry {
 
 export async function GET() {
     try {
-        \n        
+        
         // Use admin client to check system state
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

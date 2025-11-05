@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
         const { exerciseId, score } = await request.json()
         
         console.log('=== DIRECT PROGRESS SAVE (BYPASSING RPC) ===')
-        \n        
+          
         const supabase = await createClient()
         
         // Get current user
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 })
         }
         
-        \n        \n        
+      
         // First check if the exercise exists
         const { data: exercise, error: exerciseError } = await supabase
             .from('exercises')
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             }, { status: 404 })
         }
         
-        \n        
+         
         // Check if progress already exists
         const { data: existingProgress, error: checkError } = await supabase
             .from('user_progress')
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         
         if (existingProgress) {
             // Update existing progress
-            \n            const { data, error } = await supabase
+            const { data, error } = await supabase
                 .from('user_progress')
                 .update({
                     score: score,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
             result = { data, error }
         } else {
             // Insert new progress - using ONLY columns that exist in the schema
-            \n            const { data, error } = await supabase
+                const { data, error } = await supabase
                 .from('user_progress')
                 .insert({
                     user_id: user.id,
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
             }, { status: 500 })
         }
         
-        \n        
+    
         return NextResponse.json({
             success: true,
             message: 'Progress saved successfully using direct database access',
