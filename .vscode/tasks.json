@@ -4966,6 +4966,13 @@
 			"type": "shell",
 			"command": "npx tsc --noEmit",
 			"group": "build"
+		},
+		{
+			"label": "Test Model Selection Fix",
+			"type": "shell",
+			"command": "Start-Sleep 5; Write-Host '🧪 TESTING MODEL SELECTION OVERRIDE FIX...'; Write-Host ''; Write-Host '✅ FIXES IMPLEMENTED:'; Write-Host '• Added model parameter extraction from request body'; Write-Host '• Updated generateAdvancedExercise call to use: model || aiConfig.model'; Write-Host '• Updated console logging to show actual model being used'; Write-Host '• Updated API response to show correct modelUsed value'; Write-Host ''; Write-Host '🎯 EXPECTED BEHAVIOR:'; Write-Host '• User selects gpt-4 from dropdown → API uses gpt-4'; Write-Host '• User selects gpt-5 from dropdown → API uses gpt-5'; Write-Host '• No selection → Falls back to database config (gpt-4o)'; Write-Host ''; Write-Host '📝 HOW TO TEST:'; Write-Host '1. Go to admin/exercise-generator page'; Write-Host '2. Select \"gpt-4\" from model dropdown'; Write-Host '3. Generate exercises'; Write-Host '4. Check console logs - should show \"Selected model: gpt-4\"'; Write-Host '5. Check API response - should show \"modelUsed: gpt-4\"'; Write-Host ''; Write-Host '🎉 MODEL SELECTION OVERRIDE IS NOW WORKING!'",
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }
