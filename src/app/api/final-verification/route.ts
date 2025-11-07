@@ -21,7 +21,6 @@ interface ProgressEntry {
 
 export async function GET() {
     try {
-        console.log('=== FINAL SYSTEM VERIFICATION ===')
         
         // Use admin client to check system state
         const supabaseAdmin = createClient(

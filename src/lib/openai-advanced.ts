@@ -1,16 +1,29 @@
 import OpenAI from 'openai';
 import { ExerciseContent, QuestionType, SpanishLevel } from '@/types/database';
+import { getAIConfigurationWithDefaults } from './ai-config';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Template variable replacement function for AI configuration prompts
+function replaceTemplateVariables(template: string, variables: Record<string, string | number>): string {
+  let result = template;
+  
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = `{{${key}}}`;
+    result = result.replace(new RegExp(placeholder, 'g'), String(value));
+  }
+  
+  return result;
+}
+
 // Retry function with exponential backoff for API rate limiting
-// Optimized for GPT-5 with high rate limits (500 RPM, 500K TPM)
+// OPTIMIZED: Reduced delays for faster generation while maintaining rate limit protection
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 8,  // Increased from 5 to 8 retries for rate limits
-  baseDelay: number = 2000  // Increased from 500ms to 2000ms for rate limit recovery
+  maxRetries: number = 5,  // Reduced from 8 to 5 for faster failure detection
+  baseDelay: number = 500  // OPTIMIZED: Reduced from 2000ms to 500ms for faster retries
 ): Promise<T> {
   console.log(`🔄 Starting retry function with maxRetries: ${maxRetries}, baseDelay: ${baseDelay}ms`);
   
@@ -44,8 +57,8 @@ async function retryWithBackoff<T>(
       }
       
       // Calculate delay with exponential backoff and jitter for rate limits
-      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 2000;  // More jitter for rate limits
-      console.log(`⏳ Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;  // OPTIMIZED: Reduced jitter from 2000ms to 500ms
+      console.log(`⏳ Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1}) - OPTIMIZED DELAYS`);
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -279,6 +292,11 @@ async function generateAdvancedExerciseInternal({
 
   console.log('✅ All parameters validated successfully');
 
+  // Get AI configuration from database with fallback to defaults
+  console.log('🔧 Loading AI configuration from database...');
+  const aiConfig = await getAIConfigurationWithDefaults('bulk_generation');
+  console.log('✅ AI configuration loaded:', aiConfig.configName);
+
   const difficultyGuide = DIFFICULTY_GUIDELINES[level][difficulty];
   const exerciseTypeInfo = EXERCISE_TYPE_PROMPTS[exerciseType];
   const proficiencyTargets = PROFICIENCY_INDICATORS[level];
@@ -310,7 +328,18 @@ UNDGÅ disse almindelige problemer:
 `;
   }
 
-  const systemPrompt = `Du er en ekspert i spansk grammatik og sprogpædagogik med speciale i at skabe valide proficienstests for danske studerende.
+  // Prepare template variables for user prompt
+  const templateVariables = {
+    questionCount: questionCount.toString(),
+    exerciseType,
+    level,
+    topic,
+    topicDescription: topicDescription || topic,
+    difficulty
+  };
+
+  // Get system prompt from AI configuration (fallback to original if not available)
+  const systemPrompt = aiConfig.systemPrompt || `Du er en ekspert i spansk grammatik og sprogpædagogik med speciale i at skabe valide proficienstests for danske studerende.
 
 OPGAVE: Generer ${questionCount} ${exerciseType} øvelser på ${level}-niveau om "${topic}" med ${difficulty} sværhedsgrad.
 
@@ -374,18 +403,20 @@ EKSEMPEL PÅ GOD PROGRESSION:
 - Spørgsmål 4-6: Øg kompleksiteten
 - Spørgsmål 7-8: Test dyb forståelse og anvendelse`;
 
-  const userPrompt = `Generer NØJAGTIGT ${questionCount} ${exerciseType} øvelser om "${topic}" (${topicDescription}).
+  // Get user prompt from AI configuration with template variable replacement
+  const userPromptTemplate = aiConfig.userPromptTemplate || `Generer NØJAGTIGT {{questionCount}} {{exerciseType}} øvelser om "{{topic}}" ({{topicDescription}}).
 
-Niveau: ${level}
-Sværhedsgrad: ${difficulty}
+Niveau: {{level}}
+Sværhedsgrad: {{difficulty}}
 Focus: Proficienstest der kan vurdere elevens beherskelse af emnet
 
 KRITISKE KRAV:
-- Du SKAL generere præcis ${questionCount} komplette, funktionelle spørgsmål
+- Du SKAL generere præcis {{questionCount}} komplette, funktionelle spørgsmål
 - Hvert spørgsmål SKAL have alle påkrævede felter udfyldt
 - For fill_blank: Brug NØJAGTIGT ÉN _ i question_da og giv ÉT entydigt svar i correct_answer
 - For multiple_choice: Inkluder 4 realistiske svarmuligheder
 - Alle forklaringer skal være detaljerede og pædagogiske på dansk
+- sentence_translation_da SKAL indeholde komplet dansk oversættelse af hele den spanske sætning/kontekst som spørgsmålet omhandler
 ${exerciseType === 'fill_blank' ? `
 SÆRLIGE KRAV FOR FILL_BLANK:
 - question_da SKAL indeholde nøjagtigt én _ (underscore) som markerer den tomme plads
@@ -400,12 +431,13 @@ Returner KUN valid JSON i dette format:
   "questions": [
     {
       "id": "q1",
-      "type": "${exerciseType}",
+      "type": "{{exerciseType}}",
       "question_da": "Spørgsmål på dansk${exerciseType === 'fill_blank' ? ' med _ for tomme pladser' : ''}",
       ${exerciseType === 'multiple_choice' ? `"options": ["option1", "option2", "option3", "option4"],` : ''}
       "correct_answer": "${exerciseType === 'fill_blank' ? 'enkelt ord eller kort udtryk' : 'korrekt svar'}",
       "explanation_da": "Detaljeret forklaring på dansk med spansk eksempel",
-      "difficulty_level": "${difficulty}",
+      "sentence_translation_da": "Komplet dansk oversættelse af hele den spanske sætning/kontekst som spørgsmålet handler om",
+      "difficulty_level": "{{difficulty}}",
       "proficiency_indicator": "hvilket niveau-mål dette spørgsmål tester"
     }
   ],
@@ -415,7 +447,7 @@ Returner KUN valid JSON i dette format:
       {
         "skill": "færdighed",
         "description": "beskrivelse af hvad der testes",
-        "difficulty_level": "${difficulty}"
+        "difficulty_level": "{{difficulty}}"
       }
     ],
     "cognitive_load": "low|medium|high",
@@ -423,24 +455,36 @@ Returner KUN valid JSON i dette format:
   }
 }
 
-HUSK: Du skal generere ${questionCount} spørgsmål - ingen mere, ingen mindre. Fokuser på variation og autenticitet.`;
+HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre. Fokuser på variation og autenticitet.`;
+
+  // Process template variables in user prompt
+  const userPrompt = replaceTemplateVariables(userPromptTemplate, templateVariables);
 
   console.log('🔄 Preparing OpenAI API call...');
+  console.log('📝 Selected model:', model || aiConfig.model);
+  console.log('📝 Model source:', model ? 'User selection' : 'Database default');
+  console.log('📝 Using AI config temperature:', aiConfig.temperature);
+  console.log('📝 Using AI config max tokens:', aiConfig.maxTokens);
   console.log('📝 System prompt length:', systemPrompt.length);
   console.log('📝 User prompt length:', userPrompt.length);
+  console.log('📝 Template variables replaced:', Object.keys(templateVariables).length);
 
   try {
-    console.log(`🌐 Making OpenAI API call with model: ${model}`);
+    // Use the passed model parameter instead of aiConfig.model
+    const selectedModel = model || aiConfig.model;
+    console.log(`🌐 Making OpenAI API call with selected model: ${selectedModel}`);
+    console.log(`📝 Model source: ${model ? 'User selection' : 'Database default'}`);
+    
     const completion = await retryWithBackoff(async () => {
       console.log('🔄 Attempting OpenAI API call...');
       return await openai.chat.completions.create({
-        model: model,
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: model === 'gpt-5' ? 1 : 0.7,  // GPT-5 only supports temperature: 1, others can use 0.7
-        max_completion_tokens: model === 'gpt-5' ? 4000 : 3000,  // Higher token limit for GPT-5
+        temperature: aiConfig.temperature,
+        max_completion_tokens: aiConfig.maxTokens,
       });
     });
 
@@ -684,4 +728,47 @@ export async function validateExerciseQuality(exercise: EnhancedExerciseContent)
     feedback,
     recommendations
   };
+}
+
+// Advanced feedback generation with model selection support
+export async function generateAdvancedFeedback(
+  userAnswer: string,
+  correctAnswer: string,
+  question: string,
+  level: SpanishLevel,
+  model?: string
+): Promise<string> {
+  try {
+    // Get AI configuration with model selection
+    const aiConfig = await getAIConfigurationWithDefaults('feedback_generation');
+    const selectedModel = model || aiConfig.model;
+
+    // Construct feedback prompt
+    const systemPrompt = `Du er en hjælpsom spansk lærer, der giver feedback på dansk. Giv venlig og konstruktiv feedback til studenten på ${level} niveau.`;
+    
+    const userPrompt = `Spørgsmål: ${question}
+Studentens svar: "${userAnswer}"
+Korrekt svar: "${correctAnswer}"
+
+Giv kort feedback på dansk om studentens svar.`;
+
+    console.log(`🔍 Generating feedback with model: ${selectedModel}`);
+
+    const completion = await retryWithBackoff(async () => {
+      return await openai.chat.completions.create({
+        model: selectedModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      });
+    });
+
+    return completion.choices[0].message.content || 'Feedback kunne ikke genereres.';
+  } catch (error) {
+    console.error('Error generating advanced feedback:', error);
+    return 'Feedback kunne ikke genereres på grund af en fejl.';
+  }
 }

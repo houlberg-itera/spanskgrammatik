@@ -5,8 +5,6 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
     
-    console.log('Admin Stats API: Fetching database statistics');
-
     // Get all topics
     const { data: topics, error: topicsError } = await supabase
       .from('topics')

@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
       level, 
       topicName, 
       topicDescription,
-      difficultyDistribution
+      difficultyDistribution,
+      model
     } = body;
 
     console.log('🔍 Extracted parameters:', {
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
       level,
       topicName,
       topicDescription,
-      difficultyDistribution
+      difficultyDistribution,
+      model
     });
 
     // Validate all required fields with detailed error messages
@@ -292,14 +294,14 @@ export async function POST(request: NextRequest) {
         generateVariations: true,
         includeExplanations: true,
         targetProficiency: true,
-        modelUsed: aiConfig.model
+        modelUsed: model || aiConfig.model
       });
 
       let exerciseContent;
       const generationStartTime = Date.now();
       try {
         console.log(`🔄 Starting OpenAI API call for ${difficultyLevel} difficulty [${requestId}]...`);
-        console.log(`🎯 AI Model: ${aiConfig.model} | Configuration: ${aiConfig.configName} | Temperature: ${aiConfig.temperature} | Max Tokens: ${aiConfig.maxTokens}`);
+        console.log(`🎯 AI Model: ${model || aiConfig.model} | Configuration: ${aiConfig.configName} | Temperature: ${aiConfig.temperature} | Max Tokens: ${aiConfig.maxTokens}`);
         
         exerciseContent = await generateAdvancedExercise({
           level: finalLevel as SpanishLevel,
@@ -312,7 +314,7 @@ export async function POST(request: NextRequest) {
           generateVariations: true,
           includeExplanations: true,
           targetProficiency: true,
-          model: aiConfig.model // Use the configured model
+          model: model || aiConfig.model // Use user-selected model or fall back to configured model
         });
         
         const generationTime = Date.now() - generationStartTime;

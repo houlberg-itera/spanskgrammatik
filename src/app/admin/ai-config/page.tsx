@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 interface AIConfiguration {
@@ -18,29 +17,58 @@ interface AIConfiguration {
   updated_at: string;
 }
 
+interface TestResult {
+  success: boolean;
+  result?: any;
+  error?: string;
+  model_info?: {
+    model: string;
+    response_time: number;
+    tokens_used?: number;
+  };
+}
+
+interface TestConfiguration {
+  topic: string;
+  level: string;
+  questionCount: number;
+  exerciseType: string;
+  difficulty: string;
+  instructions: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  topicData?: {
+    id: number;
+    level: string;
+    name_da: string;
+    name_es: string;
+    description_da?: string;
+    description_es?: string;
+    exercise_count: number;
+  };
+}
+
 export default function AIConfigPage() {
   const [configs, setConfigs] = useState<AIConfiguration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingConfig, setEditingConfig] = useState<AIConfiguration | null>(null);
+  const [showTestForm, setShowTestForm] = useState(false);
+  const [testingConfig, setTestingConfig] = useState<AIConfiguration | null>(null);
   const [showForm, setShowForm] = useState(false);
-
-  const supabase = createClient();
-
-  useEffect(() => {
-    fetchConfigurations();
-  }, []);
+  const [editingConfig, setEditingConfig] = useState<AIConfiguration | null>(null);
 
   const fetchConfigurations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('ai_configurations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setConfigs(data || []);
+      const response = await fetch('/api/ai-config');
+      const data = await response.json();
+      
+      if (data.success) {
+        setConfigs(data.data || []);
+      } else {
+        setError(data.error || 'Failed to fetch configurations');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch configurations');
     } finally {
@@ -48,49 +76,70 @@ export default function AIConfigPage() {
     }
   };
 
+  useEffect(() => {
+    fetchConfigurations();
+  }, []);
+
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this configuration?')) return;
 
     try {
-      const { error } = await supabase
-        .from('ai_configurations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      await fetchConfigurations();
+      const response = await fetch(`/api/ai-config/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        await fetchConfigurations();
+      } else {
+        setError('Failed to delete configuration');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete configuration');
     }
   };
 
-  const handleSave = async (config: Partial<AIConfiguration>) => {
+  const handleSave = async (formData: Partial<AIConfiguration>) => {
     try {
-      if (editingConfig) {
-        // Update existing
-        const { error } = await supabase
-          .from('ai_configurations')
-          .update({
-            ...config,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingConfig.id);
+      setLoading(true);
+      setError(null);
+      
+      const configData = {
+        name: formData.name,
+        description: formData.description || '',
+        model_name: formData.model_name,
+        temperature: formData.temperature || 0.7,
+        max_tokens: formData.max_tokens || 1000,
+        system_prompt: formData.system_prompt || '',
+        user_prompt_template: formData.user_prompt_template || '',
+        is_active: formData.is_active ?? true
+      };
 
-        if (error) throw error;
+      const url = editingConfig 
+        ? `/api/ai-config/${editingConfig.id}` 
+        : '/api/ai-config';
+      
+      const method = editingConfig ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      });
+
+      if (response.ok) {
+        setShowForm(false);
+        setEditingConfig(null);
+        await fetchConfigurations();
       } else {
-        // Create new
-        const { error } = await supabase
-          .from('ai_configurations')
-          .insert([config]);
-
-        if (error) throw error;
+        const data = await response.json();
+        setError(data.error || `Failed to ${editingConfig ? 'update' : 'create'} configuration`);
       }
-
-      setEditingConfig(null);
-      setShowForm(false);
-      fetchConfigurations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save configuration');
+      setError(err instanceof Error ? err.message : `Failed to ${editingConfig ? 'update' : 'create'} configuration`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,11 +157,11 @@ export default function AIConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <nav className="flex items-center space-x-2 text-xs sm:text-sm mb-4 sm:mb-6">
+        <div className="mb-8">
+          <nav className="flex items-center space-x-2 text-sm mb-6">
             <Link href="/admin/dashboard" className="text-blue-600 hover:text-blue-800">
               Admin Dashboard
             </Link>
@@ -120,162 +169,657 @@ export default function AIConfigPage() {
             <span className="text-gray-600">AI Configuration</span>
           </nav>
           
-          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+          <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">🤖 AI Configuration</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-2">Manage OpenAI models and prompts dynamically</p>
+              <h1 className="text-3xl font-bold text-gray-900">🤖 AI Configuration</h1>
+              <p className="text-gray-600 mt-2">
+                Manage and test OpenAI models and prompts
+              </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingConfig(null);
-                setShowForm(true);
-              }}
-              className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
-            >
-              + Add Configuration
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setEditingConfig(null);
+                  setShowForm(true);
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                ➕ Create Configuration
+              </button>
+              <button
+                onClick={() => window.open('/api/test-openai', '_blank')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                🧪 Test API Connection
+              </button>
+            </div>
           </div>
         </div>
 
         {error && (
-          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 text-sm sm:text-base">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">{error}</p>
             <button
               onClick={() => setError(null)}
-              className="mt-2 text-xs sm:text-sm text-red-600 hover:text-red-800"
+              className="mt-2 text-sm text-red-600 hover:text-red-800"
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
-            <div className="text-xl sm:text-2xl font-bold text-blue-600">{configs.length}</div>
-            <div className="text-sm sm:text-base text-gray-600">Total Configurations</div>
+        {/* Configuration Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="text-2xl font-bold text-blue-600">{configs.length}</div>
+            <div className="text-gray-600">Total Configurations</div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
-            <div className="text-xl sm:text-2xl font-bold text-green-600">
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="text-2xl font-bold text-green-600">
               {configs.filter(c => c.is_active).length}
             </div>
-            <div className="text-sm sm:text-base text-gray-600">Active Configurations</div>
+            <div className="text-gray-600">Active Configurations</div>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm sm:col-span-2 lg:col-span-1">
-            <div className="text-xl sm:text-2xl font-bold text-purple-600">
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="text-2xl font-bold text-purple-600">
               {new Set(configs.map(c => c.model_name)).size}
             </div>
-            <div className="text-sm sm:text-base text-gray-600">Unique Models</div>
+            <div className="text-gray-600">Unique Models</div>
           </div>
         </div>
 
         {/* Configurations List */}
-        <div className="space-y-4 sm:space-y-6">
-          {configs.length > 0 ? (
-            configs.map((config) => (
-              <div key={config.id} className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{config.name}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Current Configurations</h2>
+          </div>
+          
+          {configs.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No AI configurations found</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Configurations will appear here when created through the database
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Tokens</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {configs.map((config) => (
+                    <tr key={config.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{config.name}</div>
+                        <div className="text-sm text-gray-500">{config.description}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
                           {config.model_name}
                         </span>
-                        {config.is_active && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm sm:text-base text-gray-600 mb-4">{config.description}</p>
-
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                      <div>
-                        <span className="text-xs sm:text-sm text-gray-500">Temperature</span>
-                        <p className="font-medium text-sm sm:text-base">{config.temperature}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-gray-500">Max Tokens</span>
-                        <p className="font-medium text-sm sm:text-base">{config.max_tokens}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-gray-500">Created</span>
-                        <p className="font-medium text-sm sm:text-base">{new Date(config.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-gray-500">Updated</span>
-                        <p className="font-medium text-sm sm:text-base">{new Date(config.updated_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <span className="text-xs sm:text-sm text-gray-500">System Prompt (preview)</span>
-                      <p className="text-xs sm:text-sm bg-gray-50 p-2 rounded mt-1 font-mono">
-                        {config.system_prompt?.substring(0, 100)}...
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row sm:flex-col lg:flex-row gap-2 mt-4 lg:mt-0 lg:ml-4">
-                    <button
-                      onClick={() => {
-                        setEditingConfig(config);
-                        setShowForm(true);
-                      }}
-                      className="flex-1 sm:flex-none px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(config.id)}
-                      className="flex-1 sm:flex-none px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-8 sm:py-12">
-              <p className="text-gray-500 mb-4 text-sm sm:text-base">No AI configurations found</p>
-              <button
-                onClick={() => {
-                  setEditingConfig(null);
-                  setShowForm(true);
-                }}
-                className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-              >
-                Create Your First Configuration
-              </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {config.temperature}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {config.max_tokens}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          config.is_active 
+                            ? "bg-green-100 text-green-800" 
+                            : "bg-gray-100 text-gray-800"
+                        }`}>
+                          {config.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => {
+                            setEditingConfig(config);
+                            setShowForm(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTestingConfig(config);
+                            setShowTestForm(true);
+                          }}
+                          className="text-green-600 hover:text-green-900 mr-4"
+                        >
+                          🧪 Test
+                        </button>
+                        <button
+                          onClick={() => handleDelete(config.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Edit/Create Form Modal */}
-        {showForm && (
-          <ConfigurationForm
-            config={editingConfig}
-            onSave={handleSave}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingConfig(null);
-            }}
-          />
-        )}
+      {/* Test Configuration Modal */}
+      {showTestForm && testingConfig && (
+        <TestConfigurationForm
+          config={testingConfig}
+          onClose={() => {
+            setShowTestForm(false);
+            setTestingConfig(null);
+          }}
+        />
+      )}
+
+      {/* Create/Edit Configuration Modal */}
+      {showForm && (
+        <ConfigurationForm
+          config={editingConfig}
+          onSave={handleSave}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingConfig(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Test Configuration Form Component
+function TestConfigurationForm({ 
+  config, 
+  onClose 
+}: { 
+  config: AIConfiguration;
+  onClose: () => void;
+}) {
+  const [testConfig, setTestConfig] = useState<TestConfiguration>({
+    topic: '',
+    level: 'A1',
+    questionCount: 1,
+    exerciseType: 'multiple_choice',
+    difficulty: 'easy',
+    instructions: 'Test instructions for the AI',
+    model: config.model_name,
+    temperature: config.temperature,
+    maxTokens: config.max_tokens,
+  });
+  
+  // State for topics from database
+  const [topics, setTopics] = useState<Array<{
+    id: number;
+    level: string;
+    name_da: string;
+    name_es: string;
+    description_da?: string;
+    exercise_count: number;
+  }>>([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+  
+  const [result, setResult] = useState<TestResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch topics based on current level
+  const fetchTopics = async (level: string) => {
+    setTopicsLoading(true);
+    setTopicsError(null);
+    
+    try {
+      const response = await fetch(`/api/admin/topics?level=${level}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch topics');
+      }
+      
+      const data = await response.json();
+      setTopics(data.topics || []);
+      
+      // Reset topic selection when level changes and set to first topic if available
+      if (data.topics && data.topics.length > 0) {
+        setTestConfig(prev => ({ 
+          ...prev, 
+          topic: data.topics[0].name_es
+        }));
+      } else {
+        setTestConfig(prev => ({ 
+          ...prev, 
+          topic: ''
+        }));
+      }
+    } catch (err) {
+      setTopicsError(err instanceof Error ? err.message : 'Failed to fetch topics');
+      setTopics([]);
+    } finally {
+      setTopicsLoading(false);
+    }
+  };
+
+  // Fetch topics when component mounts or level changes
+  useEffect(() => {
+    fetchTopics(testConfig.level);
+  }, [testConfig.level]);
+
+  const handleTest = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/test-ai-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          configId: config.id,
+          configName: config.name,
+          model: testConfig.model, // Use selected model instead of config default
+          temperature: testConfig.temperature, // Use selected temperature instead of config default
+          maxTokens: testConfig.maxTokens, // Use selected maxTokens instead of config default
+          systemPrompt: config.system_prompt,
+          userPromptTemplate: config.user_prompt_template,
+          testParams: testConfig
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Test failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">
+              🧪 Test Configuration: {config.name}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Configuration Details */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold mb-2">Configuration Details</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><strong>Model:</strong> {config.model_name}</div>
+              <div><strong>Temperature:</strong> {config.temperature}</div>
+              <div><strong>Max Tokens:</strong> {config.max_tokens}</div>
+              <div><strong>Status:</strong> {config.is_active ? 'Active' : 'Inactive'}</div>
+            </div>
+          </div>
+
+          {/* Test Parameters */}
+          <div className="mb-6">
+            <h3 className="font-semibold mb-4">Test Parameters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Topic
+                </label>
+                <select
+                  value={testConfig.topic}
+                  onChange={(e) => {
+                    const selectedTopic = topics.find(t => t.name_es === e.target.value);
+                    setTestConfig({ 
+                      ...testConfig, 
+                      topic: e.target.value,
+                      topicData: selectedTopic 
+                    });
+                  }}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={topicsLoading}
+                >
+                  {topicsLoading ? (
+                    <option value="">Loading topics...</option>
+                  ) : topicsError ? (
+                    <option value="">Error loading topics</option>
+                  ) : topics.length === 0 ? (
+                    <option value="">No topics available for {testConfig.level}</option>
+                  ) : (
+                    <>
+                      <option value="">Select a topic</option>
+                      {topics.map((topic) => (
+                        <option key={topic.id} value={topic.name_es}>
+                          {topic.name_es} ({topic.name_da}) - {topic.exercise_count} exercises
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                {topicsError && (
+                  <p className="mt-1 text-sm text-red-600">{topicsError}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Level
+                </label>
+                <select
+                  value={testConfig.level}
+                  onChange={(e) => setTestConfig({ ...testConfig, level: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="A1">A1</option>
+                  <option value="A2">A2</option>
+                  <option value="B1">B1</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Question Count
+                </label>
+                <select
+                  value={testConfig.questionCount}
+                  onChange={(e) => setTestConfig({ ...testConfig, questionCount: parseInt(e.target.value) })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={1}>1 question</option>
+                  <option value={3}>3 questions</option>
+                  <option value={5}>5 questions</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Exercise Type
+                </label>
+                <select
+                  value={testConfig.exerciseType}
+                  onChange={(e) => setTestConfig({ ...testConfig, exerciseType: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="multiple_choice">Multiple Choice</option>
+                  <option value="fill_in_blank">Fill in Blank</option>
+                  <option value="translation">Translation</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Difficulty
+                </label>
+                <select
+                  value={testConfig.difficulty}
+                  onChange={(e) => setTestConfig({ ...testConfig, difficulty: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  AI Model
+                </label>
+                <select
+                  value={testConfig.model}
+                  onChange={(e) => setTestConfig({ ...testConfig, model: e.target.value })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="gpt-4o">GPT-4o (Latest)</option>
+                  <option value="gpt-4">GPT-4 (Stable)</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fast)</option>
+                  <option value="gpt-5">GPT-5 (Preview)</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Choose the AI model to test with (overrides config default)
+                </p>
+              </div>
+            </div>
+
+            {/* Advanced Parameters */}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-3">Advanced Parameters</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Temperature: {testConfig.temperature}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={testConfig.temperature}
+                    onChange={(e) => setTestConfig({ ...testConfig, temperature: parseFloat(e.target.value) })}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0 (Focused)</span>
+                    <span>1 (Balanced)</span>
+                    <span>2 (Creative)</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Tokens: {testConfig.maxTokens}
+                  </label>
+                  <input
+                    type="range"
+                    min="100"
+                    max="4000"
+                    step="100"
+                    value={testConfig.maxTokens}
+                    onChange={(e) => setTestConfig({ ...testConfig, maxTokens: parseInt(e.target.value) })}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>100</span>
+                    <span>2000</span>
+                    <span>4000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Custom Instructions
+              </label>
+              <textarea
+                value={testConfig.instructions}
+                onChange={(e) => setTestConfig({ ...testConfig, instructions: e.target.value })}
+                rows={3}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Additional instructions for the AI..."
+              />
+            </div>
+          </div>
+
+          {/* Test Button */}
+          <div className="mb-6">
+            <button
+              onClick={handleTest}
+              disabled={loading}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Testing Configuration...
+                </span>
+              ) : (
+                '🚀 Run Test'
+              )}
+            </button>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Results Display */}
+          {result && (
+            <div className="mb-6">
+              <h3 className="font-semibold mb-4 flex items-center">
+                {result.success ? '✅' : '❌'} Test Results
+              </h3>
+              
+              {result.success ? (
+                <div className="space-y-4">
+                  {/* Model Info */}
+                  {result.model_info && (
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-2">Model Information</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <strong>Model:</strong> {result.model_info.model}
+                        </div>
+                        <div>
+                          <strong>Response Time:</strong> {result.model_info.response_time}ms
+                        </div>
+                        {result.model_info.tokens_used && (
+                          <div>
+                            <strong>Tokens Used:</strong> {result.model_info.tokens_used}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Generated Exercise */}
+                  {(result as any).exercise && (
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <h4 className="font-semibold text-green-900 mb-2">Generated Exercise</h4>
+                      <div className="space-y-3">
+                        {/* Exercise Title */}
+                        {(result as any).exercise.title && (
+                          <div>
+                            <strong className="text-green-800">Title:</strong> {(result as any).exercise.title}
+                          </div>
+                        )}
+                        
+                        {/* Questions */}
+                        {(result as any).exercise.questions && (result as any).exercise.questions.length > 0 && (
+                          <div>
+                            <strong className="text-green-800">Questions ({(result as any).exercise.questions.length}):</strong>
+                            <div className="mt-2 space-y-2">
+                              {(result as any).exercise.questions.map((question: any, index: number) => (
+                                <div key={index} className="p-3 bg-white rounded border border-green-200">
+                                  <div className="text-sm">
+                                    <strong>Q{index + 1}:</strong>
+                                    {question.question_da && (
+                                      <div className="mt-1">
+                                        <span className="text-blue-700 font-medium">Danish:</span> {question.question_da}
+                                      </div>
+                                    )}
+                                    {question.question_es && (
+                                      <div className="mt-1">
+                                        <span className="text-green-700 font-medium">Spanish:</span> {question.question_es}
+                                      </div>
+                                    )}
+                                    {question.translation_da && (
+                                      <div className="mt-1">
+                                        <span className="text-purple-700 font-medium">Translation:</span> {question.translation_da}
+                                      </div>
+                                    )}
+                                    {!question.question_da && !question.question_es && question.question && (
+                                      <div className="mt-1">{question.question}</div>
+                                    )}
+                                  </div>
+                                  {question.options && (
+                                    <div className="mt-2 text-xs text-gray-600">
+                                      <span className="font-medium">Options:</span> {Array.isArray(question.options) ? question.options.join(', ') : JSON.stringify(question.options)}
+                                    </div>
+                                  )}
+                                  {question.correct_answer && (
+                                    <div className="mt-2 text-xs text-green-600">
+                                      <strong>Answer:</strong> {question.correct_answer}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Complete API Response */}
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 mb-2">Complete API Response JSON</h4>
+                      <pre className="text-xs bg-white p-3 rounded border overflow-x-auto max-h-64">
+{JSON.stringify(result, null, 2)}
+                      </pre>
+                    </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <p className="text-red-800">{result.error}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex justify-end gap-4 pt-6 border-t">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Close
+            </button>
+            {result && (
+              <button
+                onClick={() => {
+                  setResult(null);
+                  setError(null);
+                }}
+                className="px-6 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              >
+                🔄 Test Again
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// Form Component
-function ConfigurationForm({ 
-  config, 
-  onSave, 
-  onCancel 
-}: { 
+// Configuration Form Component
+function ConfigurationForm({
+  config,
+  onSave,
+  onCancel
+}: {
   config: AIConfiguration | null;
   onSave: (config: Partial<AIConfiguration>) => void;
   onCancel: () => void;
@@ -285,65 +829,84 @@ function ConfigurationForm({
     description: config?.description || '',
     model_name: config?.model_name || 'gpt-4o',
     temperature: config?.temperature || 0.7,
-    max_tokens: config?.max_tokens || 1500,
+    max_tokens: config?.max_tokens || 2000,
     system_prompt: config?.system_prompt || '',
     user_prompt_template: config?.user_prompt_template || '',
     is_active: config?.is_active ?? true
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Configuration name is required';
+    }
+
+    if (!formData.model_name.trim()) {
+      newErrors.model_name = 'Model name is required';
+    }
+
+    if (formData.temperature < 0 || formData.temperature > 2) {
+      newErrors.temperature = 'Temperature must be between 0 and 2';
+    }
+
+    if (formData.max_tokens < 1 || formData.max_tokens > 4000) {
+      newErrors.max_tokens = 'Max tokens must be between 1 and 4000';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    if (validateForm()) {
+      onSave(formData);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
-            <h2 className="text-xl sm:text-2xl font-bold">
-              {config ? 'Edit Configuration' : 'New Configuration'}
+        <form onSubmit={handleSubmit} className="p-6">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {config ? 'Edit Configuration' : 'Create Configuration'}
             </h2>
             <button
               type="button"
               onClick={onCancel}
-              className="text-gray-500 hover:text-gray-700 self-end sm:self-auto"
+              className="text-gray-500 hover:text-gray-700 transition-colors"
             >
-              ✕
+              <span className="sr-only">Close</span>
+              <span className="text-2xl">×</span>
             </button>
           </div>
 
-          <div className="grid gap-4 sm:gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Configuration Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Model
-                </label>
-                <select
-                  value={formData.model_name}
-                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                >
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-4">GPT-4</option>
-                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                </select>
-              </div>
+          {/* Form Fields */}
+          <div className="space-y-6">
+            {/* Configuration Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Configuration Name *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter configuration name"
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
 
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description
@@ -352,11 +915,34 @@ function ConfigurationForm({
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter description (optional)"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Model and Settings Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Model Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Model *
+                </label>
+                <select
+                  value={formData.model_name}
+                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.model_name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-5">GPT-5</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
+                {errors.model_name && <p className="mt-1 text-sm text-red-600">{errors.model_name}</p>}
+              </div>
+
+              {/* Temperature */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Temperature
@@ -368,10 +954,14 @@ function ConfigurationForm({
                   step="0.1"
                   value={formData.temperature}
                   onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.temperature ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {errors.temperature && <p className="mt-1 text-sm text-red-600">{errors.temperature}</p>}
               </div>
 
+              {/* Max Tokens */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Max Tokens
@@ -382,23 +972,29 @@ function ConfigurationForm({
                   max="4000"
                   value={formData.max_tokens}
                   onChange={(e) => setFormData({ ...formData, max_tokens: parseInt(e.target.value) })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.max_tokens ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
-              </div>
-
-              <div className="flex items-center sm:col-span-2 lg:col-span-1">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="mr-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Active</span>
-                </label>
+                {errors.max_tokens && <p className="mt-1 text-sm text-red-600">{errors.max_tokens}</p>}
               </div>
             </div>
 
+            {/* Active Status */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                Active Configuration
+              </label>
+            </div>
+
+            {/* System Prompt */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 System Prompt
@@ -407,11 +1003,15 @@ function ConfigurationForm({
                 value={formData.system_prompt}
                 onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
                 rows={4}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
-                placeholder="Enter system prompt with template variables like {{level}}, {{topic}}, etc."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter system prompt with template variables like {level}, {topic}, etc."
               />
+              <p className="mt-1 text-sm text-gray-500">
+                Use template variables: {"{level}, {topic}, {exerciseType}, {difficulty}"}
+              </p>
             </div>
 
+            {/* User Prompt Template */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 User Prompt Template
@@ -420,23 +1020,27 @@ function ConfigurationForm({
                 value={formData.user_prompt_template}
                 onChange={(e) => setFormData({ ...formData, user_prompt_template: e.target.value })}
                 rows={6}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
-                placeholder="Enter user prompt template with variables like {{questionCount}}, {{exerciseType}}, etc."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter user prompt template with variables like {questionCount}, {exerciseType}, etc."
               />
+              <p className="mt-1 text-sm text-gray-500">
+                Use template variables: {"{questionCount}, {exerciseType}, {difficulty}, {topicName}, {topicDescription}"}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 pt-6 border-t">
+          {/* Form Actions */}
+          <div className="flex gap-4 mt-8 pt-6 border-t">
             <button
               type="submit"
-              className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
             >
               {config ? 'Update Configuration' : 'Create Configuration'}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="w-full sm:w-auto px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base"
+              className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
             >
               Cancel
             </button>

@@ -12,6 +12,7 @@ interface Exercise {
   options?: string[];
   type: string;
   explanation_da?: string; // Added explanation field
+  sentence_translation_da?: string; // Added Danish translation of full sentence
   originalExerciseId?: number; // For tracking the original exercise ID in retry mode
   questionIndex?: number; // For tracking which question within the original exercise
 }
@@ -102,6 +103,14 @@ export default function TopicExercisePlayer({
         })) || []
       });
 
+      // ✅ SAFETY CHECK: Ensure allData exists and has valid structure
+      if (!allData || allData.length === 0) {
+        console.log('❌ NO EXERCISES FOUND: Database returned empty result');
+        setExercises([]);
+        setLoading(false);
+        return;
+      }
+
       // ✅ FIX: Check for retry mode with no wrong answers OR review mode logic
       // 🚨 CRITICAL: Only trigger early exit for RETRY mode when no wrong answers exist
       // For REVIEW mode, show available exercises regardless of wrongAnswerExerciseIds
@@ -126,18 +135,18 @@ export default function TopicExercisePlayer({
         exercisesToShow = allData || [];
         console.log('🎯 NORMAL MODE: Using all exercises', {
           totalExercises: exercisesToShow.length,
-          exercises: exercisesToShow.map(e => e.id)
+          exercises: exercisesToShow.map(e => e?.id || 'no-id')
         });
       } else if (reviewMode) {
         // 🔄 REVIEW MODE: Use ALL exercises for practice/review
         exercisesToShow = allData || [];
         console.log('🔄 REVIEW MODE: Using all exercises for practice', {
           totalExercises: exercisesToShow.length,
-          exercises: exercisesToShow.map(e => e.id),
+          exercises: exercisesToShow.map(e => e?.id || 'no-id'),
           exerciseDetails: exercisesToShow.map(e => ({
-            id: e.id,
-            questionCount: e.content?.questions?.length || 1,
-            title: e.content?.question_da || 'Unknown exercise'
+            id: e?.id || 'no-id',
+            questionCount: e?.content?.questions?.length || 1,
+            title: e?.content?.question_da || 'Unknown exercise'
           }))
         });
       } else if (retryMode && wrongAnswerExerciseIds.length > 0) {
@@ -149,7 +158,7 @@ export default function TopicExercisePlayer({
         console.log('🔄 RETRY FILTERING DETAILED DEBUG:', {
           wrongAnswerExerciseIds,
           wrongQuestionIds,
-          allAvailableExerciseIds: allData?.map(e => e.id) || [],
+          allAvailableExerciseIds: allData?.map(e => e?.id || 'no-id') || [],
           totalAvailableExercises: allData?.length || 0
         });
 
@@ -161,7 +170,7 @@ export default function TopicExercisePlayer({
           const questionIndex = wrongQuestionId % 1000;
           
           // Find the original exercise
-          const exercise = allData?.find(e => e.id === originalExerciseId);
+          const exercise = allData?.find(e => e?.id === originalExerciseId);
           if (exercise && exercise.content?.questions && Array.isArray(exercise.content.questions)) {
             const question = exercise.content.questions[questionIndex];
             if (question) {
@@ -172,7 +181,7 @@ export default function TopicExercisePlayer({
                 content: {
                   ...exercise.content,
                   questions: [question], // Only this specific question
-                  question_da: question.question_da, // Direct access for compatibility
+                  question_da: question.question_da || '', // Direct access for compatibility
                   originalExerciseId: originalExerciseId,
                   questionIndex: questionIndex
                 }
@@ -186,10 +195,10 @@ export default function TopicExercisePlayer({
           wrongQuestionIds: wrongQuestionIds.length,
           individualQuestionsCreated: exercisesToShow.length,
           questionDetails: exercisesToShow.map(e => ({ 
-            id: e.id, 
-            originalId: e.content.originalExerciseId,
-            questionIndex: e.content.questionIndex,
-            question: e.content.questions[0].question_da 
+            id: e?.id || 'no-id', 
+            originalId: e?.content?.originalExerciseId || 'no-original',
+            questionIndex: e?.content?.questionIndex || 0,
+            question: e?.content?.questions?.[0]?.question_da || 'no-question'
           }))
         });
       } else {
@@ -198,15 +207,25 @@ export default function TopicExercisePlayer({
         console.log('🔄 RETRY MODE: No wrong exercises found, will redirect');
       }
 
+      // ✅ ADDITIONAL NULL CHECK: Verify exercisesToShow has valid content
+      if (!exercisesToShow || exercisesToShow.length === 0) {
+        console.log('❌ NO EXERCISES TO SHOW: After filtering, no valid exercises found');
+        setExercises([]);
+        setLoading(false);
+        return;
+      }
+
       // 🔧 DEBUG: Log transformation details before setting exercises
       console.log('🔧 EXERCISE TRANSFORMATION DEBUG:', {
         mode: reviewMode ? 'REVIEW' : (retryMode ? 'RETRY' : 'NORMAL'),
         exercisesToShowCount: exercisesToShow.length,
         transformationDetails: exercisesToShow.map(dbExercise => ({
-          exerciseId: dbExercise.id,
-          totalQuestionsInExercise: dbExercise.content?.questions?.length || 1,
-          firstQuestionText: dbExercise.content?.questions?.[0]?.question_da || 'No question',
-          allQuestionsText: dbExercise.content?.questions?.map(q => q.question_da) || [],
+          exerciseId: dbExercise?.id || 'no-id',
+          hasContent: !!dbExercise?.content,
+          hasQuestions: !!dbExercise?.content?.questions,
+          totalQuestionsInExercise: dbExercise?.content?.questions?.length || 0,
+          firstQuestionText: dbExercise?.content?.questions?.[0]?.question_da || 'No question',
+          allQuestionsText: dbExercise?.content?.questions?.map(q => q?.question_da || 'no-text') || [],
           willExpandAllQuestions: reviewMode // In review mode, expand all questions!
         }))
       });
@@ -215,19 +234,48 @@ export default function TopicExercisePlayer({
       const expandedExercises: Exercise[] = [];
       
       exercisesToShow.forEach(dbExercise => {
-        const questions = dbExercise.content?.questions || [];
+        // ✅ NULL CHECK: Ensure dbExercise has valid structure
+        if (!dbExercise || !dbExercise.content) {
+          console.log('⚠️ SKIPPING EXERCISE: Missing content', { exerciseId: dbExercise?.id || 'unknown' });
+          return;
+        }
+
+        const questions = dbExercise.content.questions || [];
+        
+        // ✅ NULL CHECK: Ensure questions array is valid
+        if (!Array.isArray(questions) || questions.length === 0) {
+          console.log('⚠️ SKIPPING EXERCISE: No valid questions', { 
+            exerciseId: dbExercise.id,
+            hasQuestions: !!dbExercise.content.questions,
+            isArray: Array.isArray(dbExercise.content.questions),
+            length: dbExercise.content.questions?.length || 0
+          });
+          return;
+        }
         
         if (reviewMode && questions.length > 1) {
           // 🔄 REVIEW MODE: Expand all questions from multi-question exercise
           questions.forEach((question, questionIndex) => {
+            // ✅ NULL CHECK: Ensure question has required fields
+            if (!question || !question.question_da) {
+              console.log('⚠️ SKIPPING QUESTION: Missing required fields', { 
+                exerciseId: dbExercise.id,
+                questionIndex,
+                hasQuestion: !!question,
+                hasQuestionDa: !!question?.question_da
+              });
+              return;
+            }
+
             expandedExercises.push({
               id: dbExercise.id * 1000 + questionIndex, // Compound ID for unique identification
-              question_da: question?.question_da || '',
-              question_es: question?.question_es || '',
-              correct_answer: question?.correct_answer || '',
-              options: question?.options || [],
-              type: question?.type || 'translation',
-              explanation_da: question?.explanation_da || '',
+              question_da: question.question_da,
+              question_es: question.question_es || '',
+              correct_answer: question.correct_answer || '',
+              options: question.options || [],
+              type: question.type || 'translation',
+              explanation_da: question.explanation_da || '',
+              sentence_translation_da: question.sentence_translation_da || '',
               // Store original exercise info for progress saving
               originalExerciseId: dbExercise.id,
               questionIndex: questionIndex
@@ -236,6 +284,17 @@ export default function TopicExercisePlayer({
         } else {
           // 🔄 NORMAL/RETRY MODE or single-question exercise: Use first question only
           const firstQuestion = questions[0] || dbExercise.content;
+          
+          // ✅ NULL CHECK: Ensure first question has required fields
+          if (!firstQuestion || !firstQuestion.question_da) {
+            console.log('⚠️ SKIPPING EXERCISE: First question missing required fields', { 
+              exerciseId: dbExercise.id,
+              hasFirstQuestion: !!firstQuestion,
+              hasQuestionDa: !!firstQuestion?.question_da
+            });
+            return;
+          }
+
           expandedExercises.push({
             id: dbExercise.id,
             question_da: firstQuestion?.question_da || dbExercise.content?.question_da || '',
@@ -244,6 +303,7 @@ export default function TopicExercisePlayer({
             options: firstQuestion?.options || dbExercise.content?.options || [],
             type: firstQuestion?.type || dbExercise.content?.type || 'translation',
             explanation_da: firstQuestion?.explanation_da || dbExercise.content?.explanation_da || '',
+            sentence_translation_da: firstQuestion?.sentence_translation_da || dbExercise.content?.sentence_translation_da || '',
             // Store original exercise info for progress saving
             originalExerciseId: dbExercise.content?.originalExerciseId || dbExercise.id,
             questionIndex: dbExercise.content?.questionIndex || 0
@@ -261,6 +321,14 @@ export default function TopicExercisePlayer({
           questionPreview: ex.question_da?.substring(0, 50) + '...'
         }))
       });
+
+      // ✅ FINAL VALIDATION: Ensure we have valid exercises after expansion
+      if (!expandedExercises || expandedExercises.length === 0) {
+        console.log('⚠️ NO VALID EXERCISES AFTER EXPANSION - Returning to dashboard');
+        setError('Ingen gyldige øvelser fundet efter behandling');
+        setLoading(false);
+        return;
+      }
 
       setExercises(expandedExercises);
       
@@ -762,6 +830,15 @@ export default function TopicExercisePlayer({
             {currentQuestion.question_es && (
               <div className="text-sm text-gray-600 italic">
                 Hint: {currentQuestion.question_es}
+              </div>
+            )}
+            {/* Danish sentence translation for student reference */}
+            {currentQuestion.sentence_translation_da && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-xs text-blue-600 font-medium mb-1">💡 Dansk oversættelse:</div>
+                <div className="text-sm text-blue-800 italic">
+                  {currentQuestion.sentence_translation_da}
+                </div>
               </div>
             )}
           </div>

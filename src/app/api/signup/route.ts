@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (adminError) {
       // If admin creation fails, fall back to normal signup
-      console.log('Admin signup failed, falling back to normal signup:', adminError.message);
-      
+    
       const normalSupabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

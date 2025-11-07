@@ -147,14 +147,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`Bulk ${action} operation completed:`, {
-      successCount,
-      errorCount,
-      updatedAdminEmails: adminEmails.join(', ')
-    });
-
     if (action === 'promote' || action === 'demote') {
-      console.log('Note: Environment variable ADMIN_EMAILS needs to be updated manually for persistence');
     }
 
     return NextResponse.json({

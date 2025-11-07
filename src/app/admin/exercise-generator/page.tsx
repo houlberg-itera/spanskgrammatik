@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { SpanishLevel } from '@/types/database';
 
 interface Topic {
-  id: string;
+  id: number;  // Changed from string to number to match database
   name_da: string;
   description_da: string;
   level: SpanishLevel;
@@ -14,7 +14,7 @@ interface Topic {
 
 interface GenerationJob {
   id: string;
-  topicId: string;  // Add topicId to properly track the topic
+  topicId: number;  // Changed from string to number to match database
   topic: string;
   level: SpanishLevel;
   exerciseType: string;
@@ -27,7 +27,7 @@ interface GenerationJob {
 export default function ExerciseGeneratorAdmin() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<SpanishLevel>('A1');
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
   const [exerciseTypes] = useState([
     { id: 'multiple_choice', name: 'Multiple Choice', weight: 35 },
     { id: 'fill_blank', name: 'Fill in the Blank', weight: 30 },
@@ -190,7 +190,7 @@ export default function ExerciseGeneratorAdmin() {
     }
   };
 
-  const handleTopicSelection = (topicId: string) => {
+  const handleTopicSelection = (topicId: number) => {
     setSelectedTopics(prev => 
       prev.includes(topicId) 
         ? prev.filter(id => id !== topicId)
@@ -217,8 +217,8 @@ export default function ExerciseGeneratorAdmin() {
       throw new Error('Generation stopped by user');
     }
     
-    const maxRetries = 3;
-    const baseDelay = 2000; // 2 seconds base delay
+    const maxRetries = 5; // Increased for better rate limit handling
+    const baseDelay = 1000; // OPTIMIZED: Reduced from 3000ms to 1000ms for faster generation
     // Create or reuse AbortController for this request
     if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
       abortControllerRef.current = new AbortController();
@@ -235,7 +235,8 @@ export default function ExerciseGeneratorAdmin() {
           difficultyDistribution: difficultyDist || difficultyDistribution,
           level: topic.level,
           topicName: topic.name_da,
-          topicDescription: topic.description_da
+          topicDescription: topic.description_da,
+          model: currentModel  // Pass the selected AI model to the API
         }),
         signal,
       });
@@ -243,12 +244,19 @@ export default function ExerciseGeneratorAdmin() {
       if (!response.ok) {
         // Check if it's a rate limit error (429)
         if (response.status === 429 && retryCount < maxRetries && !shouldStop) {
-          const exponentialDelay = baseDelay * Math.pow(2, retryCount); // 2s, 4s, 8s
-          console.log(`Rate limit hit for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1})`);
+          // OPTIMIZED: Reduced exponential backoff for faster generation
+          const exponentialDelay = baseDelay * Math.pow(2, retryCount); // OPTIMIZED: 1s, 2s, 4s, 8s instead of 1s, 3s, 9s, 27s
+          console.log(`🚫 Rate limit hit for ${topic.name_da} - ${exerciseType}. Retrying in ${exponentialDelay/1000}s (attempt ${retryCount + 1}/${maxRetries + 1}) - OPTIMIZED DELAYS`);
+          
+          // Add jitter to prevent thundering herd when multiple jobs retry
+          const jitter = Math.random() * 500; // OPTIMIZED: Reduced jitter from 1000ms to 500ms
+          const totalDelay = exponentialDelay + jitter;
+          
+          console.log(`⏳ Waiting ${Math.round(totalDelay/1000)}s with jitter to avoid rate limiting...`);
           
           // Wait with exponential backoff, but check for stop during wait
           const startTime = Date.now();
-          while (Date.now() - startTime < exponentialDelay) {
+          while (Date.now() - startTime < totalDelay) {
             if (shouldStop) {
               console.log('🛑 Retry cancelled - generation stopped by user');
               throw new Error('Generation stopped by user');
@@ -259,8 +267,26 @@ export default function ExerciseGeneratorAdmin() {
           // Retry the request
           return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
         }
+
+        // Check if it's a generation failure (422) - handle gracefully
+        if (response.status === 422) {
+          const errorData = await response.json();
+          console.warn(`⚠️ Generation failed for ${topic.name_da} - ${exerciseType}:`, errorData.error);
+          
+          if (errorData.type === 'GENERATION_FAILED') {
+            console.log('🤖 GPT-5 reasoning token issue detected. Suggestions:', errorData.suggestions);
+            // Return a structured error that can be handled gracefully
+            return {
+              success: false,
+              error: errorData.error,
+              type: errorData.type,
+              suggestions: errorData.suggestions,
+              exercisesCreated: 0
+            };
+          }
+        }
         
-        throw new Error(`Failed to generate exercises: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - Failed to generate exercises for ${topic.name_da}`);
       }
 
       return await response.json();
@@ -300,6 +326,14 @@ export default function ExerciseGeneratorAdmin() {
       return;
     }
 
+    // Validate that all selected topics exist in the loaded topics
+    const invalidTopics = selectedTopics.filter(topicId => !topics.find(t => t.id === topicId));
+    if (invalidTopics.length > 0) {
+      console.error(`❌ Invalid topic IDs found: ${invalidTopics.join(', ')}`);
+      alert(`Der blev fundet ugyldige emne-ID'er. Genindlæs venligst siden og prøv igen.`);
+      return;
+    }
+
     // Reset control states
     setShouldStop(false);
     setIsPaused(false);
@@ -315,7 +349,13 @@ export default function ExerciseGeneratorAdmin() {
 
     // Create jobs for each topic and exercise type
     for (const topicId of selectedTopics) {
-      const topic = topics.find(t => t.id === topicId)!;
+      const topic = topics.find(t => t.id === topicId);
+      
+      // Safety check: Skip if topic not found
+      if (!topic) {
+        console.warn(`⚠️ Topic with ID ${topicId} not found in loaded topics. Skipping.`);
+        continue;
+      }
       
       for (const exerciseType of exerciseTypes) {
         const count = Math.ceil((exercisesPerTopic * exerciseType.weight) / 100);
@@ -323,8 +363,8 @@ export default function ExerciseGeneratorAdmin() {
           jobs.push({
             id: `${topicId}-${exerciseType.id}`,
             topicId: topicId,  // Store the actual topic ID
-            topic: topic.name_da,
-            level: topic.level,
+            topic: topic.name_da || `Topic ${topicId}`, // Fallback name
+            level: topic.level || selectedLevel, // Fallback to selected level
             exerciseType: exerciseType.name,
             requestedCount: count,
             generatedCount: 0,
@@ -392,6 +432,29 @@ export default function ExerciseGeneratorAdmin() {
           difficultyDistribution  // Pass difficulty distribution to the API
         );
 
+        // Check if generation failed due to reasoning tokens or other AI issues
+        if (result.success === false) {
+          console.warn(`⚠️ Generation failed for ${topic.name_da} - ${job.exerciseType}:`, result.error);
+          
+          let errorMessage = result.error || 'Generation failed';
+          if (result.type === 'GENERATION_FAILED') {
+            errorMessage = `GPT-5 reasoning token issue: ${result.error}`;
+            console.log('💡 Suggestions to resolve:', result.suggestions);
+          }
+          
+          setGenerationJobs(prev => prev.map(j => 
+            j.id === job.id ? { 
+              ...j, 
+              status: 'error',
+              errorMessage,
+              generatedCount: 0
+            } : j
+          ));
+          
+          console.log(`⚠️ Job ${i+1}/${jobs.length} failed: ${errorMessage}`);
+          continue; // Continue with next job instead of stopping
+        }
+
         const generatedCount = result.exercisesCreated || job.requestedCount;
 
         // Update job as completed
@@ -407,7 +470,7 @@ export default function ExerciseGeneratorAdmin() {
 
         // Add progressive delay to respect rate limits (longer delays as we progress)
         if (i < jobs.length - 1) {
-          const progressiveDelay = Math.min(1000 + (i * 200), 5000); // Start at 1s, increase by 200ms per job, max 5s
+          const progressiveDelay = Math.min(500 + (i * 100), 2000); // OPTIMIZED: Reduced from 1000ms base to 500ms, 100ms increments, max 2s
           console.log(`⏳ Waiting ${progressiveDelay/1000}s before next generation (job ${i+1}/${jobs.length})`);
           
           // Break delay into smaller chunks so we can respond to pause/stop faster
@@ -449,9 +512,18 @@ export default function ExerciseGeneratorAdmin() {
            error.message.includes('rate limit') ||
            error.message.includes('429'));
            
-        const errorMessage = isRateLimit 
-          ? 'Rate limit reached - AI service busy. Retries were attempted but failed.' 
-          : (error instanceof Error ? error.message : 'Unknown error');
+        // Check if it's a generation failure (GPT-5 reasoning tokens, etc.)
+        const isGenerationFailure = error instanceof Error && 
+          (error.message.includes('reasoning token') ||
+           error.message.includes('GENERATION_FAILED') ||
+           error.message.includes('No exercises could be generated'));
+           
+        let errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (isRateLimit) {
+          errorMessage = 'Rate limit reached - AI service busy. Retries were attempted but failed.';
+        } else if (isGenerationFailure) {
+          errorMessage = 'GPT-5 reasoning token issue - try reducing question count or using GPT-4o';
+        }
           
         setGenerationJobs(prev => prev.map(j => 
           j.id === job.id ? { 
@@ -698,10 +770,29 @@ export default function ExerciseGeneratorAdmin() {
                     min="0"
                     max="100"
                     value={difficultyDistribution.easy}
-                    onChange={(e) => setDifficultyDistribution(prev => ({
-                      ...prev,
-                      easy: parseInt(e.target.value)
-                    }))}
+                    onChange={(e) => {
+                      const newEasy = parseInt(e.target.value);
+                      const remaining = 100 - newEasy;
+                      const currentOther = difficultyDistribution.medium + difficultyDistribution.hard;
+                      
+                      if (currentOther === 0) {
+                        // Distribute remaining equally between medium and hard
+                        setDifficultyDistribution({
+                          easy: newEasy,
+                          medium: Math.round(remaining / 2),
+                          hard: remaining - Math.round(remaining / 2)
+                        });
+                      } else {
+                        // Maintain proportions between medium and hard
+                        const mediumRatio = difficultyDistribution.medium / currentOther;
+                        const newMedium = Math.round(remaining * mediumRatio);
+                        setDifficultyDistribution({
+                          easy: newEasy,
+                          medium: newMedium,
+                          hard: remaining - newMedium
+                        });
+                      }
+                    }}
                     className="w-24 md:w-32"
                   />
                 </div>
@@ -712,10 +803,29 @@ export default function ExerciseGeneratorAdmin() {
                     min="0"
                     max="100"
                     value={difficultyDistribution.medium}
-                    onChange={(e) => setDifficultyDistribution(prev => ({
-                      ...prev,
-                      medium: parseInt(e.target.value)
-                    }))}
+                    onChange={(e) => {
+                      const newMedium = parseInt(e.target.value);
+                      const remaining = 100 - newMedium;
+                      const currentOther = difficultyDistribution.easy + difficultyDistribution.hard;
+                      
+                      if (currentOther === 0) {
+                        // Distribute remaining equally between easy and hard
+                        setDifficultyDistribution({
+                          easy: Math.round(remaining / 2),
+                          medium: newMedium,
+                          hard: remaining - Math.round(remaining / 2)
+                        });
+                      } else {
+                        // Maintain proportions between easy and hard
+                        const easyRatio = difficultyDistribution.easy / currentOther;
+                        const newEasy = Math.round(remaining * easyRatio);
+                        setDifficultyDistribution({
+                          easy: newEasy,
+                          medium: newMedium,
+                          hard: remaining - newEasy
+                        });
+                      }
+                    }}
                     className="w-24 md:w-32"
                   />
                 </div>
@@ -726,13 +836,35 @@ export default function ExerciseGeneratorAdmin() {
                     min="0"
                     max="100"
                     value={difficultyDistribution.hard}
-                    onChange={(e) => setDifficultyDistribution(prev => ({
-                      ...prev,
-                      hard: parseInt(e.target.value)
-                    }))}
+                    onChange={(e) => {
+                      const newHard = parseInt(e.target.value);
+                      const remaining = 100 - newHard;
+                      const currentOther = difficultyDistribution.easy + difficultyDistribution.medium;
+                      
+                      if (currentOther === 0) {
+                        // Distribute remaining equally between easy and medium
+                        setDifficultyDistribution({
+                          easy: Math.round(remaining / 2),
+                          medium: remaining - Math.round(remaining / 2),
+                          hard: newHard
+                        });
+                      } else {
+                        // Maintain proportions between easy and medium
+                        const easyRatio = difficultyDistribution.easy / currentOther;
+                        const newEasy = Math.round(remaining * easyRatio);
+                        setDifficultyDistribution({
+                          easy: newEasy,
+                          medium: remaining - newEasy,
+                          hard: newHard
+                        });
+                      }
+                    }}
                     className="w-24 md:w-32"
                   />
                 </div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                Total: {difficultyDistribution.easy + difficultyDistribution.medium + difficultyDistribution.hard}%
               </div>
             </div>
           </div>

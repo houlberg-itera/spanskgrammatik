@@ -513,27 +513,22 @@ export async function POST(request: NextRequest) {
   const requestStartTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 8);
   
-  console.log(`🚀 VOCABULARY EXERCISE GENERATION STARTED [${requestId}]`);
   console.log(`⏰ Request started at: ${new Date().toISOString()}`);
 
   try {
-    console.log('🎯 Vocabulary API called');
-    console.log('📥 Request method:', request.method);
     console.log('📥 Request headers:', Object.fromEntries(request.headers.entries()));
     
     let body;
     try {
       // Get the raw text first to see what we're dealing with
       const rawBody = await request.text();
-      console.log(`📥 Raw request body [${requestId}]:`, rawBody);
       
       if (!rawBody || rawBody.trim() === '') {
         throw new Error('Empty request body');
       }
       
       body = JSON.parse(rawBody);
-      console.log(`📥 Parsed request body [${requestId}]:`, body);
-    } catch (parseError) {
+     } catch (parseError) {
       console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body', details: parseError.message },
@@ -591,14 +586,10 @@ export async function POST(request: NextRequest) {
       .slice(0, Math.min(questionCount, filteredWords.length));
 
     // Generate exercise using OpenAI
-    console.log(`🧠 Starting OpenAI generation [${requestId}]...`);
-    console.log(`📝 Selected words count: ${selectedWords.length}`);
-    console.log(`🎯 Exercise type: ${exerciseType}, Level: ${level}, Topic: ${topic}`);
     
     const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount);
     const openaiStartTime = Date.now();
     
-    console.log(`🤖 Calling OpenAI API [${requestId}]...`);
     const openaiResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -641,7 +632,10 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000
+      // Use model-appropriate token parameter
+      ...(('gpt-4o'.includes('gpt-5') || 'gpt-4o'.includes('o1')) 
+        ? { max_completion_tokens: 2000 } 
+        : { max_tokens: 2000 })
     });
 
     const openaiTime = Date.now() - openaiStartTime;
@@ -658,7 +652,6 @@ export async function POST(request: NextRequest) {
     // Parse the JSON response - handle markdown code blocks
     let exerciseData;
     try {
-      console.log(`🔧 Parsing OpenAI response [${requestId}]...`);
       // Remove markdown code blocks if present
       let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
@@ -668,13 +661,8 @@ export async function POST(request: NextRequest) {
       }
       
       exerciseData = JSON.parse(cleanContent);
-      console.log(`✅ Successfully parsed vocabulary exercise [${requestId}]:`, {
-        title: exerciseData.title,
-        questionCount: exerciseData.questions?.length || 0
-      });
     } catch (parseError) {
       console.error(`❌ JSON Parse Error [${requestId}]:`, parseError);
-      console.log(`❌ Raw OpenAI Response [${requestId}]:`, content);
       console.log(`❌ Cleaned content attempted [${requestId}]:`, content.trim().substring(0, 200));
       throw new Error('Fejl i parsning af AI-respons');
     }
@@ -694,14 +682,7 @@ export async function POST(request: NextRequest) {
     };
 
     const totalRequestTime = Date.now() - requestStartTime;
-    console.log(`🎉 VOCABULARY EXERCISE GENERATION COMPLETE! [${requestId}]`);
     console.log(`⏱️ Total request time: ${totalRequestTime}ms (${(totalRequestTime/1000).toFixed(1)}s)`);
-    console.log(`📊 Exercise generated:`, {
-      title: exerciseData.title,
-      questions: exerciseData.questions?.length || 0,
-      topic,
-      level
-    });
 
     return NextResponse.json(exerciseData);
 

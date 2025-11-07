@@ -7,8 +7,7 @@ export async function POST(request: NextRequest) {
         const { exerciseId, score } = await request.json()
         
         console.log('=== DIRECT PROGRESS SAVE (BYPASSING RPC) ===')
-        console.log('Input:', { exerciseId, score })
-        
+          
         const supabase = await createClient()
         
         // Get current user
@@ -30,9 +29,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 })
         }
         
-        console.log('User authenticated:', user.id)
-        console.log('Saving progress for exercise:', exerciseId, 'score:', score)
-        
+      
         // First check if the exercise exists
         const { data: exercise, error: exerciseError } = await supabase
             .from('exercises')
@@ -49,8 +46,7 @@ export async function POST(request: NextRequest) {
             }, { status: 404 })
         }
         
-        console.log('Exercise found:', exercise.title_da)
-        
+         
         // Check if progress already exists
         const { data: existingProgress, error: checkError } = await supabase
             .from('user_progress')
@@ -64,7 +60,6 @@ export async function POST(request: NextRequest) {
         
         if (existingProgress) {
             // Update existing progress
-            console.log('Updating existing progress...')
             const { data, error } = await supabase
                 .from('user_progress')
                 .update({
@@ -81,8 +76,7 @@ export async function POST(request: NextRequest) {
             result = { data, error }
         } else {
             // Insert new progress - using ONLY columns that exist in the schema
-            console.log('Inserting new progress...')
-            const { data, error } = await supabase
+                const { data, error } = await supabase
                 .from('user_progress')
                 .insert({
                     user_id: user.id,
@@ -110,8 +104,7 @@ export async function POST(request: NextRequest) {
             }, { status: 500 })
         }
         
-        console.log('Progress saved successfully:', result.data)
-        
+    
         return NextResponse.json({
             success: true,
             message: 'Progress saved successfully using direct database access',

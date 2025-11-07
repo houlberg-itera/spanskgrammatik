@@ -81,6 +81,51 @@ export default function ExerciseQuestion({
       .trim();
   };
 
+  // Helper function to render sentence translation
+  const renderSentenceTranslation = () => {
+    // Check if we have a direct Danish translation
+    if (question.sentence_translation_da) {
+      return (
+        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <span className="text-blue-600 text-sm">💡</span>
+            <div>
+              <p className="text-xs font-medium text-blue-700 mb-1">Dansk oversættelse:</p>
+              <p className="text-sm text-blue-800">{question.sentence_translation_da}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // For fill_in_blank and conjugation, try to extract Spanish sentence from question
+    if ((question.type === 'fill_in_blank' || question.type === 'conjugation') && question.question_da) {
+      // Look for Spanish text in the question (after "sætning:", "sentence:", or similar)
+      const spanishSentenceMatch = question.question_da.match(/sætning[:\s]+([^"]+)|sentence[:\s]+([^"]+)/i);
+      if (spanishSentenceMatch) {
+        const spanishSentence = (spanishSentenceMatch[1] || spanishSentenceMatch[2])?.trim();
+        if (spanishSentence && spanishSentence.length > 5) { // Reasonable length check
+          return (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <span className="text-amber-600 text-sm">🔤</span>
+                <div>
+                  <p className="text-xs font-medium text-amber-700 mb-1">Spansk sætning:</p>
+                  <p className="text-sm text-amber-800 font-medium">{spanishSentence}</p>
+                  <p className="text-xs text-amber-600 mt-1 italic">
+                    (Dansk oversættelse ikke tilgængelig)
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Helper function to compare answers with special character handling
   const compareAnswers = (userAnswer: string, correctAnswer: string): boolean => {
     const originalUserAnswer = userAnswer.toLowerCase().trim();
@@ -149,6 +194,7 @@ export default function ExerciseQuestion({
       return (
         <div className="p-6 border rounded-lg">
           <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+          {renderSentenceTranslation()}
           <div className="space-y-2">
             {question.options?.map((option, index) => {
               const isSelected = selectedAnswer === option;
@@ -199,6 +245,7 @@ export default function ExerciseQuestion({
       return (
         <div className="p-6 border rounded-lg">
           <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+          {renderSentenceTranslation()}
           <input
             type="text"
             value={selectedAnswer as string}
@@ -225,6 +272,7 @@ export default function ExerciseQuestion({
       return (
         <div className="p-6 border rounded-lg">
           <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+          {renderSentenceTranslation()}
           <input
             type="text"
             value={selectedAnswer as string}
@@ -248,6 +296,7 @@ export default function ExerciseQuestion({
       return (
         <div className="p-6 border rounded-lg">
           <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+          {renderSentenceTranslation()}
           <input
             type="text"
             value={selectedAnswer as string}
@@ -271,6 +320,7 @@ export default function ExerciseQuestion({
       return (
         <div className="p-6 border rounded-lg">
           <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+          {renderSentenceTranslation()}
           <input
             type="text"
             value={selectedAnswer as string}

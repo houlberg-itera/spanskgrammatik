@@ -10,9 +10,14 @@ export interface UserReward {
   streak_count: number;
   questions_answered: number;
   accuracy_percentage: number;
-  achievements: Achievement[];
+  achievements: string[];
   created_at: string;
   updated_at: string;
+  // Additional properties returned by /api/rewards endpoint
+  total_xp: number;
+  current_streak: number;
+  longest_streak: number;
+  correct_answers: number;
 }
 
 export interface Achievement {

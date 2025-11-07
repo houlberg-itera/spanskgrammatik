@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generateFeedback } from '@/lib/openai';
+import { generateAdvancedFeedback } from '@/lib/openai-advanced';
 import { SpanishLevel } from '@/types/database';
 
 export async function POST(request: NextRequest) {
@@ -20,12 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Generate AI feedback
-    const feedback = await generateFeedback(
+    // Generate AI feedback with model selection
+    const feedback = await generateAdvancedFeedback(
       userAnswer,
       correctAnswer,
       question,
-      level as SpanishLevel
+      level as SpanishLevel,
+      'gpt-4o' // Use GPT-4o as default, respects admin selection
     );
 
     return NextResponse.json({ feedback });

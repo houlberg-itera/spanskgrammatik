@@ -3,15 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
     try {
-        console.log('=== QUICK LOGIN TEST ===')
-        
         // Test user credentials
         const testCredentials = {
             email: 'test@example.com',
             password: 'password123'
         }
-        
-        console.log('Attempting to login:', testCredentials.email)
         
         const supabase = await createClient()
         
@@ -31,8 +27,6 @@ export async function GET() {
                 testCredentials
             })
         }
-        
-        console.log('Login successful:', authData.user?.id)
         
         // Test current session
         const { data: { user: currentUser }, error: sessionError } = await supabase.auth.getUser()

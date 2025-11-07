@@ -16,7 +16,7 @@ interface ProficiencyData {
     confidenceScore: number;
     strengthAreas: string[];
     weaknessAreas: string[];
-    nextLevel: string;
+    recommendedLevel: string;
     progressToNextLevel: number;
     exercisesNeeded: number;
   };

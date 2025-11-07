@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('🗑️ Starting exercise database clear operation...');
     const supabase = await createClient();
     
     // Check authentication
@@ -21,16 +20,12 @@ export async function DELETE(request: NextRequest) {
     const adminEmailsEnv = process.env.ADMIN_EMAILS || 'admin@spanskgrammatik.dk,anders.houlberg-niel@itera.no';
     const adminEmails = adminEmailsEnv.split(',').map(email => email.trim());
     
-    console.log(`🔍 Checking admin access for: ${userEmail}`);
-    
     if (!adminEmails.includes(userEmail || '')) {
       console.error(`❌ Access denied for non-admin user: ${userEmail}`);
       return NextResponse.json({ 
         error: 'Admin access required for database operations' 
       }, { status: 403 });
     }
-
-    console.log('✅ Admin access confirmed for database clear operation');
 
     // Use admin client for database operations to bypass RLS
     const adminSupabase = createAdminClient();
@@ -48,8 +43,6 @@ export async function DELETE(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`📊 Found ${exerciseCount} exercises to delete`);
-
     // Delete all exercises
     const { error: deleteError } = await adminSupabase
       .from('exercises')
@@ -63,8 +56,6 @@ export async function DELETE(request: NextRequest) {
         details: deleteError.message 
       }, { status: 500 });
     }
-
-    console.log(`✅ Successfully deleted ${exerciseCount} exercises from database`);
 
     return NextResponse.json({
       success: true,
