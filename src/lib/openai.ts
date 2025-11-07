@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { ExerciseContent, ExerciseType, SpanishLevel } from '@/types/database';
+import { createOpenAIParams } from './ai-config';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -155,15 +156,14 @@ Eksempel på ${exerciseType} øvelse:`;
 
   try {
     const completion = await retryWithBackoff(async () => {
-      return await openai.chat.completions.create({
-        model: 'gpt-5',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt + '\n\n' + examples[exerciseType] },
-        ],
-        temperature: 1,  // GPT-5 only supports temperature: 1
-        max_completion_tokens: 2000,
-      });
+      const messages = [
+        { role: 'system' as const, content: systemPrompt },
+        { role: 'user' as const, content: userPrompt + '\n\n' + examples[exerciseType] },
+      ];
+      
+      // Use the utility function for model-agnostic parameters
+      const params = createOpenAIParams('gpt-5', 2000, 1, messages);
+      return await openai.chat.completions.create(params);
     });
 
     let content = completion.choices[0].message.content;
@@ -224,16 +224,15 @@ Korrekt svar: "${correctAnswer}"
 
 Giv kort feedback på dansk om studentens svar.`;
 
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: userPrompt }
+    ];
+
     const completion = await retryWithBackoff(async () => {
-      return await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 150,
-      });
+      // Use the utility function for model-agnostic parameters
+      const params = createOpenAIParams('gpt-4o', 150, 0.7, messages);
+      return await openai.chat.completions.create(params);
     });
 
     return completion.choices[0].message.content || 'Feedback kunne ikke genereres.';

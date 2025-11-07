@@ -632,7 +632,10 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000
+      // Use model-appropriate token parameter
+      ...(('gpt-4o'.includes('gpt-5') || 'gpt-4o'.includes('o1')) 
+        ? { max_completion_tokens: 2000 } 
+        : { max_tokens: 2000 })
     });
 
     const openaiTime = Date.now() - openaiStartTime;

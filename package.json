@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test-gpt5": "node test-gpt5-fix.js"
   },
   "dependencies": {
     "@jridgewell/gen-mapping": "^0.3.13",

@@ -106,3 +106,28 @@ export async function getAIConfigurationWithDefaults(configName: string) {
   
   return fallback;
 }
+
+/**
+ * Creates OpenAI API parameters with model-specific token parameter
+ * @param model - The OpenAI model name
+ * @param maxTokens - Maximum number of tokens
+ * @param temperature - Temperature setting
+ * @param messages - Chat messages array
+ * @returns Object with model-appropriate parameters
+ */
+export function createOpenAIParams(model: string, maxTokens: number, temperature: number, messages: any[]) {
+  const baseParams: any = {
+    model,
+    messages,
+    temperature
+  };
+
+  // GPT-5 and o1 models use max_completion_tokens, others use max_tokens
+  if (model.includes('gpt-5') || model.includes('o1')) {
+    baseParams.max_completion_tokens = maxTokens;
+  } else {
+    baseParams.max_tokens = maxTokens;
+  }
+
+  return baseParams;
+}
