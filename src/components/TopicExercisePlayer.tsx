@@ -823,16 +823,11 @@ export default function TopicExercisePlayer({
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            <div className="text-sm text-gray-500 mb-2">Oversæt til spansk</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {currentQuestion.question_da}
+            {/* Spanish question as main heading */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {currentQuestion.question_es || currentQuestion.question_da}
             </h2>
-            {currentQuestion.question_es && (
-              <div className="text-sm text-gray-600 italic">
-                Hint: {currentQuestion.question_es}
-              </div>
-            )}
-            {/* Danish sentence translation for student reference */}
+            {/* Danish translation as reference */}
             {currentQuestion.sentence_translation_da && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="text-xs text-blue-600 font-medium mb-1">💡 Dansk oversættelse:</div>

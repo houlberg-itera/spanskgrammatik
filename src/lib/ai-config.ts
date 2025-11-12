@@ -12,6 +12,7 @@ interface AIConfiguration {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  reasoning_instructions?: string; // Optional: Custom instructions for reasoning models (GPT-5, o1). Falls back to hardcoded default if not provided.
 }
 
 /**
@@ -65,6 +66,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
       maxTokens: config.max_tokens,
       systemPrompt: config.system_prompt,
       userPromptTemplate: config.user_prompt_template,
+      reasoningInstructions: config.reasoning_instructions,
       configFound: true,
       configName: config.name
     };
@@ -78,6 +80,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
       maxTokens: 2000,
       systemPrompt: 'You are an expert Spanish language teacher creating educational exercises for Danish students.',
       userPromptTemplate: 'Generate {count} {exerciseType} exercises for {level} level on topic: {topic}',
+      reasoningInstructions: undefined, // Will use hardcoded default if undefined
       configFound: false,
       configName: 'default_bulk_generation'
     },
@@ -87,6 +90,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
       maxTokens: 1500,
       systemPrompt: 'You are a Spanish language teacher creating individual exercises.',
       userPromptTemplate: 'Create a {exerciseType} exercise for {level} level on: {topic}',
+      reasoningInstructions: undefined, // Will use hardcoded default if undefined
       configFound: false,
       configName: 'default_exercise_generation'
     },
@@ -96,6 +100,7 @@ export async function getAIConfigurationWithDefaults(configName: string) {
       maxTokens: 1800,
       systemPrompt: 'You are a Spanish vocabulary teacher creating exercises for Danish students.',
       userPromptTemplate: 'Generate {count} vocabulary exercises about {topic} for {level} level',
+      reasoningInstructions: undefined, // Will use hardcoded default if undefined
       configFound: false,
       configName: 'default_vocabulary_generation'
     }

@@ -13,6 +13,7 @@ interface QuestionWithExercise {
   exerciseTitle: string;
   question_da: string;
   question_es?: string;
+  sentence_translation_da?: string;
   correct_answer: string | string[];
   options?: string[];
   explanation_da?: string;
@@ -104,6 +105,7 @@ export default function TopicPage() {
                 exerciseTitle: exercise.title_da,
                 question_da: question.question_da,
                 question_es: question.question_es,
+                sentence_translation_da: question.sentence_translation_da,
                 correct_answer: question.correct_answer,
                 options: question.options,
                 explanation_da: question.explanation_da,
@@ -563,13 +565,17 @@ export default function TopicPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            <div className="text-sm text-gray-500 mb-2">Oversæt til spansk</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {currentQuestion.question_da}
+            {/* Spanish question as main heading */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {currentQuestion.question_es || currentQuestion.question_da}
             </h2>
-            {currentQuestion.question_es && (
-              <div className="text-sm text-gray-600 italic">
-                Hint: {currentQuestion.question_es}
+            {/* Danish translation as reference */}
+            {(currentQuestion.sentence_translation_da) && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-xs text-blue-600 font-medium mb-1">💡 Dansk oversættelse:</div>
+                <div className="text-sm text-blue-800 italic">
+                  {currentQuestion.sentence_translation_da}
+                </div>
               </div>
             )}
           </div>

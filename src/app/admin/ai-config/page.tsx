@@ -12,6 +12,7 @@ interface AIConfiguration {
   max_tokens: number;
   system_prompt: string;
   user_prompt_template: string;
+  reasoning_instructions?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -104,6 +105,7 @@ export default function AIConfigPage() {
       setError(null);
       
       const configData = {
+        ...(editingConfig && { id: editingConfig.id }),
         name: formData.name,
         description: formData.description || '',
         model_name: formData.model_name,
@@ -111,13 +113,11 @@ export default function AIConfigPage() {
         max_tokens: formData.max_tokens || 1000,
         system_prompt: formData.system_prompt || '',
         user_prompt_template: formData.user_prompt_template || '',
+        reasoning_instructions: formData.reasoning_instructions || null,
         is_active: formData.is_active ?? true
       };
 
-      const url = editingConfig 
-        ? `/api/ai-config/${editingConfig.id}` 
-        : '/api/ai-config';
-      
+      const url = '/api/ai-config';
       const method = editingConfig ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -832,6 +832,7 @@ function ConfigurationForm({
     max_tokens: config?.max_tokens || 2000,
     system_prompt: config?.system_prompt || '',
     user_prompt_template: config?.user_prompt_template || '',
+    reasoning_instructions: config?.reasoning_instructions || '',
     is_active: config?.is_active ?? true
   });
 
@@ -1025,6 +1026,24 @@ function ConfigurationForm({
               />
               <p className="mt-1 text-sm text-gray-500">
                 Use template variables: {"{questionCount}, {exerciseType}, {difficulty}, {topicName}, {topicDescription}"}
+              </p>
+            </div>
+
+            {/* Reasoning Instructions */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reasoning Instructions
+                <span className="ml-2 text-sm font-normal text-gray-500">(Optional - GPT-5/o1 models only)</span>
+              </label>
+              <textarea
+                value={formData.reasoning_instructions || ''}
+                onChange={(e) => setFormData({ ...formData, reasoning_instructions: e.target.value })}
+                rows={8}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Optional custom reasoning instructions for GPT-5/o1 models. Leave empty to use hardcoded defaults."
+              />
+              <p className="mt-1 text-sm text-gray-600">
+                💡 These instructions are <strong>only applied when using GPT-5 or o1 models</strong>. If left empty, the system will use hardcoded default reasoning instructions optimized for complete JSON exercise generation. Custom instructions override the defaults.
               </p>
             </div>
           </div>

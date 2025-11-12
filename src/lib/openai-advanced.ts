@@ -23,7 +23,8 @@ function replaceTemplateVariables(template: string, variables: Record<string, st
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 5,  // Reduced from 8 to 5 for faster failure detection
-  baseDelay: number = 500  // OPTIMIZED: Reduced from 2000ms to 500ms for faster retries
+  baseDelay: number = 500, // OPTIMIZED: Reduced from 2000ms to 500ms for faster retries
+  signal?: AbortSignal // Added signal parameter for aborting requests
 ): Promise<T> {
   console.log(`🔄 Starting retry function with maxRetries: ${maxRetries}, baseDelay: ${baseDelay}ms`);
   
@@ -218,16 +219,32 @@ export async function generateAdvancedExercise({
       });
       
     } catch (error: any) {
-      const isReasoningTokenIssue = error.isReasoningTokenIssue || error.message?.includes('GPT-5 used reasoning tokens but returned no content');
+      const isReasoningTokenIssue = error.isReasoningTokenIssue === true || 
+                                   error.name === 'ReasoningTokenError' ||
+                                   error.message?.includes('GPT-5 used reasoning tokens but returned no content');
+      
+      console.error(`❌ Generation attempt ${reduction + 1} failed:`, {
+        errorMessage: error.message,
+        isReasoningTokenIssue,
+        hasErrorFlag: error.isReasoningTokenIssue,
+        errorName: error.name,
+        currentQuestionCount,
+        remainingReductions: maxQuestionReductions - reduction
+      });
       
       if (isReasoningTokenIssue && reduction < maxQuestionReductions) {
         // Reduce question count by half and try again
         currentQuestionCount = Math.max(1, Math.floor(currentQuestionCount / 2));
-        console.log(`⚠️ GPT-5 reasoning token issue detected. Reducing question count to ${currentQuestionCount} and retrying...`);
+        console.log(`⚠️ GPT-5 reasoning token issue detected. Reducing question count from ${questionCount} to ${currentQuestionCount} and retrying...`);
+        console.log(`🔄 Retry attempt ${reduction + 1}/${maxQuestionReductions} with ${currentQuestionCount} questions`);
         continue;
       }
       
       // If not a reasoning token issue or we've exhausted retries, throw the error
+      if (isReasoningTokenIssue) {
+        console.error(`❌ Exhausted all ${maxQuestionReductions} retries with reduced question counts`);
+        console.error(`📊 Final attempt was with ${currentQuestionCount} questions`);
+      }
       throw error;
     }
   }
@@ -373,25 +390,44 @@ SPROGADSKILLELSE EKSEMPLER:
 ✅ KORREKT: Instruktion: "Vælg den korrekte artikel til følgende spanske sætning:" + Øvelse: "He comprado _ casa en España"
 
 EKSEMPLER PÅ KORREKTE FILL_BLANK ØVELSER:
-✅ KORREKT format for fill_blank:
+✅ PERFEKT format for fill_blank (BRUG ALTID DETTE FORMAT):
 {
   "id": "fb1",
   "type": "fill_blank",
-  "question_da": "Udfyld den tomme plads med den korrekte verbform: María _ (hablar) español muy bien.",
-  "correct_answer": "habla",
-  "explanation_da": "Vi bruger 'habla' fordi det er 3. person ental af verbet 'hablar' i præsens.",
-  "difficulty_level": "easy"
+  "question_es": "Ayer ___ tarde al trabajo por un atasco en la autopista.",
+  "translation_da": "I går kom jeg sent på arbejde på grund af en trafikprop på motorvejen.",
+  "question_da": "Vælg korrekt præteritum (yo) af \"llegar\".",
+  "correct_answer": "llegué",
+  "explanation_da": "Vi bruger 'llegué' fordi det er 1. person ental (yo) af verbet 'llegar' i præteritum (pretérito indefinido).",
+  "difficulty_level": "medium"
 }
 
-✅ KORREKT format for fill_blank (artikel):
+✅ PERFEKT format for fill_blank (artikel):
 {
   "id": "fb2", 
   "type": "fill_blank",
-  "question_da": "Udfyld med den korrekte artikel: Tengo _ perro muy inteligente.",
+  "question_es": "Tengo ___ perro muy inteligente.",
+  "translation_da": "Jeg har en meget intelligent hund.",
+  "question_da": "Vælg den korrekte ubestemt artikel.",
   "correct_answer": "un",
-  "explanation_da": "Vi bruger 'un' fordi 'perro' er maskulint og bestemt artikel i entalsform.",
-  "difficulty_level": "medium"
+  "explanation_da": "Vi bruger 'un' fordi 'perro' er maskulint substantiv i ental, og vi bruger ubestemt artikel.",
+  "difficulty_level": "easy"
 }
+
+❌ FORBUDT FORMAT (BRUG ALDRIG DETTE):
+{
+  "question_da": "Hint: Brug korrekt verbform i præteritum"  ❌ FORKERT - har "Hint:" prefix
+  "question_da": "Vælg korrekt verbform i præteritum"  ✅ KORREKT - ingen "Hint:"
+}
+
+KRITISK: ALLE FILL_BLANK ØVELSER SKAL HAVE:
+- question_es: Den fulde spanske sætning med ___ blank
+- translation_da: Den komplette danske oversættelse af hele sætningen  
+- question_da: Kort dansk instruktion (ALDRIG brug "Hint:" - start direkte med "Vælg..." eller "Udfyld...")
+- correct_answer: Det korrekte spanske ord
+- explanation_da: Grammatisk forklaring på dansk
+
+VIGTIG REGEL: question_da må ALDRIG indeholde "Hint:" - det skal være en direkte instruktion som "Vælg korrekt verbform", "Udfyld med korrekt artikel", etc.
 
 UNDGÅ DISSE EKSISTERENDE SPØRGSMÅL:
 ${existingQuestions.slice(0, 10).map(q => `- "${q}"`).join('\n')}
@@ -404,7 +440,9 @@ EKSEMPEL PÅ GOD PROGRESSION:
 - Spørgsmål 7-8: Test dyb forståelse og anvendelse`;
 
   // Get user prompt from AI configuration with template variable replacement
-  const userPromptTemplate = aiConfig.userPromptTemplate || `Generer NØJAGTIGT {{questionCount}} {{exerciseType}} øvelser om "{{topic}}" ({{topicDescription}}).
+  const userPromptTemplate = aiConfig.userPromptTemplate || `⚠️ ABSOLUT VIGTIGST: question_da må ALDRIG indeholde ordet "Hint:" - brug i stedet direkte instruktioner som "Vælg...", "Udfyld...", "Angiv..."
+
+Generer NØJAGTIGT {{questionCount}} {{exerciseType}} øvelser om "{{topic}}" ({{topicDescription}}).
 
 Niveau: {{level}}
 Sværhedsgrad: {{difficulty}}
@@ -419,10 +457,15 @@ KRITISKE KRAV:
 - sentence_translation_da SKAL indeholde komplet dansk oversættelse af hele den spanske sætning/kontekst som spørgsmålet omhandler
 ${exerciseType === 'fill_blank' ? `
 SÆRLIGE KRAV FOR FILL_BLANK:
-- question_da SKAL indeholde nøjagtigt én _ (underscore) som markerer den tomme plads
+- question_es SKAL være en komplet spansk sætning med ___ (tre underscores) som blank
+- translation_da SKAL være komplet dansk oversættelse af hele den spanske sætning
+- question_da SKAL være en kort dansk instruktion UDEN "Hint:" prefix - start direkte med "Vælg...", "Udfyld...", etc.
 - correct_answer SKAL være et enkelt ord eller kort udtryk (maks 3 ord)
 - Konteksten skal gøre svaret entydigt
 - Undgå tvetydige sætninger hvor flere svar kunne være korrekte
+
+❌ FORBUDT: "Hint: Brug korrekt verbform"
+✅ KORREKT: "Vælg korrekt verbform i præteritum"
 ` : ''}
 
 Returner KUN valid JSON i dette format:
@@ -475,18 +518,61 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
     console.log(`🌐 Making OpenAI API call with selected model: ${selectedModel}`);
     console.log(`📝 Model source: ${model ? 'User selection' : 'Database default'}`);
     
+    const controller = new AbortController(); // Create an AbortController
+    const signal = controller.signal; // Get the AbortSignal
+
+    // Enhance system prompt for reasoning models (GPT-5, o1)
+    // Hybrid approach: Use database reasoning instructions if provided, otherwise use hardcoded default
+    let enhancedSystemPrompt = systemPrompt;
+    if (selectedModel.includes('gpt-5') || selectedModel.includes('o1')) {
+      console.log('🧠 Enhancing system prompt for reasoning model (GPT-5/o1)');
+      
+      // Check if custom reasoning instructions are provided in database config
+      const reasoningInstructions = aiConfig.reasoningInstructions || 
+        `IMPORTANT FOR REASONING MODELS:
+You are a reasoning model that thinks step-by-step. Please:
+1. First, reason through the task internally using your reasoning process
+2. Then, provide a clear, explicit response with the complete exercise JSON
+3. Always end with a specific output - never leave the response empty
+4. For exercise generation, provide the complete JSON structure with all required fields
+5. Do not leave responses empty - always generate the requested content after reasoning
+
+CRITICAL: The user expects to see your final exercise output in valid JSON format, not just your reasoning process. After you finish reasoning internally, you MUST provide the complete exercise structure.`;
+      
+      if (aiConfig.reasoningInstructions) {
+        console.log('📝 Using custom reasoning instructions from database config');
+      } else {
+        console.log('📝 Using default hardcoded reasoning instructions');
+      }
+      
+      enhancedSystemPrompt = `${systemPrompt}\n\n${reasoningInstructions}`;
+    }
+
+    // Enforce minimum token limit for reasoning models
+    let effectiveMaxTokens = aiConfig.maxTokens;
+    if (selectedModel.includes('gpt-5') || selectedModel.includes('o1')) {
+      effectiveMaxTokens = Math.max(effectiveMaxTokens, 8000); // Minimum 8000 for reasoning models
+      console.log(`🔧 Enforcing minimum ${effectiveMaxTokens} tokens for reasoning model (was ${aiConfig.maxTokens})`);
+    }
+
     const completion = await retryWithBackoff(async () => {
       console.log('🔄 Attempting OpenAI API call...');
+      
+      // Determine the correct parameter based on the model
+      const maxTokensParam = selectedModel.startsWith('gpt-5') 
+        ? { max_completion_tokens: effectiveMaxTokens } // GPT-5 uses max_completion_tokens with enforced minimum
+        : { max_tokens: effectiveMaxTokens }; // Other models use max_tokens
+
       return await openai.chat.completions.create({
         model: selectedModel,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: enhancedSystemPrompt }, // Use enhanced prompt for reasoning models
           { role: "user", content: userPrompt }
         ],
         temperature: aiConfig.temperature,
-        max_completion_tokens: aiConfig.maxTokens,
+        ...maxTokensParam, // Dynamically include the correct parameter
       });
-    });
+    }, 5, 500, signal); // Pass the signal to retryWithBackoff
 
     console.log('✅ OpenAI API call successful');
     console.log('📊 Usage:', completion.usage);
@@ -505,8 +591,10 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
       // If this used reasoning tokens but no content, it might be a GPT-5 issue
       if (completion.usage?.completion_tokens_details?.reasoning_tokens > 0) {
         console.error('⚠️ GPT-5 used reasoning tokens but returned no content - this may be a model issue');
-        const error = new Error('GPT-5 used reasoning tokens but returned no content. Try reducing prompt complexity or question count.');
-        (error as any).isReasoningTokenIssue = true;  // Add flag for wrapper to detect
+        console.error('💡 This error will trigger question count reduction retry logic');
+        const error: any = new Error('GPT-5 used reasoning tokens but returned no content. Try reducing prompt complexity or question count.');
+        error.isReasoningTokenIssue = true;  // Add flag for wrapper to detect
+        error.name = 'ReasoningTokenError';  // Add specific error name
         throw error;
       }
       
@@ -547,6 +635,18 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
 
     console.log('✅ JSON parsing successful');
     console.log('📊 Generated questions count:', exerciseContent.questions?.length || 0);
+
+    // 🛡️ POST-PROCESSING: Remove any "Hint:" prefix that slipped through AI generation
+    if (exerciseContent.questions) {
+      exerciseContent.questions = exerciseContent.questions.map(q => {
+        if (q.question_da && q.question_da.startsWith('Hint:')) {
+          const cleaned = q.question_da.replace(/^Hint:\s*/i, '');
+          console.log(`🔧 Removed "Hint:" prefix from question_da: "${q.question_da}" → "${cleaned}"`);
+          return { ...q, question_da: cleaned };
+        }
+        return q;
+      });
+    }
 
     // Shuffle multiple choice options to prevent answer bias
     if (exerciseType === 'multiple_choice' && exerciseContent.questions) {
@@ -650,7 +750,7 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
           {
             id: "fallback1",
             type: "multiple_choice",
-            question_da: "Vælg den korrekte relative pronomen: La casa _ compramos es muy grande.",
+            question_da: "Vælg den korrekte relative pronomen: La casa _ compramos es meget stor.",
             options: ["que", "quien", "donde", "cuando"],
             correct_answer: "que",
             explanation_da: "Vi bruger 'que' fordi det refererer til en ting (casa). 'Quien' bruges kun om personer.",

@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       max_tokens = 1500, 
       system_prompt = '', 
       user_prompt_template = '',
+      reasoning_instructions = null,
       is_active = true 
     } = body;
 
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
         max_tokens,
         system_prompt,
         user_prompt_template,
+        reasoning_instructions,
         is_active,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -112,6 +114,7 @@ export async function PUT(request: NextRequest) {
       max_tokens = 1500, 
       system_prompt = '', 
       user_prompt_template = '',
+      reasoning_instructions = null,
       is_active = true 
     } = body;
 
@@ -133,6 +136,7 @@ export async function PUT(request: NextRequest) {
         max_tokens,
         system_prompt,
         user_prompt_template,
+        reasoning_instructions,
         is_active,
         updated_at: new Date().toISOString()
       })
