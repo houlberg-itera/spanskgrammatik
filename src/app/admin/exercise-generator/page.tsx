@@ -103,6 +103,18 @@ export default function ExerciseGeneratorAdmin() {
 
   const supabase = createClient();
 
+  // CRITICAL: Clean up on component unmount to prevent zombie generation on hot-reload
+  useEffect(() => {
+    return () => {
+      // Abort any ongoing generation when component unmounts (server restart, navigation, etc.)
+      if (abortControllerRef.current) {
+        console.log('🧹 Component unmounting - aborting any ongoing generation');
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     loadTopics();
     loadAIConfiguration();
@@ -212,6 +224,7 @@ export default function ExerciseGeneratorAdmin() {
 
   const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0) => {
     // Check if generation should stop before making API call
+    // Check if generation was stopped BEFORE creating AbortController
     if (shouldStop) {
       console.log('🛑 API call cancelled - generation stopped by user');
       throw new Error('Generation stopped by user');
@@ -219,10 +232,19 @@ export default function ExerciseGeneratorAdmin() {
     
     const maxRetries = 5; // Increased for better rate limit handling
     const baseDelay = 1000; // OPTIMIZED: Reduced from 3000ms to 1000ms for faster generation
+    
     // Create or reuse AbortController for this request
-    if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+    // CRITICAL: Only create if shouldStop is false
+    if (!shouldStop && (!abortControllerRef.current || abortControllerRef.current.signal.aborted)) {
       abortControllerRef.current = new AbortController();
     }
+    
+    // SAFETY: If shouldStop is true, don't proceed with fetch
+    if (shouldStop || !abortControllerRef.current) {
+      console.log('🛑 Generation stopped - skipping API call');
+      throw new Error('Generation stopped by user');
+    }
+    
     const signal = abortControllerRef.current.signal;
     try {
       const response = await fetch('/api/generate-bulk-exercises', {
@@ -291,6 +313,12 @@ export default function ExerciseGeneratorAdmin() {
 
       return await response.json();
     } catch (error: any) {
+      // CRITICAL: Handle fetch abort - this is thrown when AbortController.abort() is called
+      if (error.name === 'AbortError') {
+        console.log('🛑 Fetch aborted - generation cancelled by user');
+        throw new Error('Generation stopped by user');
+      }
+      
       // Check if user stopped generation
       if (shouldStop) {
         console.log('🛑 Generation stopped by user during API call');
@@ -338,6 +366,12 @@ export default function ExerciseGeneratorAdmin() {
     setShouldStop(false);
     setIsPaused(false);
     setCurrentJobIndex(0);
+    
+    // CRITICAL: Reset AbortController for fresh start
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
 
     // Immediate feedback - set loading state first
     setIsGenerating(true);
@@ -559,13 +593,18 @@ export default function ExerciseGeneratorAdmin() {
   };
 
   const stopGeneration = () => {
+    // CRITICAL: Set stop flag FIRST before aborting
     setShouldStop(true);
     setIsPaused(false);
     setIsGenerating(false);
     setCurrentJobIndex(0);
     
+    // Abort the current controller if it exists
     if (abortControllerRef.current) {
+      console.log('🛑 Aborting current fetch request');
       abortControllerRef.current.abort();
+      // IMPORTANT: Set to null to prevent reuse of aborted controller
+      abortControllerRef.current = null;
     }
     
     // Clear and reset generation jobs
@@ -1105,8 +1144,8 @@ export default function ExerciseGeneratorAdmin() {
               </div>
             )}
             
-            {/* Immediate feedback message for non-generating state */}
-            {!isGenerating && selectedTopics.length > 0 && (
+            {/* Immediate feedback message when generation is active */}
+            {isGenerating && selectedTopics.length > 0 && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2 text-blue-700">
                   <div className="animate-pulse flex-shrink-0">⚡</div>
