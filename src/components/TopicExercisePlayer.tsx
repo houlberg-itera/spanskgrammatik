@@ -379,7 +379,10 @@ export default function TopicExercisePlayer({
   };
 
   const handleCheckAnswer = () => {
-    const correct = normalizeText(userAnswer) === normalizeText(exercises[currentIndex].correct_answer);
+    const correctAnswer = Array.isArray(exercises[currentIndex].correct_answer) 
+      ? exercises[currentIndex].correct_answer[0] 
+      : exercises[currentIndex].correct_answer;
+    const correct = normalizeText(userAnswer) === normalizeText(correctAnswer);
     setIsCorrect(correct);
     setShowContinue(true);
 
@@ -396,13 +399,17 @@ export default function TopicExercisePlayer({
       });
     }
 
-    // Only save progress in normal mode (not in retry or review mode)
-    if (!retryMode && !reviewMode) {
-      saveProgress(currentIndex, correct);
-      console.log('💾 Progress saved in normal mode');
-    } else if (retryMode) {
-      console.log('🔄 Retry mode: No progress saved');
-    } else if (reviewMode) {
+    // Save progress in both normal mode and retry mode (when answered correctly)
+    if (!reviewMode) {
+      if (!retryMode || correct) {
+        // In normal mode: always save
+        // In retry mode: only save if correct (to update the wrong answer to correct)
+        saveProgress(currentIndex, correct);
+        console.log(`💾 Progress saved - Mode: ${retryMode ? 'RETRY' : 'NORMAL'}, Correct: ${correct}`);
+      } else {
+        console.log('🔄 Retry mode with wrong answer: No progress saved (will retry again)');
+      }
+    } else {
       console.log('📖 Review mode: No progress saved');
     }
   };
@@ -671,7 +678,22 @@ export default function TopicExercisePlayer({
   };
 
   function normalizeText(text: string) {
-    return text.toLowerCase().trim().replace(/[áàâäã]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i').replace(/[óòôöõ]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ñ/g, 'n').replace(/ç/g, 'c').replace(/[.,!?;:'"()[\]{}]/g, '').replace(/\s+/g, ' ').trim();
+    return text
+      .toLowerCase()
+      .trim()
+      // Normalize Spanish special characters to basic letters
+      .replace(/[áàâäã]/g, 'a')
+      .replace(/[éèêë]/g, 'e')
+      .replace(/[íìîï]/g, 'i')
+      .replace(/[óòôöõ]/g, 'o')
+      .replace(/[úùûü]/g, 'u')
+      .replace(/ñ/g, 'n')
+      .replace(/ç/g, 'c')
+      // Remove all punctuation and special characters
+      .replace(/[.,!?;:'"()\[\]{}¡¿]/g, '')
+      // Remove extra spaces
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   if (loading) {
