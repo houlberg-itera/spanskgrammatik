@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     userPrompt = userPrompt.replace(/\{\{targetLanguage\}\}/g, 'Danish');
     userPrompt = userPrompt.replace(/\{\{topicName\}\}/g, testParams.topic);
     userPrompt = userPrompt.replace(/\{\{topicDescription\}\}/g, 
-      testParams.topicData?.description_da || testParams.topicData?.description_es || `Spanish ${testParams.topic} vocabulary and grammar`);
+      testParams.topicData?.description_da || testParams.topicData?.description || `Spanish ${testParams.topic} vocabulary and grammar`);
     
     // Add specific instructions for question structure based on exercise type
     const questionCountText = testParams.questionCount === 1 ? 'EXACTLY 1 question' : `EXACTLY ${testParams.questionCount} questions`;
@@ -244,7 +244,7 @@ Think through the exercise design, then return ONLY valid JSON using this struct
     {
       "id": "number",
       "question_da": "string (Danish question that students see)",
-      "question_es": "string (Spanish content/sentence with blank if fill_blank)",
+      "question": "string (Target language content/sentence with blank if fill_blank)",
       "correct_answer": "string",
       "options": ["array of answer choices"],
       "explanation_da": "string (Danish explanation)"

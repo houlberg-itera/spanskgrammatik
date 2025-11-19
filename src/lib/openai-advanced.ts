@@ -81,6 +81,7 @@ export interface AdvancedGenerateExerciseParams {
   includeExplanations?: boolean;
   targetProficiency?: boolean;
   model?: string; // OpenAI model to use (e.g., 'gpt-4o', 'gpt-5')
+  targetLanguage?: 'es' | 'pt'; // NEW: language code for dynamic prompt content
 }
 
 interface ProficiencyIndicator {
@@ -98,21 +99,41 @@ interface EnhancedExerciseContent extends ExerciseContent {
   };
 }
 
-const DIFFICULTY_GUIDELINES = {
-  A1: {
-    easy: 'Grundlæggende ordforråd og simple strukturer. Enkle sætninger med "ser" og "estar".',
-    medium: 'Almindelige hverdagsudtryk og grundlæggende grammatiske mønstre.',
-    hard: 'Introduktion til mere komplekse strukturer, men stadig inden for A1-niveau.'
+// Language-specific difficulty guidelines (Danish descriptions)
+const DIFFICULTY_GUIDELINES: Record<'es' | 'pt', Record<SpanishLevel, Record<'easy' | 'medium' | 'hard', string>>> = {
+  es: {
+    A1: {
+      easy: 'Grundlæggende spansk ordforråd og simple strukturer. Enkle sætninger med "ser" og "estar".',
+      medium: 'Almindelige hverdagsudtryk, spørgende sætninger, grundlæggende verber (ser, estar, tener, ir).',
+      hard: 'Introduktion til uregelmæssige verber og køns/antal kongruens i adjektiver.'
+    },
+    A2: {
+      easy: 'Rutinesituationer, regelmæssige verber i præteritum, simple fremtidsudtryk (ir + a + infinitiv).',
+      medium: 'Uregelmæssige præteritumformer, komparativer, pronomen placering.',
+      hard: 'Første møde med konjunktiv i faste udtryk og mere komplekse sammensatte tider.'
+    },
+    B1: {
+      easy: 'Hyppige komplekse strukturer, grundlæggende brug af konjunktiv i underordnede sætninger.',
+      medium: 'Udvidet konjunktivbrug, betingede strukturer, indirekte tale.',
+      hard: 'Nuanceret syntaks, avancerede konjunktivformer og perifrastiske verbkonstruktioner.'
+    }
   },
-  A2: {
-    easy: 'Almindelige situationer og kendte emner. Simple fortid og fremtid.',
-    medium: 'Komplekse situationer, uregelmæssige verbum, komparativer.',
-    hard: 'Avancerede A2-strukturer der forbereder til B1-niveau.'
-  },
-  B1: {
-    easy: 'Almindelige komplekse strukturer, subjunktiv i enkle tilfælde.',
-    medium: 'Avanceret grammatik, forskellige subjunktiv-anvendelser.',
-    hard: 'Komplekse strukturer der kræver dyb forståelse af spansk grammatik.'
+  pt: {
+    A1: {
+      easy: 'Grundlæggende portugisisk ordforråd og simple nutidsformer (-ar, -er, -ir). Artikler og køn.',
+      medium: 'Ser vs estar i simple sammenhænge, hyppige uregelmæssige verber (ser, estar, ter, ir). Kontraktioner (do, da, no, na, ao).',
+      hard: 'Udvidet ordforråd, begyndende brug af præteritum (pretérito perfeito simples) og entydig pronomenplacering.'
+    },
+    A2: {
+      easy: 'Regelmæssige præteritumformer, frekvensudtryk, dagligdags situationer.',
+      medium: 'Uregelmæssige præteritumformer, imperfeito vs perfeito, objektspronomener.',
+      hard: 'Personlig infinitiv i underordnede sætninger, begyndende konjunktiv (presente). Kontraster mellem dansk og portugisisk struktur.'
+    },
+    B1: {
+      easy: 'Konjunktiv presente i almindelige udtryk, mere komplekse tidskontraster.',
+      medium: 'Konjunktiv (presente & perfeito), betingede perioder (se + condição), indirekte tale.',
+      hard: 'Avanceret syntaks, nuanceret brug af konjunktiv og personlig infinitiv, længere komplekse perioder.'
+    }
   }
 };
 
@@ -144,28 +165,53 @@ const EXERCISE_TYPE_PROMPTS = {
   }
 };
 
-const PROFICIENCY_INDICATORS = {
-  A1: [
-    'Kan forstå og bruge grundlæggende udtryk',
-    'Kan præsentere sig selv og andre',
-    'Kan stille og besvare spørgsmål om personlige forhold',
-    'Kan skelne mellem "ser" og "estar"',
-    'Kan bruge grundlæggende substantiver og adjektiver'
-  ],
-  A2: [
-    'Kan kommunikere om rutineopgaver',
-    'Kan beskrive sin baggrund og umgivelser',
-    'Kan bruge datid og fremtid',
-    'Kan håndtere uregelmæssige verbum',
-    'Kan bruge komparativer og superlativer'
-  ],
-  B1: [
-    'Kan håndtere de fleste situationer på rejser',
-    'Kan udtrykke holdninger og begrunde synspunkter',
-    'Kan bruge subjunktiv i almindelige tilfælde',
-    'Kan forstå og bruge betinget modus',
-    'Kan konstruere komplekse sætninger'
-  ]
+const PROFICIENCY_INDICATORS: Record<'es' | 'pt', Record<SpanishLevel, string[]>> = {
+  es: {
+    A1: [
+      'Kan forstå og bruge grundlæggende spanske udtryk',
+      'Kan præsentere sig selv og andre',
+      'Kan stille og besvare simple personlige spørgsmål',
+      'Kan skelne mellem "ser" og "estar" i enkle sætninger',
+      'Kan anvende grundlæggende substantiver og adjektiver'
+    ],
+    A2: [
+      'Kan kommunikere om daglige rutiner',
+      'Kan beskrive baggrund og omgivelser',
+      'Kan bruge datid (préterito indefinido) og simpel fremtid',
+      'Kan håndtere almindelige uregelmæssige verber',
+      'Kan bruge komparativer og superlativer'
+    ],
+    B1: [
+      'Kan håndtere de fleste rejsesituationer',
+      'Kan udtrykke og begrunde meninger',
+      'Kan bruge konjunktiv i hyppige tilfælde',
+      'Kan forstå og bruge betingede konstruktioner',
+      'Kan konstruere komplekse sætninger med underordnede led'
+    ]
+  },
+  pt: {
+    A1: [
+      'Kan forstå og bruge grundlæggende portugisiske udtryk',
+      'Kan præsentere sig selv og andre',
+      'Kan bruge ser vs estar i simple kontekster',
+      'Kan anvende regelmæssige nutidsformer',
+      'Kan genkende og bruge basale kontraktioner (do, da, no, na, ao)'
+    ],
+    A2: [
+      'Kan tale om rutine og daglige aktiviteter',
+      'Kan bruge præteritum og imperfektum korrekt i kontekst',
+      'Kan placere objektspronomener korrekt',
+      'Kan anvende personlig infinitiv i simple strukturer',
+      'Kan danne komparativer og superlativer'
+    ],
+    B1: [
+      'Kan bruge konjunktiv presente i relevante udtryk',
+      'Kan udtrykke betingelser og hypotetiske situationer',
+      'Kan forstå og producere indirekte tale',
+      'Kan anvende personlig infinitiv i komplekse sætninger',
+      'Kan producere længere koherente tekster med nuanceret syntaks'
+    ]
+  }
 };
 
 export async function generateAdvancedExercise({
@@ -180,6 +226,7 @@ export async function generateAdvancedExercise({
   includeExplanations = true,
   targetProficiency = true,
   model = 'gpt-4o', // Default to GPT-4o if not specified
+  targetLanguage = 'es'
 }: AdvancedGenerateExerciseParams): Promise<EnhancedExerciseContent> {
   console.log('🤖 OpenAI Advanced: Starting exercise generation...');
   console.log('📋 Parameters:', {
@@ -215,7 +262,8 @@ export async function generateAdvancedExercise({
         generateVariations,
         includeExplanations,
         targetProficiency,
-        model
+        model,
+        targetLanguage  // CRITICAL: Pass targetLanguage to internal function
       });
       
     } catch (error: any) {
@@ -264,6 +312,7 @@ async function generateAdvancedExerciseInternal({
   includeExplanations = true,
   targetProficiency = true,
   model = 'gpt-4o',
+  targetLanguage = 'es'
 }: AdvancedGenerateExerciseParams): Promise<EnhancedExerciseContent> {
 
   // Check OpenAI API key
@@ -292,14 +341,14 @@ async function generateAdvancedExerciseInternal({
   }
 
   // Validate level and difficulty exist in our guidelines
-  if (!DIFFICULTY_GUIDELINES[level]) {
+  if (!DIFFICULTY_GUIDELINES[targetLanguage][level]) {
     console.error(`❌ Invalid level: ${level}`);
     throw new Error(`Invalid level: ${level}. Must be one of: ${Object.keys(DIFFICULTY_GUIDELINES).join(', ')}`);
   }
 
-  if (!DIFFICULTY_GUIDELINES[level][difficulty]) {
+  if (!DIFFICULTY_GUIDELINES[targetLanguage][level][difficulty]) {
     console.error(`❌ Invalid difficulty "${difficulty}" for level "${level}"`);
-    throw new Error(`Invalid difficulty "${difficulty}" for level "${level}". Must be one of: ${Object.keys(DIFFICULTY_GUIDELINES[level]).join(', ')}`);
+    throw new Error(`Invalid difficulty "${difficulty}" for level "${level}". Must be one of: ${Object.keys(DIFFICULTY_GUIDELINES[targetLanguage][level]).join(', ')}`);
   }
 
   if (!EXERCISE_TYPE_PROMPTS[exerciseType]) {
@@ -310,13 +359,31 @@ async function generateAdvancedExerciseInternal({
   console.log('✅ All parameters validated successfully');
 
   // Get AI configuration from database with fallback to defaults
+  // Use dedicated configuration for fill_blank exercises
+  const configName = exerciseType === 'fill_blank' ? 'fill_blank_generation' : 'bulk_generation';
   console.log('🔧 Loading AI configuration from database...');
-  const aiConfig = await getAIConfigurationWithDefaults('bulk_generation');
+  const aiConfig = await getAIConfigurationWithDefaults(configName);
   console.log('✅ AI configuration loaded:', aiConfig.configName);
+  console.log('📋 Using system prompt from:', aiConfig.configFound ? 'database' : 'fallback defaults');
+  if (aiConfig.systemPrompt) {
+    console.log('📝 System prompt preview (first 200 chars):', aiConfig.systemPrompt.substring(0, 200) + '...');
+  }
 
-  const difficultyGuide = DIFFICULTY_GUIDELINES[level][difficulty];
+  const difficultyGuide = DIFFICULTY_GUIDELINES[targetLanguage][level][difficulty];
   const exerciseTypeInfo = EXERCISE_TYPE_PROMPTS[exerciseType];
-  const proficiencyTargets = PROFICIENCY_INDICATORS[level];
+  const proficiencyTargets = PROFICIENCY_INDICATORS[targetLanguage][level];
+
+  const languageNames = {
+    es: { nameDa: 'Spansk', native: 'Español' },
+    pt: { nameDa: 'Portugisisk', native: 'Português' }
+  };
+  const currentLang = languageNames[targetLanguage];
+
+  console.log('🌍 Language settings:', {
+    targetLanguage,
+    nameDa: currentLang.nameDa,
+    native: currentLang.native
+  });
 
   // Special enhanced prompts for complex sentence structures
   let additionalPromptForComplexStructures = '';
@@ -356,11 +423,11 @@ UNDGÅ disse almindelige problemer:
   };
 
   // Get system prompt from AI configuration (fallback to original if not available)
-  const systemPrompt = aiConfig.systemPrompt || `Du er en ekspert i spansk grammatik og sprogpædagogik med speciale i at skabe valide proficienstests for danske studerende.
+  let rawSystemPrompt = aiConfig.systemPrompt || `Du er en ekspert i {{languageNameDa}} grammatik og sprogpædagogik med speciale i at skabe valide proficienstests for danske studerende.
 
 OPGAVE: Generer ${questionCount} ${exerciseType} øvelser på ${level}-niveau om "${topic}" med ${difficulty} sværhedsgrad.
 
-NIVEAU RETNINGSLINJER (${level}):
+NIVEAU RETNINGSLINJER (${level}) for {{languageNameDa}}:
 ${difficultyGuide}
 
 ØVELSESTYPE (${exerciseType}):
@@ -368,7 +435,7 @@ ${difficultyGuide}
 - Vurdering: ${exerciseTypeInfo.assessment}
 - Tips: ${exerciseTypeInfo.tips}
 
-PROFICIENSKRAV (${level}):
+PROFICIENSKRAV (${level}) ({{languageNameDa}}):
 ${proficiencyTargets.map(indicator => `- ${indicator}`).join('\n')}
 
 KVALITETSKRAV:
@@ -385,11 +452,11 @@ KVALITETSKRAV:
 11. For fill_blank: Brug _ til tomme pladser og sørg for ét entydigt svar
 12. KRAV: Generer MINDST ${questionCount} komplette, valide spørgsmål
 
-SPROGADSKILLELSE EKSEMPLER:
+SPROGADSKILLELSE EKSEMPLER (brug kun målsproget {{languageNativeName}} i sætninger):
 ❌ FORKERT: "Hvilken artikel passer til substantivet 'casa' i sætningen: Jeg har købt _ casa i Spanien?"
 ✅ KORREKT: Instruktion: "Vælg den korrekte artikel til følgende spanske sætning:" + Øvelse: "He comprado _ casa en España"
 
-EKSEMPLER PÅ KORREKTE FILL_BLANK ØVELSER:
+EKSEMPLER PÅ KORREKTE FILL_BLANK ØVELSER ({{languageNameDa}}):
 ✅ PERFEKT format for fill_blank (BRUG ALTID DETTE FORMAT):
 {
   "id": "fb1",
@@ -429,7 +496,7 @@ KRITISK: ALLE FILL_BLANK ØVELSER SKAL HAVE:
 
 VIGTIG REGEL: question_da må ALDRIG indeholde "Hint:" - det skal være en direkte instruktion som "Vælg korrekt verbform", "Udfyld med korrekt artikel", etc.
 
-UNDGÅ DISSE EKSISTERENDE SPØRGSMÅL:
+UNDGÅ DISSE EKSISTERENDE SPØRGSMÅL ({{languageNameDa}} eller blandede):
 ${existingQuestions.slice(0, 10).map(q => `- "${q}"`).join('\n')}
 
 ${additionalPromptForComplexStructures}
@@ -503,14 +570,29 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
   // Process template variables in user prompt
   const userPrompt = replaceTemplateVariables(userPromptTemplate, templateVariables);
 
+  // Apply language placeholders early so logging & reasoning enhancements use final version
+  const filledSystemPrompt = rawSystemPrompt
+    .replace(/{{languageNameDa}}/g, currentLang.nameDa)
+    .replace(/{{languageNativeName}}/g, currentLang.native)
+    .replace(/{{targetLanguage}}/g, targetLanguage);
+
   console.log('🔄 Preparing OpenAI API call...');
   console.log('📝 Selected model:', model || aiConfig.model);
   console.log('📝 Model source:', model ? 'User selection' : 'Database default');
   console.log('📝 Using AI config temperature:', aiConfig.temperature);
   console.log('📝 Using AI config max tokens:', aiConfig.maxTokens);
-  console.log('📝 System prompt length:', systemPrompt.length);
+  console.log('📝 System prompt length:', filledSystemPrompt.length);
   console.log('📝 User prompt length:', userPrompt.length);
   console.log('📝 Template variables replaced:', Object.keys(templateVariables).length);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📄 FULL SYSTEM PROMPT:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(filledSystemPrompt);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📄 FULL USER PROMPT:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(userPrompt);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   try {
     // Use the passed model parameter instead of aiConfig.model
@@ -523,7 +605,7 @@ HUSK: Du skal generere {{questionCount}} spørgsmål - ingen mere, ingen mindre.
 
     // Enhance system prompt for reasoning models (GPT-5, o1)
     // Hybrid approach: Use database reasoning instructions if provided, otherwise use hardcoded default
-    let enhancedSystemPrompt = systemPrompt;
+    let enhancedSystemPrompt = filledSystemPrompt;
     if (selectedModel.includes('gpt-5') || selectedModel.includes('o1')) {
       console.log('🧠 Enhancing system prompt for reasoning model (GPT-5/o1)');
       
@@ -545,7 +627,7 @@ CRITICAL: The user expects to see your final exercise output in valid JSON forma
         console.log('📝 Using default hardcoded reasoning instructions');
       }
       
-      enhancedSystemPrompt = `${systemPrompt}\n\n${reasoningInstructions}`;
+      enhancedSystemPrompt = `${filledSystemPrompt}\n\n${reasoningInstructions}`;
     }
 
     // Enforce minimum token limit for reasoning models
@@ -566,7 +648,7 @@ CRITICAL: The user expects to see your final exercise output in valid JSON forma
       return await openai.chat.completions.create({
         model: selectedModel,
         messages: [
-          { role: "system", content: enhancedSystemPrompt }, // Use enhanced prompt for reasoning models
+          { role: "system", content: enhancedSystemPrompt }, // dynamic (and possibly reasoning-enhanced) system prompt
           { role: "user", content: userPrompt }
         ],
         temperature: aiConfig.temperature,

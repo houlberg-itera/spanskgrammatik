@@ -11,11 +11,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get user level progress
+    // Get user's target language
+    const { data: userData } = await supabase
+      .from('users')
+      .select('target_language')
+      .eq('id', session.user.id)
+      .single();
+
+    const targetLanguage = userData?.target_language || 'es';
+
+    // Get user level progress for their target language
     const { data: levelProgress, error } = await supabase
       .from('user_level_progress')
       .select('level, progress_percentage')
-      .eq('user_id', session.user.id);
+      .eq('user_id', session.user.id)
+      .eq('target_language', targetLanguage);
 
     if (error) {
       console.error('Error fetching level progress:', error);

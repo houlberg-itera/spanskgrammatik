@@ -82,11 +82,24 @@ export default function TopicPage() {
 
       setTopic(topicData);
 
-      // Get exercises for this topic
+      // Get user's target language
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('target_language')
+        .eq('id', currentUser.id)
+        .single();
+
+      const targetLanguage = userData?.target_language || 'es';
+
+      // Get exercises for this topic filtered by target language
       const { data: exercisesData, error: exercisesError } = await supabase
         .from('exercises')
         .select('*')
         .eq('topic_id', topicId)
+        .eq('target_language', targetLanguage)
         .order('created_at', { ascending: true });
 
       if (exercisesError) {
@@ -567,7 +580,7 @@ export default function TopicPage() {
           <div className="mb-8">
             {/* Spanish question as main heading */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.question_es || currentQuestion.question_da}
+              {currentQuestion.question || currentQuestion.question_da}
             </h2>
             {/* Danish translation as reference */}
             {(currentQuestion.sentence_translation_da) && (

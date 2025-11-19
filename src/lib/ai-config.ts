@@ -78,8 +78,8 @@ export async function getAIConfigurationWithDefaults(configName: string) {
       model: 'gpt-4o',
       temperature: 1,
       maxTokens: 2000,
-      systemPrompt: 'You are an expert Spanish language teacher creating educational exercises for Danish students.',
-      userPromptTemplate: 'Generate {count} {exerciseType} exercises for {level} level on topic: {topic}',
+      systemPrompt: 'You are an expert {{languageNameDa}} ({{languageNativeName}}) language teacher creating educational exercises for Danish students.',
+      userPromptTemplate: 'Generate {count} {exerciseType} exercises for {level} level on topic: {topic} in {{languageNameDa}} (code: {{targetLanguage}})',
       reasoningInstructions: undefined, // Will use hardcoded default if undefined
       configFound: false,
       configName: 'default_bulk_generation'

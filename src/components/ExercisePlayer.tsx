@@ -184,7 +184,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   } else if (exercise?.content && typeof exercise.content === 'object') {
     // Old vocabulary format: single question object
     const content = exercise.content as any;
-    if (content.question_da || content.question_es) {
+    if (content.question_da || content.question) {
       // Convert old vocabulary format to questions array
       const question = {
         id: '1',
@@ -254,8 +254,6 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     return text
       .toLowerCase()
       .trim()
-      // Remove punctuation and special characters
-      .replace(/[.,:;!?¡¿]/g, '')
       // Normalize Spanish special characters to basic letters
       .replace(/[áàâäã]/g, 'a')
       .replace(/[éèêë]/g, 'e')
@@ -264,6 +262,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
       .replace(/[úùûü]/g, 'u')
       .replace(/ñ/g, 'n')
       .replace(/ç/g, 'c')
+      // Remove all punctuation and special characters
+      .replace(/[.,!?;:'"()\[\]{}¡¿]/g, '')
       // Remove extra spaces
       .replace(/\s+/g, ' ')
       .trim();

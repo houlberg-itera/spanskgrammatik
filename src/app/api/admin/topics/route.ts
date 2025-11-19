@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
+    const target_language = searchParams.get('target_language');
 
     const supabase = createAdminClient();
     
@@ -16,16 +17,24 @@ export async function GET(request: NextRequest) {
         level,
         name_da,
         name_es,
+        name,
         description_da,
         description_es,
+        description,
+        target_language,
         order_index,
         created_at,
-        exercises(id)
+        exercises(id, target_language)
       `)
       .order('order_index', { ascending: true });
 
     if (level) {
       query.eq('level', level);
+    }
+
+    // Allow special value 'all' to return topics for all languages
+    if (target_language && target_language !== 'all') {
+      query.eq('target_language', target_language);
     }
 
     const { data, error } = await query;
@@ -35,10 +44,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const topicsWithCounts = data?.map(topic => ({
-      ...topic,
-      exercise_count: topic.exercises?.length || 0
-    })) || [];
+    const topicsWithCounts = data?.map(topic => {
+      // If a specific language requested (not 'all'), count only that language's exercises
+      const exerciseCount = (target_language && target_language !== 'all')
+        ? (topic.exercises?.filter((ex: any) => ex.target_language === target_language).length || 0)
+        : (topic.exercises?.length || 0);
+      return { ...topic, exercise_count: exerciseCount };
+    }) || [];
 
     return NextResponse.json({ 
       success: true,

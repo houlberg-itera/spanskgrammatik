@@ -265,7 +265,7 @@ export default function AdminDashboard() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `spanskgrammatik-userdata-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `ducklingo-userdata-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-6 space-y-4 sm:space-y-0">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 text-center sm:text-left">
-              📊 Spanskgrammatik Admin Dashboard
+              📊 DuckLingo Admin Dashboard
             </h1>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               {(['users', 'exercises', 'analytics', 'vocabulary'] as const).map(mode => (

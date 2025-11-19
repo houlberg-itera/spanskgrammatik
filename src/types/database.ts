@@ -1,4 +1,11 @@
-export type SpanishLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+// Language proficiency levels (CEFR)
+export type ProficiencyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+
+// Legacy alias for backward compatibility
+export type SpanishLevel = ProficiencyLevel;
+
+// Supported target languages for learning
+export type TargetLanguage = 'es' | 'pt'; // Spanish (Español), Portuguese (Português)
 
 export type ExerciseType = 'grammar' | 'vocabulary' | 'conjugation' | 'sentence_structure';
 
@@ -8,27 +15,28 @@ export interface User {
   id: string;
   email: string;
   full_name?: string;
-  current_level: SpanishLevel;
+  current_level: ProficiencyLevel;
+  target_language: TargetLanguage; // Language the user is learning
   created_at: string;
   updated_at: string;
 }
 
 export interface Level {
   id: number;
-  name: SpanishLevel;
-  description_da: string;
-  description_es: string;
+  name: ProficiencyLevel;
+  description_da: string; // Always in Danish for UI
   order_index: number;
   created_at: string;
 }
 
 export interface Topic {
   id: number;
-  level: SpanishLevel;
-  name_da: string;
-  name_es: string;
-  description_da?: string;
-  description_es?: string;
+  level: ProficiencyLevel;
+  target_language: TargetLanguage; // Language this topic teaches
+  name_da: string; // Danish name for UI
+  name: string; // Name in the target language (es/pt/etc)
+  description_da?: string; // Danish description for UI
+  description?: string; // Description in the target language
   order_index: number;
   created_at: string;
 }
@@ -36,12 +44,13 @@ export interface Topic {
 export interface Exercise {
   id: number;
   topic_id: number;
-  level: SpanishLevel;
+  level: ProficiencyLevel;
+  target_language: TargetLanguage; // Language this exercise teaches
   type: ExerciseType;
-  title_da: string;
-  title_es: string;
-  description_da?: string;
-  description_es?: string;
+  title_da: string; // Danish title for UI
+  title: string; // Title in the target language
+  description_da?: string; // Danish description for UI
+  description?: string; // Description in the target language
   content: ExerciseContent;
   ai_generated: boolean;
   created_at: string;
@@ -50,20 +59,20 @@ export interface Exercise {
 
 export interface ExerciseContent {
   questions: Question[];
-  instructions_da?: string;
-  instructions_es?: string;
+  instructions_da?: string; // Danish instructions for UI
+  instructions?: string; // Instructions in the target language
 }
 
 export interface Question {
   id: string;
   type: QuestionType;
-  question_da: string;
-  question_es?: string;
+  question_da: string; // Danish question/prompt for UI
+  question: string; // Question in the target language (the answer students provide)
   options?: string[];
   correct_answer: string | string[];
-  explanation_da?: string;
-  explanation_es?: string;
-  sentence_translation_da?: string; // Added Danish translation of full sentence for student reference
+  explanation_da?: string; // Danish explanation for UI
+  explanation?: string; // Explanation in the target language
+  sentence_translation_da?: string; // Danish translation of full sentence for student reference
   points?: number;
   proficiency_indicator?: string;
   difficulty_level?: string;
@@ -93,7 +102,8 @@ export interface UserProgress {
 export interface UserLevelProgress {
   id: number;
   user_id: string;
-  level: SpanishLevel;
+  level: ProficiencyLevel;
+  target_language: TargetLanguage; // Track progress per language
   started_at: string;
   completed_at?: string;
   progress_percentage: number;

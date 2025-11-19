@@ -125,7 +125,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
     };
 
     topics.forEach(topic => {
-      const topicKey = (topic.name_da || topic.name_es || '').toLowerCase();
+      const topicKey = (topic.name_da || topic.name || '').toLowerCase();
       let placed = false;
 
       for (const category in categories) {
@@ -173,6 +173,18 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
       categoryTopics.forEach((topic, topicIndex) => {
         // Get all exercises for this topic
         const topicExercises = exercises.filter(ex => ex.topic_id === topic.id);
+        
+        console.log(`🔍 Topic ${topic.id} (${topic.name_da}) [${topic.target_language}]:`, {
+          topicId: topic.id,
+          topicTargetLanguage: topic.target_language,
+          exercisesCount: topicExercises.length,
+          exercises: topicExercises.map(ex => ({ 
+            id: ex.id, 
+            topic_id: ex.topic_id,
+            target_language: ex.target_language,
+            questionCount: ex.content?.questions?.length || 0
+          }))
+        });
         
         // Count total questions for this topic (sum all questions in all exercises)
         const totalQuestions = topicExercises.reduce((total, exercise) => {
@@ -251,7 +263,7 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
 
         const node: LessonNode = {
           id: `topic-${topic.id}`,
-          name: topic.name_da || topic.name_es || 'Unknown Topic',
+          name: topic.name_da || topic.name || 'Unknown Topic',
           type: 'topic',
           topicId: topic.id.toString(),
           exerciseCount: totalQuestions,
@@ -393,6 +405,12 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
   };
 
   const handleNodeClick = (node: LessonNode) => {
+    // Don't allow clicking on topics with no exercises
+    if (node.exerciseCount === 0) {
+      console.log(`⚠️ Topic ${node.topicId} has no exercises available yet`);
+      return;
+    }
+    
     if (!node.unlocked) return;
 
     if (node.type === 'topic' && node.topicId) {
