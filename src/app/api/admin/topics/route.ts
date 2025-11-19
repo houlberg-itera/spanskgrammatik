@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level');
-    const target_language = searchParams.get('target_language');
+    const language = searchParams.get('language') || searchParams.get('target_language');
 
     const supabase = createAdminClient();
     
@@ -16,10 +16,8 @@ export async function GET(request: NextRequest) {
         id,
         level,
         name_da,
-        name_es,
         name,
         description_da,
-        description_es,
         description,
         target_language,
         order_index,
@@ -32,9 +30,9 @@ export async function GET(request: NextRequest) {
       query.eq('level', level);
     }
 
-    // Allow special value 'all' to return topics for all languages
-    if (target_language && target_language !== 'all') {
-      query.eq('target_language', target_language);
+    // Filter by language if specified (not 'all')
+    if (language && language !== 'all') {
+      query.eq('target_language', language);
     }
 
     const { data, error } = await query;
@@ -46,8 +44,8 @@ export async function GET(request: NextRequest) {
 
     const topicsWithCounts = data?.map(topic => {
       // If a specific language requested (not 'all'), count only that language's exercises
-      const exerciseCount = (target_language && target_language !== 'all')
-        ? (topic.exercises?.filter((ex: any) => ex.target_language === target_language).length || 0)
+      const exerciseCount = (language && language !== 'all')
+        ? (topic.exercises?.filter((ex: any) => ex.target_language === language).length || 0)
         : (topic.exercises?.length || 0);
       return { ...topic, exercise_count: exerciseCount };
     }) || [];
@@ -75,16 +73,17 @@ export async function POST(request: NextRequest) {
     const { 
       level, 
       name_da, 
-      name_es, 
+      name, 
       description_da, 
-      description_es, 
+      description, 
+      target_language,
       order_index 
     } = body;
 
     // Validate required fields
-    if (!level || !name_da || !name_es || order_index === undefined) {
+    if (!level || !name_da || !name || !target_language || order_index === undefined) {
       return NextResponse.json({ 
-        error: 'Missing required fields: level, name_da, name_es, order_index' 
+        error: 'Missing required fields: level, name_da, name, target_language, order_index' 
       }, { status: 400 });
     }
 
@@ -96,12 +95,20 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check for duplicate names within the same level
+    // Validate target_language
+    if (!['es', 'pt'].includes(target_language)) {
+      return NextResponse.json({ 
+        error: 'Invalid target_language. Must be es or pt' 
+      }, { status: 400 });
+    }
+
+    // Check for duplicate names within the same level and language
     const { data: existingTopics, error: checkError } = await supabase
       .from('topics')
-      .select('id, name_da, name_es')
+      .select('id, name_da, name')
       .eq('level', level)
-      .or(`name_da.eq.${name_da.trim()},name_es.eq.${name_es.trim()}`);
+      .eq('target_language', target_language)
+      .or(`name_da.eq.${name_da.trim()},name.eq.${name.trim()}`);
 
     if (checkError) {
       console.error('Topic duplicate check error:', checkError);
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     if (existingTopics && existingTopics.length > 0) {
       return NextResponse.json({ 
-        error: 'Topic with this name already exists in this level' 
+        error: 'Topic with this name already exists in this level and language' 
       }, { status: 409 });
     }
 
@@ -122,9 +129,10 @@ export async function POST(request: NextRequest) {
       .insert({
         level,
         name_da: name_da.trim(),
-        name_es: name_es.trim(),
+        name: name.trim(),
         description_da: description_da?.trim() || null,
-        description_es: description_es?.trim() || null,
+        description: description?.trim() || null,
+        target_language,
         order_index: parseInt(order_index)
       })
       .select()

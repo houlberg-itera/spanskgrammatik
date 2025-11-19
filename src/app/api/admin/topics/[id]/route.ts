@@ -85,16 +85,17 @@ export async function PUT(
     const { 
       level, 
       name_da, 
-      name_es, 
+      name, 
       description_da, 
-      description_es, 
+      description, 
+      target_language,
       order_index 
     } = body;
 
     // Validate required fields
-    if (!level || !name_da || !name_es) {
+    if (!level || !name_da || !name || !target_language) {
       return NextResponse.json(
-        { error: 'Level, Danish name, and Spanish name are required' },
+        { error: 'Level, Danish name, target language name, and target_language are required' },
         { status: 400 }
       );
     }
@@ -104,6 +105,14 @@ export async function PUT(
     if (!validLevels.includes(level as SpanishLevel)) {
       return NextResponse.json(
         { error: `Invalid level. Must be one of: ${validLevels.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate target_language
+    if (!['es', 'pt'].includes(target_language)) {
+      return NextResponse.json(
+        { error: 'Invalid target_language. Must be es or pt' },
         { status: 400 }
       );
     }
@@ -125,9 +134,10 @@ export async function PUT(
     // Check for duplicate names (excluding current topic)
     const { data: duplicates, error: duplicateError } = await supabase
       .from('topics')
-      .select('id, name_da, name_es')
+      .select('id, name_da, name')
       .neq('id', topicId)
-      .or(`name_da.eq.${name_da},name_es.eq.${name_es}`);
+      .eq('target_language', target_language)
+      .or(`name_da.eq.${name_da},name.eq.${name}`);
 
     if (duplicateError) {
       console.error('Error checking for duplicates:', duplicateError);
@@ -139,7 +149,7 @@ export async function PUT(
 
     if (duplicates && duplicates.length > 0) {
       const duplicateNames = duplicates.map(d => 
-        d.name_da === name_da ? `Danish: "${d.name_da}"` : `Spanish: "${d.name_es}"`
+        d.name_da === name_da ? `Danish: "${d.name_da}"` : `Target language: "${d.name}"`
       ).join(', ');
       return NextResponse.json(
         { error: `Topic names must be unique. Duplicate found: ${duplicateNames}` },
@@ -151,13 +161,14 @@ export async function PUT(
     const updateData: any = {
       level: level as SpanishLevel,
       name_da,
-      name_es,
+      name,
+      target_language,
       updated_at: new Date().toISOString()
     };
 
     // Add optional fields if provided
     if (description_da !== undefined) updateData.description_da = description_da;
-    if (description_es !== undefined) updateData.description_es = description_es;
+    if (description !== undefined) updateData.description = description;
     if (order_index !== undefined) updateData.order_index = order_index;
 
     const { data: updatedTopic, error: updateError } = await supabase
@@ -179,7 +190,8 @@ export async function PUT(
       id: updatedTopic.id,
       level: updatedTopic.level,
       name_da: updatedTopic.name_da,
-      name_es: updatedTopic.name_es
+      name: updatedTopic.name,
+      target_language: updatedTopic.target_language
     });
 
     return NextResponse.json({
@@ -216,7 +228,7 @@ export async function DELETE(
     // Check if topic exists and get its information
     const { data: existingTopic, error: existsError } = await supabase
       .from('topics')
-      .select('id, name_da, name_es, level')
+      .select('id, name_da, name, level, target_language')
       .eq('id', topicId)
       .single();
 
@@ -250,8 +262,9 @@ export async function DELETE(
           topicInfo: {
             id: existingTopic.id,
             name_da: existingTopic.name_da,
-            name_es: existingTopic.name_es,
-            level: existingTopic.level
+            name: existingTopic.name,
+            level: existingTopic.level,
+            target_language: existingTopic.target_language
           }
         },
         { status: 409 }
@@ -276,7 +289,8 @@ export async function DELETE(
       id: existingTopic.id,
       level: existingTopic.level,
       name_da: existingTopic.name_da,
-      name_es: existingTopic.name_es
+      name: existingTopic.name,
+      target_language: existingTopic.target_language
     });
 
     return NextResponse.json({
