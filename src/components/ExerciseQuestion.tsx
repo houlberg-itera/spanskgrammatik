@@ -145,18 +145,44 @@ export default function ExerciseQuestion({
 
   // Helper function to check if answer is correct
   const isAnswerCorrect = () => {
-    if (!userAnswer || !question.correct_answer) return false;
+    if (!userAnswer || !question.correct_answer) {
+      console.log('❌ isAnswerCorrect: Missing userAnswer or correct_answer', {
+        userAnswer,
+        correct_answer: question.correct_answer,
+        questionType: question.type
+      });
+      return false;
+    }
     
     if (Array.isArray(question.correct_answer)) {
       const userAnswerStr = Array.isArray(userAnswer) ? userAnswer.join(',') : String(userAnswer);
       const correctAnswerStr = question.correct_answer.join(',');
-      return compareAnswers(userAnswerStr, correctAnswerStr);
+      const result = compareAnswers(userAnswerStr, correctAnswerStr);
+      console.log('🔍 Array answer comparison:', {
+        questionType: question.type,
+        userAnswerStr,
+        correctAnswerStr,
+        result
+      });
+      return result;
     }
     
     const userAnswerStr = Array.isArray(userAnswer) ? userAnswer.join(',') : String(userAnswer);
     const correctAnswerStr = String(question.correct_answer);
     
-    return compareAnswers(userAnswerStr, correctAnswerStr);
+    console.log('🔍 String answer comparison:', {
+      questionType: question.type,
+      questionId: question.id,
+      userAnswerStr,
+      correctAnswerStr,
+      typeofCorrectAnswer: typeof question.correct_answer,
+      normalizedUser: normalizeText(userAnswerStr),
+      normalizedCorrect: normalizeText(correctAnswerStr)
+    });
+    
+    const result = compareAnswers(userAnswerStr, correctAnswerStr);
+    console.log('✅ Comparison result:', result);
+    return result;
   };
 
   // Helper function to render correct answer display

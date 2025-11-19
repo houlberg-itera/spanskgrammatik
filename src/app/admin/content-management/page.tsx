@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { SpanishLevel } from '@/types/database';
+import { SpanishLevel, TargetLanguage } from '@/types/database';
+import { getLanguageInfo } from '@/lib/utils/language';
 
 interface Topic {
   id: string;
   name_da: string;
-  name_es: string;
+  name: string; // Name in target language
   description_da: string;
-  description_es?: string;
+  description?: string; // Description in target language
   level: SpanishLevel;
+  target_language: TargetLanguage;
   order_index?: number;
   exercises: Exercise[];
   exercise_count?: number;
@@ -20,18 +22,20 @@ interface Exercise {
   id: string;
   type: string;
   title_da: string;
-  title_es?: string;
+  title?: string; // Title in target language
   content: any; // JSONB content
+  target_language: TargetLanguage;
   ai_generated?: boolean;
   created_at: string;
 }
 
 interface TopicFormData {
   name_da: string;
-  name_es: string;
+  name: string; // Name in target language
   description_da: string;
-  description_es: string;
+  description: string; // Description in target language
   level: SpanishLevel;
+  target_language: TargetLanguage;
   order_index: number;
 }
 
@@ -39,6 +43,7 @@ export default function ContentManagement() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<SpanishLevel | ''>(''); // Default to empty string to show all
+  const [selectedLanguage, setSelectedLanguage] = useState<TargetLanguage | ''>(''); // Language filter
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,10 +54,11 @@ export default function ContentManagement() {
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [topicFormData, setTopicFormData] = useState<TopicFormData>({
     name_da: '',
-    name_es: '',
+    name: '',
     description_da: '',
-    description_es: '',
+    description: '',
     level: 'A1',
+    target_language: 'es',
     order_index: 0
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -61,7 +67,7 @@ export default function ContentManagement() {
 
   useEffect(() => {
     loadTopics();
-  }, [selectedLevel]);
+  }, [selectedLevel, selectedLanguage]);
 
   useEffect(() => {
     if (selectedTopic) {
@@ -72,11 +78,15 @@ export default function ContentManagement() {
   const loadTopics = async () => {
     setLoading(true);
     try {
-      console.log('🔍 Loading topics with selectedLevel:', selectedLevel);
+      console.log('🔍 Loading topics with selectedLevel:', selectedLevel, 'selectedLanguage:', selectedLanguage);
       
-      // Use the new enhanced topics API
-      const url = selectedLevel 
-        ? `/api/admin/topics?level=${selectedLevel}`
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (selectedLevel) params.append('level', selectedLevel);
+      if (selectedLanguage) params.append('language', selectedLanguage);
+      
+      const url = params.toString() 
+        ? `/api/admin/topics?${params.toString()}`
         : '/api/admin/topics';
       
       const response = await fetch(url);
@@ -187,20 +197,22 @@ export default function ContentManagement() {
       setEditingTopic(topic);
       setTopicFormData({
         name_da: topic.name_da,
-        name_es: topic.name_es,
+        name: topic.name,
         description_da: topic.description_da,
-        description_es: topic.description_es || '',
+        description: topic.description || '',
         level: topic.level,
+        target_language: topic.target_language,
         order_index: topic.order_index || 0
       });
     } else {
       setEditingTopic(null);
       setTopicFormData({
         name_da: '',
-        name_es: '',
+        name: '',
         description_da: '',
-        description_es: '',
+        description: '',
         level: 'A1',
+        target_language: selectedLanguage || 'es',
         order_index: 0
       });
     }
@@ -289,7 +301,7 @@ export default function ContentManagement() {
 
   const filteredTopics = topics.filter(topic =>
     topic.name_da.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    topic.name_es.toLowerCase().includes(searchTerm.toLowerCase())
+    topic.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedTopics = [...filteredTopics].sort((a, b) => {
@@ -335,6 +347,19 @@ export default function ContentManagement() {
         <div className="p-4 sm:p-6">
           {/* Filters and Controls */}
           <div className="flex flex-col space-y-4 sm:flex-row sm:flex-wrap sm:gap-4 sm:space-y-0 mb-6">
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sprog:</label>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value as TargetLanguage | '')}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[40px] w-full sm:w-auto"
+              >
+                <option value="">Alle sprog</option>
+                <option value="es">🇪🇸 Spansk</option>
+                <option value="pt">🇵🇹 Portugisisk</option>
+              </select>
+            </div>
+
             <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
               <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Niveau:</label>
               <select
@@ -432,9 +457,12 @@ export default function ContentManagement() {
                             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 self-start">
                               {topic.level}
                             </span>
+                            <span className="text-xs self-start">
+                              {getLanguageInfo(topic.target_language).flag}
+                            </span>
                           </div>
                           <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                            {topic.name_es}
+                            {topic.name}
                           </p>
                           {topic.description_da && (
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">
@@ -530,9 +558,9 @@ export default function ContentManagement() {
                             <strong>Titel (DA):</strong> {exercise.title_da}
                           </p>
                           
-                          {exercise.title_es && (
+                          {exercise.title && (
                             <p className="text-xs sm:text-sm text-gray-700">
-                              <strong>Titel (ES):</strong> {exercise.title_es}
+                              <strong>Titel ({exercise.target_language.toUpperCase()}):</strong> {exercise.title} {getLanguageInfo(exercise.target_language).flag}
                             </p>
                           )}
                           
@@ -580,6 +608,22 @@ export default function ContentManagement() {
               </div>
 
               <div className="grid gap-6">
+                {/* Target Language Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Målsprog (Hvilket sprog lærer brugeren?)
+                  </label>
+                  <select
+                    value={topicFormData.target_language}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, target_language: e.target.value as TargetLanguage })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="es">🇪🇸 Spansk</option>
+                    <option value="pt">🇵🇹 Portugisisk</option>
+                  </select>
+                </div>
+
                 {/* Level Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -615,17 +659,17 @@ export default function ContentManagement() {
                   />
                 </div>
 
-                {/* Spanish Name */}
+                {/* Target Language Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Navn (Spansk) *
+                    Navn ({topicFormData.target_language === 'es' ? 'Spansk' : 'Portugisisk'}) {getLanguageInfo(topicFormData.target_language).flag} *
                   </label>
                   <input
                     type="text"
-                    value={topicFormData.name_es}
-                    onChange={(e) => setTopicFormData({ ...topicFormData, name_es: e.target.value })}
+                    value={topicFormData.name}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, name: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="F.eks. Sustantivos y artículos"
+                    placeholder={topicFormData.target_language === 'es' ? "F.eks. Sustantivos y artículos" : "F.eks. Substantivos e artigos"}
                     required
                   />
                 </div>
@@ -645,17 +689,17 @@ export default function ContentManagement() {
                   />
                 </div>
 
-                {/* Spanish Description */}
+                {/* Target Language Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Beskrivelse (Spansk)
+                    Beskrivelse ({topicFormData.target_language === 'es' ? 'Spansk' : 'Portugisisk'}) {getLanguageInfo(topicFormData.target_language).flag}
                   </label>
                   <textarea
-                    value={topicFormData.description_es}
-                    onChange={(e) => setTopicFormData({ ...topicFormData, description_es: e.target.value })}
+                    value={topicFormData.description}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, description: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Descripción en español (opcional)"
+                    placeholder={topicFormData.target_language === 'es' ? "Descripción en español (opcional)" : "Descrição em português (opcional)"}
                   />
                 </div>
 

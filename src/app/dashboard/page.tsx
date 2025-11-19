@@ -30,6 +30,7 @@ type User = {
   id: string;
   email: string;
   display_name?: string;
+  target_language?: 'es' | 'pt';
 };
 
 export default function Dashboard() {
@@ -127,15 +128,19 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Velkommen tilbage! 👋</h2>
-                <p className="text-gray-600">Klar til at lære mere spansk grammatik i dag? Lad os se dine fremskridt!</p>
+                <p className="text-gray-600">
+                  Klar til at lære mere {user.target_language === 'pt' ? 'portugisisk' : 'spansk'} grammatik i dag? Lad os se dine fremskridt!
+                </p>
               </div>
-              <Link
-                href="/settings"
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700 font-medium"
-              >
-                <span>⚙️</span>
-                <span className="hidden sm:inline">Indstillinger</span>
-              </Link>
+              <div className="flex gap-2">
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700 font-medium"
+                >
+                  <span>⚙️</span>
+                  <span className="hidden sm:inline">Indstillinger</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -194,6 +199,33 @@ export default function Dashboard() {
                 </Link>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Conversation Practice Feature */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg p-6 mb-8 border-2 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <span>🎤</span>
+                Samtale-øvelser
+              </h2>
+              <p className="text-gray-700 mb-4">
+                Øv dig i at føre rigtige samtaler med AI-drevne dialoger. Få feedback på din udtale og forbedre din talefærdighed!
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600 mb-4">
+                <li>✓ Realistiske samtale-scenarier</li>
+                <li>✓ Øjeblikkelig udtale-feedback</li>
+                <li>✓ Tilgængelig på spansk og portugisisk</li>
+              </ul>
+            </div>
+            <Link
+              href="/conversation"
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>🚀</span>
+              <span>Start nu</span>
+            </Link>
           </div>
         </div>
 

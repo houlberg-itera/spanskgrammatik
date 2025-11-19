@@ -309,7 +309,19 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
           if (question.type === 'multiple_choice') {
             isCorrect = compareAnswers(givenAnswer, correctAnswer);
           } else if (question.type === 'fill_in_blank' || question.type === 'conjugation') {
+            // Debug logging for fill_in_blank
+            console.log('🔍 Fill-in-blank comparison:', {
+              questionId: question.id,
+              rawCorrectAnswer: question.correct_answer,
+              typeofCorrectAnswer: typeof question.correct_answer,
+              isArrayCorrectAnswer: Array.isArray(question.correct_answer),
+              givenAnswer: givenAnswer,
+              correctAnswer: correctAnswer,
+              normalizedGiven: normalizeText(givenAnswer),
+              normalizedCorrect: normalizeText(correctAnswer)
+            });
             isCorrect = compareAnswers(givenAnswer, correctAnswer);
+            console.log('✅ Fill-in-blank result:', isCorrect);
           } else if (question.type === 'translation') {
             // For translation, use enhanced comparison first, then fallback to partial matches
             isCorrect = compareAnswers(givenAnswer, correctAnswer);

@@ -12,12 +12,12 @@ interface QuestionWithExercise {
   exerciseId: number;
   exerciseTitle: string;
   question_da: string;
-  question_es?: string;
+  question?: string;  // Question in target language (Spanish sentence)
   sentence_translation_da?: string;
   correct_answer: string | string[];
   options?: string[];
   explanation_da?: string;
-  explanation_es?: string;
+  explanation?: string;  // Explanation in target language
   type: string;
 }
 
@@ -117,12 +117,12 @@ export default function TopicPage() {
                 exerciseId: exercise.id,
                 exerciseTitle: exercise.title_da,
                 question_da: question.question_da,
-                question_es: question.question_es,
+                question: question.question,  // Target language question (Spanish sentence)
                 sentence_translation_da: question.sentence_translation_da,
                 correct_answer: question.correct_answer,
                 options: question.options,
                 explanation_da: question.explanation_da,
-                explanation_es: question.explanation_es,
+                explanation: question.explanation,  // Target language explanation
                 type: question.type
               });
             }
@@ -232,7 +232,6 @@ export default function TopicPage() {
       setShowContinue(false);
       setAttempts(0);
       setShowCorrectAnswer(false);
-      setCompletedCount(prev => prev + 1);
       
       // Save current position when moving to next question
       saveTopicProgress(currentIndex + 1);
@@ -556,18 +555,18 @@ export default function TopicPage() {
               <div className="flex-1 max-w-md">
                 <div className="text-sm text-gray-600 mb-1">
                   <div>{topic.name_da}</div>
-                  <div>Spørgsmål {completedCount + 1} af {questions.length}</div>
+                  <div>Spørgsmål {currentIndex + 1} af {questions.length}</div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div 
                     className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round(((completedCount + 1) / questions.length) * 100)}%` }}
+                    style={{ width: `${Math.round(((currentIndex + 1) / questions.length) * 100)}%` }}
                   ></div>
                 </div>
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              {Math.round(((completedCount + 1) / questions.length) * 100)}% fuldført
+              {Math.round(((currentIndex + 1) / questions.length) * 100)}% fuldført
             </div>
           </div>
         </div>
@@ -578,12 +577,30 @@ export default function TopicPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            {/* Spanish question as main heading */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.question || currentQuestion.question_da}
-            </h2>
-            {/* Danish translation as reference */}
-            {(currentQuestion.sentence_translation_da) && (
+            {/* Show question type instruction in Danish if it's just instructions */}
+            {currentQuestion.question_da && !currentQuestion.question && (
+              <div className="text-lg font-medium text-gray-700 mb-4">
+                {currentQuestion.question_da}
+              </div>
+            )}
+            
+            {/* Show Spanish sentence/question prominently */}
+            {currentQuestion.question && (
+              <>
+                {/* Show Danish instruction above if different */}
+                {currentQuestion.question_da && currentQuestion.question_da !== currentQuestion.question && (
+                  <div className="text-sm text-gray-600 mb-3 font-medium">
+                    {currentQuestion.question_da}
+                  </div>
+                )}
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  {currentQuestion.question}
+                </h2>
+              </>
+            )}
+            
+            {/* Danish translation as reference (if provided separately) */}
+            {currentQuestion.sentence_translation_da && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="text-xs text-blue-600 font-medium mb-1">💡 Dansk oversættelse:</div>
                 <div className="text-sm text-blue-800 italic">
