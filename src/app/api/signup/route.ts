@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName } = await request.json();
+    const { email, password, fullName, targetLanguage = 'es' } = await request.json();
     
     if (!email || !password) {
       return NextResponse.json({ error: 'Email og password er påkrævet' }, { status: 400 });
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       password,
       user_metadata: {
         full_name: fullName,
+        target_language: targetLanguage,
       },
       email_confirm: true, // Auto-confirm the email
     });
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
         options: {
           data: {
             full_name: fullName,
+            target_language: targetLanguage,
           },
         },
       });
@@ -53,11 +55,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
 
+      // Also update the users table with target_language
+      if (data.user) {
+        await normalSupabase
+          .from('users')
+          .update({ target_language: targetLanguage })
+          .eq('id', data.user.id);
+      }
+
       return NextResponse.json({ 
         success: true, 
         message: 'Bruger oprettet. Du kan nu logge ind.',
         requiresManualConfirmation: true
       });
+    }
+
+    // Update users table with target_language for admin-created user
+    if (adminData.user) {
+      await supabaseAdmin
+        .from('users')
+        .update({ target_language: targetLanguage })
+        .eq('id', adminData.user.id);
     }
 
     return NextResponse.json({ 

@@ -23,8 +23,9 @@ export async function POST() {
         .insert([{
           level: 'A1',
           name_da: 'Grundlæggende grammatik',
-          name_es: 'Gramática básica',
+          name: 'Gramática básica',
           description_da: 'Grundlæggende spansk grammatik for begyndere',
+          target_language: 'es',
           order_index: 1
         }])
         .select()
@@ -44,9 +45,10 @@ export async function POST() {
       level: 'A1',
       type: 'grammar',
       title_da: 'Ser eller Estar - Grundlæggende',
-      title_es: 'Ser o Estar - Básico',
+      title: 'Ser o Estar - Básico',
       description_da: 'Øv dig i at vælge mellem ser og estar',
-      description_es: 'Practica eligir entre ser y estar',
+      description: 'Practica eligir entre ser y estar',
+      target_language: 'es',
       content: {
         instructions_da: "Vælg den korrekte form af enten 'ser' eller 'estar' for hvert spørgsmål.",
         questions: [

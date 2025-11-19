@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { TargetLanguage } from '@/types/database';
 
 interface Exercise {
   id: number;
   question_da: string;
-  question_es: string;
+  question: string; // Question in target language (es/pt/etc)
   correct_answer: string;
   options?: string[];
   type: string;
@@ -45,6 +46,7 @@ export default function TopicExercisePlayer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showContinue, setShowContinue] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState<TargetLanguage>('es');
   const router = useRouter();
   const supabase = createClient();
 
@@ -78,11 +80,30 @@ export default function TopicExercisePlayer({
     });
     
     try {
-      // Always fetch all exercises for mastery tracking
+      // Get user's target language
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        console.error('❌ No user found');
+        setLoading(false);
+        return;
+      }
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('target_language')
+        .eq('id', currentUser.id)
+        .single();
+
+      const targetLanguage = userData?.target_language || 'es';
+      console.log('🌍 User target language:', targetLanguage);
+      setTargetLanguage(targetLanguage);
+
+      // Always fetch all exercises for mastery tracking, filtered by language
       const { data: allData, error: allError } = await supabase
         .from('exercises')
         .select('*')
         .eq('topic_id', topicId)
+        .eq('target_language', targetLanguage)
         .order('id', { ascending: true });
       
       if (allError) throw allError;
@@ -270,7 +291,7 @@ export default function TopicExercisePlayer({
             expandedExercises.push({
               id: dbExercise.id * 1000 + questionIndex, // Compound ID for unique identification
               question_da: question.question_da,
-              question_es: question.question_es || '',
+              question: question.question || '',
               correct_answer: question.correct_answer || '',
               options: question.options || [],
               type: question.type || 'translation',
@@ -298,7 +319,7 @@ export default function TopicExercisePlayer({
           expandedExercises.push({
             id: dbExercise.id,
             question_da: firstQuestion?.question_da || dbExercise.content?.question_da || '',
-            question_es: firstQuestion?.question_es || dbExercise.content?.question_es || '',
+            question: firstQuestion?.question || dbExercise.content?.question || '',
             correct_answer: firstQuestion?.correct_answer || dbExercise.content?.correct_answer || '',
             options: firstQuestion?.options || dbExercise.content?.options || [],
             type: firstQuestion?.type || dbExercise.content?.type || 'translation',
@@ -845,9 +866,9 @@ export default function TopicExercisePlayer({
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            {/* Spanish question as main heading */}
+            {/* Target language question as main heading */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.question_es || currentQuestion.question_da}
+              {currentQuestion.question || currentQuestion.question_da}
             </h2>
             {/* Danish translation as reference */}
             {currentQuestion.sentence_translation_da && (

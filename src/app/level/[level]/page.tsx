@@ -90,29 +90,42 @@ export default function LevelPage() {
     if (!loading) setRefreshing(true);
     
     try {
-      // Fetch topics for this level
+      // Get user's target language
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('target_language')
+        .eq('id', currentUser.id)
+        .single();
+
+      const targetLanguage = userData?.target_language || 'es';
+
+      // Fetch topics for this level and language
       const { data: topicsData } = await supabase
         .from('topics')
         .select('*')
         .eq('level', level)
+        .eq('target_language', targetLanguage)
         .order('order_index');
 
       if (topicsData) {
         setTopics(topicsData);
       }
 
-      // Fetch exercises for this level
+      // Fetch exercises for this level and language
       const { data: exercisesData } = await supabase
         .from('exercises')
         .select('*')
-        .eq('level', level);
+        .eq('level', level)
+        .eq('target_language', targetLanguage);
 
       if (exercisesData) {
         setExercises(exercisesData);
       }
 
       // Fetch user progress
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const { data: progressData } = await supabase
           .from('user_progress')
@@ -175,6 +188,9 @@ export default function LevelPage() {
     );
   }
 
+  // Check if no topics found for selected language
+  const noTopicsForLanguage = !loading && topics.length === 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Shared App Header */}
@@ -192,20 +208,52 @@ export default function LevelPage() {
         </div>
       </div>
 
-      {/* Duolingo-Style Learning Path */}
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-xl">Indlæser læringssti...</div>
+      {/* No content message */}
+      {noTopicsForLanguage ? (
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            <div className="text-6xl mb-4">📚</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Ingen emner tilgængelige endnu
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Der er ingen emner for niveau {level} på dit valgte sprog endnu.
+            </p>
+            <p className="text-sm text-gray-500">
+              Kontakt en administrator for at tilføje indhold, eller skift til et andet sprog i indstillingerne.
+            </p>
+            <div className="mt-6 space-x-4">
+              <Link
+                href="/dashboard"
+                className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Tilbage til dashboard
+              </Link>
+              <Link
+                href="/settings"
+                className="inline-block px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Sprogindstillinger
+              </Link>
+            </div>
+          </div>
         </div>
-      }>
-        <LearningPath
-          level={level}
-          topics={topics}
-          exercises={exercises}
-          userProgress={userProgress}
-          onRefresh={fetchData}
-        />
-      </Suspense>
+      ) : (
+        /* Duolingo-Style Learning Path */
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-xl">Indlæser læringssti...</div>
+          </div>
+        }>
+          <LearningPath
+            level={level}
+            topics={topics}
+            exercises={exercises}
+            userProgress={userProgress}
+            onRefresh={fetchData}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

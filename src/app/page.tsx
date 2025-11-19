@@ -47,7 +47,7 @@ export default function Home() {
         {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 sm:mb-8">
-            🦆 Spanskgrammatik
+            🦆 DuckLingo
           </h1>
           <p className="text-lg sm:text-xl text-gray-700 mb-8 sm:mb-12 max-w-3xl mx-auto px-4">
             Lær spansk grammatik med AI-baserede øvelser tilpasset danske studerende. 
@@ -115,7 +115,7 @@ export default function Home() {
 
         {/* Features Section */}
         <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 text-gray-900">Hvorfor Spanskgrammatik?</h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 text-gray-900">Hvorfor DuckLingo?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 text-left">
             <div>
               <h3 className="text-lg font-semibold mb-3 text-blue-600">🤖 AI-baserede øvelser</h3>

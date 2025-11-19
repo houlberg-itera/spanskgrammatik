@@ -184,7 +184,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
   } else if (exercise?.content && typeof exercise.content === 'object') {
     // Old vocabulary format: single question object
     const content = exercise.content as any;
-    if (content.question_da || content.question_es) {
+    if (content.question_da || content.question) {
       // Convert old vocabulary format to questions array
       const question = {
         id: '1',

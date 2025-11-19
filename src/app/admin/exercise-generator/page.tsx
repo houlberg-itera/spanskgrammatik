@@ -27,6 +27,7 @@ interface GenerationJob {
 export default function ExerciseGeneratorAdmin() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<SpanishLevel>('A1');
+  const [targetLanguage, setTargetLanguage] = useState<'es' | 'pt' | 'all'>('es');
   const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
   const [exerciseTypes] = useState([
     { id: 'multiple_choice', name: 'Multiple Choice', weight: 35 },
@@ -116,14 +117,32 @@ export default function ExerciseGeneratorAdmin() {
   }, []);
 
   useEffect(() => {
+    // Reset generation state on mount to prevent resuming after server restart
+    setIsGenerating(false);
+    setIsPaused(false);
+    setShouldStop(false);
+    setGenerationJobs([]);
+    setCurrentJobIndex(0);
+    console.log('🔄 Component mounted - generation state reset');
+    
     loadTopics();
     loadAIConfiguration();
-  }, [selectedLevel]);
+    
+    // Cleanup on unmount - ensure generation stops
+    return () => {
+      setIsGenerating(false);
+      setShouldStop(true);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      console.log('🛡️ Component unmounting - forcing generation stop');
+    };
+  }, [selectedLevel, targetLanguage]);
 
   const loadTopics = async () => {
     try {
-      console.log('Loading topics for level:', selectedLevel);
-      const response = await fetch(`/api/admin/topics?level=${selectedLevel}`);
+      console.log('Loading topics for level:', selectedLevel, 'language:', targetLanguage);
+      const response = await fetch(`/api/admin/topics?level=${selectedLevel}&target_language=${targetLanguage}`);
       if (!response.ok) {
         console.error('Failed to fetch topics:', response.status, response.statusText);
         setTopics([]);
@@ -222,7 +241,7 @@ export default function ExerciseGeneratorAdmin() {
     return selectedTopics.length * exercisesPerTopic;
   };
 
-  const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0) => {
+  const generateExercisesForTopic = async (topic: Topic, exerciseType: string, count: number, difficultyDist?: typeof difficultyDistribution, retryCount = 0, langOverride?: 'es' | 'pt') => {
     // Check if generation should stop before making API call
     // Check if generation was stopped BEFORE creating AbortController
     if (shouldStop) {
@@ -246,6 +265,10 @@ export default function ExerciseGeneratorAdmin() {
     }
     
     const signal = abortControllerRef.current.signal;
+    
+    // Use langOverride if provided, otherwise fall back to state (prevents closure issues)
+    const effectiveLanguage = langOverride || (targetLanguage === 'all' ? 'es' : targetLanguage);
+    
     try {
       const response = await fetch('/api/generate-bulk-exercises', {
         method: 'POST',
@@ -258,10 +281,13 @@ export default function ExerciseGeneratorAdmin() {
           level: topic.level,
           topicName: topic.name_da,
           topicDescription: topic.description_da,
-          model: currentModel  // Pass the selected AI model to the API
+          model: currentModel,  // Pass the selected AI model to the API
+          target_language: effectiveLanguage  // Use effective language to avoid closure issues
         }),
         signal,
       });
+
+      console.log(`✅ API request sent with target_language: ${effectiveLanguage}`);
 
       if (!response.ok) {
         // Check if it's a rate limit error (429)
@@ -287,7 +313,7 @@ export default function ExerciseGeneratorAdmin() {
           }
           
           // Retry the request
-          return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
+          return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1, langOverride);
         }
 
         // Check if it's a generation failure (422) - handle gracefully
@@ -344,15 +370,21 @@ export default function ExerciseGeneratorAdmin() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1);
+      return await generateExercisesForTopic(topic, exerciseType, count, difficultyDist, retryCount + 1, langOverride);
     }
   };
 
   const startBulkGeneration = async () => {
+    if (targetLanguage === 'all') {
+      alert('Vælg venligst et specifikt målsprog (Spansk eller Portugisisk) før du genererer øvelser.');
+      return;
+    }
     if (selectedTopics.length === 0) {
       alert('Vælg venligst mindst ét emne');
       return;
     }
+
+    console.log('🌐 Starting bulk generation with target language:', targetLanguage);
 
     // Validate that all selected topics exist in the loaded topics
     const invalidTopics = selectedTopics.filter(topicId => !topics.find(t => t.id === topicId));
@@ -459,11 +491,16 @@ export default function ExerciseGeneratorAdmin() {
 
       try {
         // Generate all exercises for this topic and exercise type in a single API call
+        // Pass current targetLanguage explicitly to avoid closure capturing old state
+        const currentLang = targetLanguage === 'all' ? 'es' : targetLanguage;
+        
         const result = await generateExercisesForTopic(
           topic, 
           exerciseTypes.find(et => et.name === job.exerciseType)?.id || 'multiple_choice',
           job.requestedCount,
-          difficultyDistribution  // Pass difficulty distribution to the API
+          difficultyDistribution,  // Pass difficulty distribution to the API
+          0,  // retryCount
+          currentLang  // Explicitly pass current language to avoid closure issues
         );
 
         // Check if generation failed due to reasoning tokens or other AI issues
@@ -679,25 +716,67 @@ export default function ExerciseGeneratorAdmin() {
             </div>
           </div>
 
-          {/* Level Selection - Mobile Friendly */}
-          <div className="mb-6 md:mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Vælg Niveau
-            </label>
-            <div className="grid grid-cols-3 gap-2 md:flex md:space-x-4">
-              {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
+          {/* Level and Language Selection - Mobile Friendly */}
+          <div className="mb-6 md:mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Level Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Vælg Niveau
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
+                  <button
+                    key={level}
+                    onClick={() => setSelectedLevel(level)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
+                      selectedLevel === level
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Niveau {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Target Language Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Målsprog
+              </label>
+              <div className="grid grid-cols-3 gap-2">
                 <button
-                  key={level}
-                  onClick={() => setSelectedLevel(level)}
+                  onClick={() => setTargetLanguage('es')}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
-                    selectedLevel === level
+                    targetLanguage === 'es'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Niveau {level}
+                  🇪🇸 Spansk
                 </button>
-              ))}
+                <button
+                  onClick={() => setTargetLanguage('pt')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
+                    targetLanguage === 'pt'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🇵🇹 Portugisisk
+                </button>
+                <button
+                  onClick={() => setTargetLanguage('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
+                    targetLanguage === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🌐 Alle
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1079,14 +1158,14 @@ export default function ExerciseGeneratorAdmin() {
             {!isGenerating ? (
               <button
                 onClick={startBulkGeneration}
-                disabled={selectedTopics.length === 0}
+                disabled={selectedTopics.length === 0 || targetLanguage === 'all'}
                 className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-lg font-semibold text-base md:text-lg transition-all duration-200 ${
                   selectedTopics.length === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
                 }`}
               >
-                🚀 Start AI Generering
+                {targetLanguage === 'all' ? 'Vælg specifikt sprog for generering' : '🚀 Start AI Generering'}
               </button>
             ) : (
               <div className="space-y-3 md:space-y-4">

@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
       topicName, 
       topicDescription,
       difficultyDistribution,
-      model
+      model,
+      target_language = 'es'  // Default to Spanish if not provided
     } = body;
 
     console.log('🔍 Extracted parameters:', {
@@ -96,7 +97,8 @@ export async function POST(request: NextRequest) {
       topicName,
       topicDescription,
       difficultyDistribution,
-      model
+      model,
+      target_language
     });
 
     // Validate all required fields with detailed error messages
@@ -314,7 +316,8 @@ export async function POST(request: NextRequest) {
           generateVariations: true,
           includeExplanations: true,
           targetProficiency: true,
-          model: model || aiConfig.model // Use user-selected model or fall back to configured model
+          model: model || aiConfig.model, // Use user-selected model or fall back to configured model
+          targetLanguage: target_language || 'es'
         });
         
         const generationTime = Date.now() - generationStartTime;
@@ -406,17 +409,20 @@ export async function POST(request: NextRequest) {
         
         // Additional validation for fill_blank exercises
         if (exerciseType === 'fill_blank') {
-          const hasUnderscore = q.question_da && q.question_da.includes('_');
-          const underscoreCount = (q.question_da.match(/_/g) || []).length;
+          // For fill_blank, the underscore should be in the target language field (question), not question_da
+          const targetLangQuestion = q.question || '';
+          const hasUnderscore = targetLangQuestion.includes('_');
+          const underscoreCount = (targetLangQuestion.match(/_/g) || []).length;
           const hasSimpleAnswer = q.correct_answer && typeof q.correct_answer === 'string' && 
                                   q.correct_answer.trim().split(' ').length <= 3; // Max 3 words
           
           if (!hasUnderscore) {
-            console.warn(`⚠️ Fill_blank question missing underscore: "${q.question_da}"`);
+            console.warn(`⚠️ Fill_blank question missing underscore in target language field: "${targetLangQuestion}"`);
+            console.warn(`   question_da: "${q.question_da}"`);
             return false;
           }
           if (underscoreCount !== 1) {
-            console.warn(`⚠️ Fill_blank question has ${underscoreCount} underscores, expected 1: "${q.question_da}"`);
+            console.warn(`⚠️ Fill_blank question has ${underscoreCount} underscores, expected 1: "${targetLangQuestion}"`);
             return false;
           }
           if (!hasSimpleAnswer) {
@@ -506,9 +512,10 @@ export async function POST(request: NextRequest) {
         level: finalLevel,
         type: getExerciseTypeFromQuestionType(exerciseType),
         title_da: `${finalTopicName} - ${exerciseType} (${primaryDifficulty.toUpperCase()}) #${exerciseCounter}`,
-        title_es: `${finalTopicName} - ${exerciseType} (${primaryDifficulty.toUpperCase()}) #${exerciseCounter}`,
+        title: `${finalTopicName} - ${exerciseType} (${primaryDifficulty.toUpperCase()}) #${exerciseCounter}`, // Same as title_da for now
         description_da: `AI-genereret ${primaryDifficulty} øvelse om ${finalTopicName} med ${questionsSlice.length} spørgsmål`,
-        description_es: `Ejercicio ${primaryDifficulty} generado por IA sobre ${finalTopicName} con ${questionsSlice.length} preguntas`,
+        description: `AI-genereret ${primaryDifficulty} øvelse om ${finalTopicName} med ${questionsSlice.length} spørgsmål`, // Same as description_da for now
+        target_language: target_language,
         content: {
           instructions_da: `Besvar følgende spørgsmål om ${finalTopicName}. Sværhedsgrad: ${primaryDifficulty}`,
           questions: questionsSlice,
