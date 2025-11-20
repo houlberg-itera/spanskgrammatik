@@ -39,6 +39,7 @@ interface TestConfiguration {
   model: string;
   temperature: number;
   maxTokens: number;
+  target_language: 'es' | 'pt';
   topicData?: {
     id: number;
     level: string;
@@ -360,6 +361,7 @@ function TestConfigurationForm({
     model: config.model_name,
     temperature: config.temperature,
     maxTokens: config.max_tokens,
+    target_language: 'es',
   });
   
   // State for topics from database
@@ -379,12 +381,12 @@ function TestConfigurationForm({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch topics based on current level
-  const fetchTopics = async (level: string) => {
+  const fetchTopics = async (level: string, target_language: string) => {
     setTopicsLoading(true);
     setTopicsError(null);
     
     try {
-      const response = await fetch(`/api/admin/topics?level=${level}`);
+      const response = await fetch(`/api/admin/topics?level=${level}&target_language=${target_language}`);
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
       }
@@ -414,8 +416,8 @@ function TestConfigurationForm({
 
   // Fetch topics when component mounts or level changes
   useEffect(() => {
-    fetchTopics(testConfig.level);
-  }, [testConfig.level]);
+    fetchTopics(testConfig.level, testConfig.target_language);
+  }, [testConfig.level, testConfig.target_language]);
 
   const handleTest = async () => {
     setLoading(true);
@@ -485,7 +487,7 @@ function TestConfigurationForm({
                   Topic
                 </label>
                 <select
-                  value={testConfig.topic}
+                  value={testConfig.topic ?? ''}
                   onChange={(e) => {
                     const selectedTopic = topics.find(t => t.name_es === e.target.value);
                     setTestConfig({ 
@@ -531,6 +533,20 @@ function TestConfigurationForm({
                   <option value="A1">A1</option>
                   <option value="A2">A2</option>
                   <option value="B1">B1</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target Language
+                </label>
+                <select
+                  value={testConfig.target_language}
+                  onChange={(e) => setTestConfig({ ...testConfig, target_language: e.target.value as 'es' | 'pt' })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="es">🇪🇸 Spanish</option>
+                  <option value="pt">🇵🇹 Portuguese</option>
                 </select>
               </div>
 
@@ -716,56 +732,93 @@ function TestConfigurationForm({
                   {/* Generated Exercise */}
                   {(result as any).exercise && (
                     <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-semibold text-green-900 mb-2">Generated Exercise</h4>
+                      <h4 className="font-semibold text-green-900 mb-2">Generated Exercise Preview</h4>
                       <div className="space-y-3">
                         {/* Exercise Title */}
                         {(result as any).exercise.title && (
-                          <div>
-                            <strong className="text-green-800">Title:</strong> {(result as any).exercise.title}
+                          <div className="text-xl font-bold text-gray-900 mb-4">
+                            {(result as any).exercise.title}
                           </div>
                         )}
                         
-                        {/* Questions */}
+                        {/* Instructions */}
+                        {(result as any).exercise.instructions_da && (
+                          <div className="text-sm text-gray-700 mb-4 italic">
+                            {(result as any).exercise.instructions_da}
+                          </div>
+                        )}
+                        
+                        {/* Questions - Rendered like actual exercise */}
                         {(result as any).exercise.questions && (result as any).exercise.questions.length > 0 && (
-                          <div>
-                            <strong className="text-green-800">Questions ({(result as any).exercise.questions.length}):</strong>
-                            <div className="mt-2 space-y-2">
-                              {(result as any).exercise.questions.map((question: any, index: number) => (
-                                <div key={index} className="p-3 bg-white rounded border border-green-200">
-                                  <div className="text-sm">
-                                    <strong>Q{index + 1}:</strong>
-                                    {question.question_da && (
-                                      <div className="mt-1">
-                                        <span className="text-blue-700 font-medium">Danish:</span> {question.question_da}
+                          <div className="space-y-4">
+                            {(result as any).exercise.questions.map((question: any, index: number) => (
+                              <div key={index} className="p-6 border rounded-lg bg-white">
+                                {/* Danish instruction (question_da) */}
+                                {question.question_da && (
+                                  <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
+                                )}
+                                
+                                {/* Target language sentence with blank (question) */}
+                                {question.question && (
+                                  <div className="mb-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <div className="flex items-start space-x-2">
+                                      <span className="text-amber-600 text-sm">🔤</span>
+                                      <div>
+                                        <p className="text-sm font-medium text-amber-800">{question.question}</p>
                                       </div>
-                                    )}
-                                    {question.question_es && (
-                                      <div className="mt-1">
-                                        <span className="text-green-700 font-medium">Spanish:</span> {question.question_es}
-                                      </div>
-                                    )}
-                                    {question.translation_da && (
-                                      <div className="mt-1">
-                                        <span className="text-purple-700 font-medium">Translation:</span> {question.translation_da}
-                                      </div>
-                                    )}
-                                    {!question.question_da && !question.question_es && question.question && (
-                                      <div className="mt-1">{question.question}</div>
-                                    )}
+                                    </div>
                                   </div>
-                                  {question.options && (
-                                    <div className="mt-2 text-xs text-gray-600">
-                                      <span className="font-medium">Options:</span> {Array.isArray(question.options) ? question.options.join(', ') : JSON.stringify(question.options)}
+                                )}
+                                
+                                {/* Danish translation (sentence_translation_da) */}
+                                {question.sentence_translation_da && (
+                                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-start space-x-2">
+                                      <span className="text-blue-600 text-sm">💡</span>
+                                      <div>
+                                        <p className="text-xs font-medium text-blue-700 mb-1">Dansk oversættelse:</p>
+                                        <p className="text-sm text-blue-800">{question.sentence_translation_da}</p>
+                                      </div>
                                     </div>
-                                  )}
-                                  {question.correct_answer && (
-                                    <div className="mt-2 text-xs text-green-600">
-                                      <strong>Answer:</strong> {question.correct_answer}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                                  </div>
+                                )}
+                                
+                                {/* Input field simulation */}
+                                <input
+                                  type="text"
+                                  disabled
+                                  className="w-full p-3 border rounded bg-gray-50 cursor-not-allowed mb-3"
+                                  placeholder="Udfyld det manglende ord..."
+                                />
+                                
+                                {/* Options (for multiple choice) */}
+                                {question.options && Array.isArray(question.options) && (
+                                  <div className="space-y-2 mb-3">
+                                    {question.options.map((option: string, optIdx: number) => (
+                                      <div key={optIdx} className="p-3 border rounded hover:bg-gray-50 cursor-pointer">
+                                        {option}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Correct answer (admin view) */}
+                                {question.correct_answer && (
+                                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                                    <p className="text-xs font-medium text-green-700 mb-1">✓ Correct Answer:</p>
+                                    <p className="text-sm font-semibold text-green-800">{question.correct_answer}</p>
+                                  </div>
+                                )}
+                                
+                                {/* Explanation */}
+                                {question.explanation_da && (
+                                  <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded">
+                                    <p className="text-xs font-medium text-purple-700 mb-1">📚 Explanation:</p>
+                                    <p className="text-sm text-purple-800">{question.explanation_da}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

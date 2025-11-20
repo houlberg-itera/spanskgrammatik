@@ -411,18 +411,19 @@ export async function POST(request: NextRequest) {
         if (exerciseType === 'fill_blank') {
           // For fill_blank, the underscore should be in the target language field (question), not question_da
           const targetLangQuestion = q.question || '';
-          const hasUnderscore = targetLangQuestion.includes('_');
-          const underscoreCount = (targetLangQuestion.match(/_/g) || []).length;
+          // Match one or more consecutive underscores as a single blank
+          const blankMatches = targetLangQuestion.match(/_+/g) || [];
+          const blankCount = blankMatches.length;
           const hasSimpleAnswer = q.correct_answer && typeof q.correct_answer === 'string' && 
                                   q.correct_answer.trim().split(' ').length <= 3; // Max 3 words
           
-          if (!hasUnderscore) {
+          if (blankCount === 0) {
             console.warn(`⚠️ Fill_blank question missing underscore in target language field: "${targetLangQuestion}"`);
             console.warn(`   question_da: "${q.question_da}"`);
             return false;
           }
-          if (underscoreCount !== 1) {
-            console.warn(`⚠️ Fill_blank question has ${underscoreCount} underscores, expected 1: "${targetLangQuestion}"`);
+          if (blankCount !== 1) {
+            console.warn(`⚠️ Fill_blank question has ${blankCount} blanks, expected 1: "${targetLangQuestion}"`);
             return false;
           }
           if (!hasSimpleAnswer) {

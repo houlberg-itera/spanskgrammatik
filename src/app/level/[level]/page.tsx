@@ -146,40 +146,7 @@ export default function LevelPage() {
     }
   };
 
-  // AI Exercise generation removed for end users - now admin-only
-  // const generateAIExercise = async (topicId: number, exerciseType: string) => {
-  //   setGeneratingExercise(topicId);
-  //   try {
-  //     const response = await fetch('/api/generate-exercise', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         topicId,
-  //         exerciseType,
-  //       }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error('Failed to generate exercise');
-  //     }
-
-  //     const data = await response.json();
-      
-  //     // Refresh exercises to include the new one
-  //     await fetchData();
-      
-  //     // Navigate to the new exercise
-  //     router.push(`/exercise/${data.exercise.id}`);
-  //   } catch (error) {
-  //     console.error('Error generating AI exercise:', error);
-  //     alert('Kunne ikke generere AI-øvelse. Prøv igen senere.');
-  //   } finally {
-  //     setGeneratingExercise(null);
-  //   }
-  // };
-
+ 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

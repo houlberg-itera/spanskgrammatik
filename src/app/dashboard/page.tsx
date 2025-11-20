@@ -127,7 +127,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Velkommen tilbage! 👋</h2>
-                <p className="text-gray-600">Klar til at lære mere spansk grammatik i dag? Lad os se dine fremskridt!</p>
+                <p className="text-gray-600">
+                  Klar til at lære mere {user?.target_language === 'pt' ? 'portugisisk' : 'spansk'} grammatik i dag? Lad os se dine fremskridt!
+                </p>
               </div>
               <Link
                 href="/settings"

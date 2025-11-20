@@ -101,7 +101,7 @@ export default function AppHeader({ showUserInfo = true, pageTitle }: AppHeaderP
                   title="Skift sprog"
                 >
                   <span className="text-xl">{getLanguageInfo(user.target_language).flag}</span>
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="hidden sm:inline text-sm font-semibold text-gray-700">
                     {getLanguageInfo(user.target_language).nativeName}
                   </span>
                 </Link>

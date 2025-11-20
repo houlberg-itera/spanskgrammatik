@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import ExerciseQuestion from './ExerciseQuestion';
 import ProgressErrorHandler from './ProgressErrorHandler';
 import { useRouter } from 'next/navigation';
+import { isAnswerCorrect } from '@/lib/utils/text-normalization';
+import { saveExerciseProgress, countAnsweredQuestions } from '@/lib/utils/progress-tracking';
 
 // Helper function to update level progress
 async function updateLevelProgress(userId: string, level: string, supabase: any) {
@@ -250,43 +252,8 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
     }));
   };
 
-  const normalizeText = (text: string): string => {
-    return text
-      .toLowerCase()
-      .trim()
-      // Normalize Spanish special characters to basic letters
-      .replace(/[áàâäã]/g, 'a')
-      .replace(/[éèêë]/g, 'e')
-      .replace(/[íìîï]/g, 'i')
-      .replace(/[óòôöõ]/g, 'o')
-      .replace(/[úùûü]/g, 'u')
-      .replace(/ñ/g, 'n')
-      .replace(/ç/g, 'c')
-      // Remove all punctuation and special characters
-      .replace(/[.,!?;:'"()\[\]{}¡¿]/g, '')
-      // Remove extra spaces
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
-  const compareAnswers = (userAnswer: string, correctAnswer: string): boolean => {
-    const originalUserAnswer = userAnswer.toLowerCase().trim();
-    const originalCorrectAnswer = correctAnswer.toLowerCase().trim();
-    
-    // Check exact match first (case-insensitive only)
-    if (originalUserAnswer === originalCorrectAnswer) {
-      return true;
-    }
-
-    // Check normalized match (without special characters and punctuation)
-    const normalizedUserAnswer = normalizeText(userAnswer);
-    const normalizedCorrectAnswer = normalizeText(correctAnswer);
-    
-    return normalizedUserAnswer === normalizedCorrectAnswer;
-  };
-
   const calculateScore = (): number => {
-    let correct = 0;
+    let correctPoints = 0;
     let total = 0;
 
     finalQuestions.forEach((question) => {
@@ -295,43 +262,14 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
       const userAnswer = answers[question.id];
       
       if (userAnswer !== undefined && userAnswer !== '' && userAnswer !== null) {
-        let isCorrect = false;
-        
-        if (Array.isArray(question.correct_answer)) {
-          isCorrect = Array.isArray(userAnswer) 
-            ? userAnswer.sort().join(',').toLowerCase() === question.correct_answer.sort().join(',').toLowerCase()
-            : false;
-        } else {
-          // Use enhanced comparison with special character handling
-          const correctAnswer = String(question.correct_answer);
-          const givenAnswer = String(userAnswer);
-          
-          if (question.type === 'multiple_choice') {
-            isCorrect = compareAnswers(givenAnswer, correctAnswer);
-          } else if (question.type === 'fill_in_blank' || question.type === 'conjugation') {
-            isCorrect = compareAnswers(givenAnswer, correctAnswer);
-          } else if (question.type === 'translation') {
-            // For translation, use enhanced comparison first, then fallback to partial matches
-            isCorrect = compareAnswers(givenAnswer, correctAnswer);
-            if (!isCorrect) {
-              // Fallback to partial matching for translations
-              const normalizedGiven = normalizeText(givenAnswer);
-              const normalizedCorrect = normalizeText(correctAnswer);
-              isCorrect = normalizedGiven.includes(normalizedCorrect) || 
-                         normalizedCorrect.includes(normalizedGiven);
-            }
-          } else {
-            isCorrect = compareAnswers(givenAnswer, correctAnswer);
-          }
-        }
-        
+        const isCorrect = isAnswerCorrect(userAnswer, question.correct_answer, question.type);
         if (isCorrect) {
-          correct += questionPoints;
+          correctPoints += questionPoints;
         }
       }
     });
 
-    const finalScore = total > 0 ? Math.round((correct / total) * 100) : 0;
+    const finalScore = total > 0 ? Math.round((correctPoints / total) * 100) : 0;
     return finalScore;
   };
 
@@ -587,6 +525,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
                 userAnswer={answers[question.id]}
                 showResult={true}
                 disabled={true}
+                targetLanguage={exercise.target_language}
               />
             ))}
           </div>
@@ -688,6 +627,7 @@ export default function ExercisePlayer({ exercise, onComplete }: ExercisePlayerP
             enableAiFeedback={true}
             showResult={showResults}
             disabled={false}
+            targetLanguage={exercise.target_language}
           />
         </div>
 

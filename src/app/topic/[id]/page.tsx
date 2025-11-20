@@ -12,12 +12,12 @@ interface QuestionWithExercise {
   exerciseId: number;
   exerciseTitle: string;
   question_da: string;
-  question_es?: string;
+  question?: string;
   sentence_translation_da?: string;
   correct_answer: string | string[];
   options?: string[];
   explanation_da?: string;
-  explanation_es?: string;
+  explanation?: string;
   type: string;
 }
 
@@ -39,6 +39,7 @@ export default function TopicPage() {
   const [error, setError] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
+  const [targetLanguage, setTargetLanguage] = useState<'es' | 'pt'>('es');
   
   const supabase = createClient();
 
@@ -92,14 +93,15 @@ export default function TopicPage() {
         .eq('id', currentUser.id)
         .single();
 
-      const targetLanguage = userData?.target_language || 'es';
+      const targetLang = userData?.target_language || 'es';
+      setTargetLanguage(targetLang);
 
       // Get exercises for this topic filtered by target language
       const { data: exercisesData, error: exercisesError } = await supabase
         .from('exercises')
         .select('*')
         .eq('topic_id', topicId)
-        .eq('target_language', targetLanguage)
+        .eq('target_language', targetLang)
         .order('created_at', { ascending: true });
 
       if (exercisesError) {
@@ -117,12 +119,12 @@ export default function TopicPage() {
                 exerciseId: exercise.id,
                 exerciseTitle: exercise.title_da,
                 question_da: question.question_da,
-                question_es: question.question_es,
+                question: question.question,
                 sentence_translation_da: question.sentence_translation_da,
                 correct_answer: question.correct_answer,
                 options: question.options,
                 explanation_da: question.explanation_da,
-                explanation_es: question.explanation_es,
+                explanation: question.explanation,
                 type: question.type
               });
             }
@@ -578,10 +580,26 @@ export default function TopicPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            {/* Spanish question as main heading */}
+            {/* Danish instruction as heading */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.question || currentQuestion.question_da}
+              {currentQuestion.question_da}
             </h2>
+            
+            {/* Target language sentence - show if question exists and it's different from question_da */}
+            {currentQuestion.question && currentQuestion.question !== currentQuestion.question_da && (
+              <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <span className="text-amber-600 text-lg">🔤</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-amber-700 mb-2">
+                      {targetLanguage === 'pt' ? 'Portugisisk' : 'Spansk'} sætning:
+                    </p>
+                    <p className="text-lg font-semibold text-amber-900">{currentQuestion.question}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Danish translation as reference */}
             {(currentQuestion.sentence_translation_da) && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -621,7 +639,7 @@ export default function TopicPage() {
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                  placeholder="Skriv dit svar på spansk..."
+                  placeholder={targetLanguage === 'pt' ? 'Skriv dit svar på portugisisk...' : 'Skriv dit svar på spansk...'}
                   disabled={isCorrect !== null}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && userAnswer.trim() && isCorrect === null) {

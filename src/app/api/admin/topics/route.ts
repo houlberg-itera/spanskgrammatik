@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
       name_da, 
       name_es, 
       description_da, 
-      description_es, 
+      description_es,
+      target_language = 'es',
       order_index 
     } = body;
 
@@ -85,6 +86,13 @@ export async function POST(request: NextRequest) {
     if (!level || !name_da || !name_es || order_index === undefined) {
       return NextResponse.json({ 
         error: 'Missing required fields: level, name_da, name_es, order_index' 
+      }, { status: 400 });
+    }
+
+    // Validate target_language
+    if (!['es', 'pt'].includes(target_language)) {
+      return NextResponse.json({ 
+        error: 'Invalid target_language. Must be "es" or "pt"' 
       }, { status: 400 });
     }
 
@@ -99,8 +107,9 @@ export async function POST(request: NextRequest) {
     // Check for duplicate names within the same level
     const { data: existingTopics, error: checkError } = await supabase
       .from('topics')
-      .select('id, name_da, name_es')
+      .select('id, name_da, name_es, target_language')
       .eq('level', level)
+      .eq('target_language', target_language)
       .or(`name_da.eq.${name_da.trim()},name_es.eq.${name_es.trim()}`);
 
     if (checkError) {
@@ -123,8 +132,11 @@ export async function POST(request: NextRequest) {
         level,
         name_da: name_da.trim(),
         name_es: name_es.trim(),
+        name: target_language === 'es' ? name_es.trim() : name_es.trim(), // Use name_es for generic name field
         description_da: description_da?.trim() || null,
         description_es: description_es?.trim() || null,
+        description: target_language === 'es' ? description_es?.trim() || null : description_es?.trim() || null,
+        target_language: target_language,
         order_index: parseInt(order_index)
       })
       .select()

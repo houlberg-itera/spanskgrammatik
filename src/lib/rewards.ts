@@ -82,6 +82,11 @@ export function getCurrentMedal(userStats: UserStats): MedalType {
  * @returns Next medal type or undefined if at highest level
  */
 export function getNextMedal(currentMedal: MedalType): MedalType | undefined {
+  // Special case: 'none' should progress to bronze
+  if (currentMedal === 'none') {
+    return 'bronze';
+  }
+  
   const currentIndex = MEDAL_ORDER.indexOf(currentMedal);
   if (currentIndex === -1 || currentIndex === MEDAL_ORDER.length - 1) {
     return undefined;
@@ -99,7 +104,10 @@ export function calculateProgressToNextMedal(
   userStats: UserStats, 
   nextMedal?: MedalType
 ): number {
-  if (!nextMedal) return 100; // Already at highest level
+  // If no next medal and user has no medal, return 0 (not 100)
+  if (!nextMedal) {
+    return userStats.current_medal === 'none' ? 0 : 100; // 0 for no progress, 100 for max level
+  }
   
   const requirements = MEDAL_REQUIREMENTS[nextMedal];
   const { total_xp, correct_answers, accuracy_percentage } = userStats;
@@ -107,10 +115,14 @@ export function calculateProgressToNextMedal(
   // Calculate progress for each requirement - FIXED: Use correct_answers instead of questions_answered
   const xpProgress = Math.min((total_xp / requirements.xp) * 100, 100);
   const questionsProgress = Math.min((correct_answers / requirements.questions) * 100, 100);
-  const accuracyProgress = Math.min((accuracy_percentage / requirements.accuracy) * 100, 100);
+  // Handle NaN case for accuracy when percentage is 0 or undefined
+  const accuracyProgress = isNaN(accuracy_percentage) || accuracy_percentage === 0 
+    ? 0 
+    : Math.min((accuracy_percentage / requirements.accuracy) * 100, 100);
   
-  // Return the minimum progress (bottleneck requirement)
-  return Math.floor(Math.min(xpProgress, questionsProgress, accuracyProgress));
+  // Return the minimum progress (bottleneck requirement) - handle NaN cases
+  const minProgress = Math.min(xpProgress, questionsProgress, accuracyProgress);
+  return Math.floor(isNaN(minProgress) ? 0 : minProgress);
 }
 
 /**
@@ -198,28 +210,28 @@ export function getMedalDisplay(medal: MedalType) {
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
       borderColor: 'border-gray-200',
-      name: 'Silver',
+      name: 'Sølv',
     },
     gold: {
       emoji: '🥇',
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50',
       borderColor: 'border-yellow-200',
-      name: 'Gold',
+      name: 'Guld',
     },
     diamond: {
       emoji: '💎',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
-      name: 'Diamond',
+      name: 'Diamant',
     },
     emerald: {
       emoji: '💚',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
       borderColor: 'border-green-200',
-      name: 'Emerald',
+      name: 'Smaragd',
     },
   };
   
