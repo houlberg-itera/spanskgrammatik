@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
     userPrompt = userPrompt.replace(/\{\{exerciseType\}\}/g, testParams.exerciseType);
     userPrompt = userPrompt.replace(/\{\{difficulty\}\}/g, testParams.difficulty);
     
+    // Handle target language
+    const targetLanguageName = testParams.target_language === 'es' ? 'Spanish' : 'Portuguese';
+    userPrompt = userPrompt.replace(/\{\{language\}\}/g, targetLanguageName);
+    userPrompt = userPrompt.replace(/\{\{targetLanguage\}\}/g, targetLanguageName);
+    userPrompt = userPrompt.replace(/\{\{target_language\}\}/g, targetLanguageName);
+    
     // Handle question count with multiple possible variable names
     const questionCountStr = testParams.questionCount.toString();
     userPrompt = userPrompt.replace(/\{\{questionCount\}\}/g, questionCountStr);
@@ -62,24 +68,23 @@ export async function POST(request: NextRequest) {
     userPrompt = userPrompt.replace(/\{\{questionsCount\}\}/g, questionCountStr);
     
     // Additional template variables that might be used
-    userPrompt = userPrompt.replace(/\{\{language\}\}/g, 'Spanish');
-    userPrompt = userPrompt.replace(/\{\{targetLanguage\}\}/g, 'Danish');
+    userPrompt = userPrompt.replace(/\{\{learnerLanguage\}\}/g, 'Danish');
     userPrompt = userPrompt.replace(/\{\{topicName\}\}/g, testParams.topic);
     userPrompt = userPrompt.replace(/\{\{topicDescription\}\}/g, 
-      testParams.topicData?.description_da || testParams.topicData?.description || `Spanish ${testParams.topic} vocabulary and grammar`);
+      testParams.topicData?.description_da || testParams.topicData?.description || `${targetLanguageName} ${testParams.topic} vocabulary and grammar`);
     
     // Add specific instructions for question structure based on exercise type
     const questionCountText = testParams.questionCount === 1 ? 'EXACTLY 1 question' : `EXACTLY ${testParams.questionCount} questions`;
     
     if (testParams.exerciseType === 'fill_blank') {
       userPrompt = userPrompt.replace(/\{\{exerciseInstructions\}\}/g, 
-        `For fill_blank exercises, generate ${questionCountText}. Include: 1) Clear Spanish sentence with one blank (___), 2) Danish question asking what goes in the blank, 3) Multiple choice options, 4) Explanation in Danish. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
+        `For fill_blank exercises, generate ${questionCountText}. Include: 1) Clear ${targetLanguageName} sentence with one blank (___), 2) Danish question asking what goes in the blank, 3) Multiple choice options, 4) Explanation in Danish. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
     } else if (testParams.exerciseType === 'multiple_choice') {
       userPrompt = userPrompt.replace(/\{\{exerciseInstructions\}\}/g,
-        `For multiple_choice exercises, generate ${questionCountText}. Include: 1) Clear question in Danish, 2) Spanish content if applicable, 3) Multiple choice options, 4) Explanation in Danish. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
+        `For multiple_choice exercises, generate ${questionCountText}. Include: 1) Clear question in Danish, 2) ${targetLanguageName} content if applicable, 3) Multiple choice options, 4) Explanation in Danish. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
     } else {
       userPrompt = userPrompt.replace(/\{\{exerciseInstructions\}\}/g,
-        `Generate ${questionCountText}. Include clear questions with Danish instructions and explanations. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
+        `Generate ${questionCountText}. Include clear questions with Danish instructions and explanations. Content should be in ${targetLanguageName}. IMPORTANT: The questions array must contain exactly ${testParams.questionCount} question(s).`);
     }
 
     // Record start time for performance tracking

@@ -11,6 +11,7 @@ interface Topic {
   description_da: string;
   description_es?: string;
   level: SpanishLevel;
+  target_language: 'es' | 'pt';
   order_index?: number;
   exercises: Exercise[];
   exercise_count?: number;
@@ -32,6 +33,7 @@ interface TopicFormData {
   description_da: string;
   description_es: string;
   level: SpanishLevel;
+  target_language: 'es' | 'pt';
   order_index: number;
 }
 
@@ -39,6 +41,7 @@ export default function ContentManagement() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<SpanishLevel | ''>(''); // Default to empty string to show all
+  const [selectedLanguage, setSelectedLanguage] = useState<'es' | 'pt' | ''>(''); // Language filter
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +56,7 @@ export default function ContentManagement() {
     description_da: '',
     description_es: '',
     level: 'A1',
+    target_language: 'es',
     order_index: 0
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -61,7 +65,7 @@ export default function ContentManagement() {
 
   useEffect(() => {
     loadTopics();
-  }, [selectedLevel]);
+  }, [selectedLevel, selectedLanguage]);
 
   useEffect(() => {
     if (selectedTopic) {
@@ -72,12 +76,14 @@ export default function ContentManagement() {
   const loadTopics = async () => {
     setLoading(true);
     try {
-      console.log('🔍 Loading topics with selectedLevel:', selectedLevel);
+      console.log('🔍 Loading topics with selectedLevel:', selectedLevel, 'selectedLanguage:', selectedLanguage);
       
-      // Use the new enhanced topics API
-      const url = selectedLevel 
-        ? `/api/admin/topics?level=${selectedLevel}`
-        : '/api/admin/topics';
+      // Build URL with optional filters
+      const params = new URLSearchParams();
+      if (selectedLevel) params.append('level', selectedLevel);
+      if (selectedLanguage) params.append('target_language', selectedLanguage);
+      
+      const url = `/api/admin/topics${params.toString() ? '?' + params.toString() : ''}`;
       
       const response = await fetch(url);
       const result = await response.json();
@@ -153,28 +159,81 @@ export default function ContentManagement() {
     }
   };
 
-  const bulkDeleteExercises = async (topicId: string) => {
-    if (!confirm('Er du sikker på at du vil slette ALLE øvelser for dette emne? Dette kan ikke fortrydes!')) return;
+  const bulkDeleteExercises = async (topicId?: string, target_language?: 'es' | 'pt') => {
+    const languageText = target_language ? (target_language === 'es' ? 'spanske' : 'portugisiske') : '';
+    const confirmMessage = topicId 
+      ? 'Er du sikker på at du vil slette ALLE øvelser for dette emne? Dette kan ikke fortrydes!'
+      : target_language
+        ? `Er du sikker på at du vil slette ALLE ${languageText} øvelser? Dette kan ikke fortrydes!`
+        : 'Er du sikker på at du vil slette ALLE øvelser fra ALLE sprog? Dette kan ikke fortrydes!';
+    
+    if (!confirm(confirmMessage)) return;
 
     try {
-      const { error } = await supabase
-        .from('exercises')
-        .delete()
-        .eq('topic_id', topicId);
+      if (topicId) {
+        // Delete exercises for a specific topic
+        const { error } = await supabase
+          .from('exercises')
+          .delete()
+          .eq('topic_id', topicId);
 
-      if (error) {
-        console.error('Error bulk deleting exercises:', error);
-        alert('Fejl ved bulk sletning af øvelser');
-        return;
+        if (error) {
+          console.error('Error bulk deleting exercises:', error);
+          alert('Fejl ved bulk sletning af øvelser');
+          return;
+        }
+      } else if (target_language) {
+        // Delete exercises by target language - need to get topic IDs first
+        const { data: topicsData, error: topicsError } = await supabase
+          .from('topics')
+          .select('id')
+          .eq('target_language', target_language);
+
+        if (topicsError) {
+          console.error('Error fetching topics:', topicsError);
+          alert('Fejl ved hentning af emner');
+          return;
+        }
+
+        if (topicsData && topicsData.length > 0) {
+          const topicIds = topicsData.map(t => t.id);
+          const { error: deleteError } = await supabase
+            .from('exercises')
+            .delete()
+            .in('topic_id', topicIds);
+
+          if (deleteError) {
+            console.error('Error bulk deleting exercises:', deleteError);
+            alert('Fejl ved bulk sletning af øvelser');
+            return;
+          }
+        }
+      } else {
+        // Delete all exercises
+        const { error } = await supabase
+          .from('exercises')
+          .delete()
+          .neq('id', 0); // Delete all by using a condition that matches everything
+
+        if (error) {
+          console.error('Error bulk deleting exercises:', error);
+          alert('Fejl ved bulk sletning af øvelser');
+          return;
+        }
       }
 
       // Refresh data
       loadTopics();
-      if (selectedTopic === topicId) {
+      if (selectedTopic) {
         setExercises([]);
       }
       
-      alert('Alle øvelser for emnet er slettet succesfuldt');
+      const successMessage = topicId 
+        ? 'Alle øvelser for emnet er slettet succesfuldt'
+        : target_language
+          ? `Alle ${languageText} øvelser er slettet succesfuldt`
+          : 'Alle øvelser er slettet succesfuldt';
+      alert(successMessage);
     } catch (error) {
       console.error('Error bulk deleting exercises:', error);
       alert('Fejl ved bulk sletning af øvelser');
@@ -186,12 +245,13 @@ export default function ContentManagement() {
     if (topic) {
       setEditingTopic(topic);
       setTopicFormData({
-        name_da: topic.name_da,
-        name_es: topic.name_es,
-        description_da: topic.description_da,
-        description_es: topic.description_es || '',
+        name_da: topic.name_da ?? '',
+        name_es: topic.name_es ?? '',
+        description_da: topic.description_da ?? '',
+        description_es: topic.description_es ?? '',
         level: topic.level,
-        order_index: topic.order_index || 0
+        target_language: topic.target_language ?? 'es',
+        order_index: topic.order_index ?? 0
       });
     } else {
       setEditingTopic(null);
@@ -201,6 +261,7 @@ export default function ContentManagement() {
         description_da: '',
         description_es: '',
         level: 'A1',
+        target_language: 'es',
         order_index: 0
       });
     }
@@ -235,6 +296,12 @@ export default function ContentManagement() {
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('Topic save error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: result.error,
+          result
+        });
         throw new Error(result.error || 'Failed to save topic');
       }
 
@@ -350,6 +417,19 @@ export default function ContentManagement() {
             </div>
 
             <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sprog:</label>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value as 'es' | 'pt' | '')}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm min-h-[40px] w-full sm:w-auto"
+              >
+                <option value="">Alle sprog</option>
+                <option value="es">🇪🇸 Spansk</option>
+                <option value="pt">🇵🇹 Portugisisk</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
               <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sorter efter:</label>
               <select
                 value={sortBy}
@@ -389,16 +469,26 @@ export default function ContentManagement() {
                     + Nyt Emne
                   </button>
                   {sortedTopics.length > 0 && (
-                    <button
-                      onClick={() => {
-                        if (confirm('Er du sikker på, at du vil slette alle øvelser fra alle emner?')) {
-                          sortedTopics.forEach(topic => bulkDeleteExercises(topic.id));
-                        }
-                      }}
-                      className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
-                    >
-                      Slet alle øvelser
-                    </button>
+                    <div className="relative inline-block text-left">
+                      <select
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === 'all') {
+                            bulkDeleteExercises();
+                          } else if (value === 'es' || value === 'pt') {
+                            bulkDeleteExercises(undefined, value);
+                          }
+                          e.target.value = ''; // Reset selection
+                        }}
+                        className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors cursor-pointer w-full sm:w-auto"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Slet alle øvelser...</option>
+                        <option value="es">🇪🇸 Slet alle spanske øvelser</option>
+                        <option value="pt">🇵🇹 Slet alle portugisiske øvelser</option>
+                        <option value="all">🗑️ Slet alle øvelser (begge sprog)</option>
+                      </select>
+                    </div>
                   )}
                 </div>
               </div>
@@ -429,9 +519,14 @@ export default function ContentManagement() {
                             <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                               {topic.name_da}
                             </h3>
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 self-start">
-                              {topic.level}
-                            </span>
+                            <div className="flex items-center space-x-1">
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 self-start">
+                                {topic.level}
+                              </span>
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 self-start">
+                                {topic.target_language === 'es' ? '🇪🇸 ES' : '🇵🇹 PT'}
+                              </span>
+                            </div>
                           </div>
                           <p className="text-xs sm:text-sm text-gray-600 mt-1">
                             {topic.name_es}
@@ -444,7 +539,7 @@ export default function ContentManagement() {
                         </div>
                         <div className="flex items-center justify-between sm:justify-end sm:space-x-2 mt-2 sm:mt-0">
                           <span className="text-xs sm:text-sm font-medium text-gray-700">
-                            {topic.exercises.length} øvelser
+                            {topic.exercise_count || 0} øvelser
                           </span>
                           <div className="flex items-center space-x-1">
                             <button
@@ -600,6 +695,22 @@ export default function ContentManagement() {
                   </select>
                 </div>
 
+                {/* Target Language Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Målsprog
+                  </label>
+                  <select
+                    value={topicFormData.target_language}
+                    onChange={(e) => setTopicFormData({ ...topicFormData, target_language: e.target.value as 'es' | 'pt' })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="es">🇪🇸 Spansk</option>
+                    <option value="pt">🇵🇹 Portugisisk</option>
+                  </select>
+                </div>
+
                 {/* Danish Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -607,7 +718,7 @@ export default function ContentManagement() {
                   </label>
                   <input
                     type="text"
-                    value={topicFormData.name_da}
+                    value={topicFormData.name_da ?? ''}
                     onChange={(e) => setTopicFormData({ ...topicFormData, name_da: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="F.eks. Substantiver og artikler"
@@ -615,17 +726,17 @@ export default function ContentManagement() {
                   />
                 </div>
 
-                {/* Spanish Name */}
+                {/* Target Language Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Navn (Spansk) *
+                    Navn ({topicFormData.target_language === 'es' ? 'Spansk' : 'Portugisisk'}) *
                   </label>
                   <input
                     type="text"
-                    value={topicFormData.name_es}
+                    value={topicFormData.name_es ?? ''}
                     onChange={(e) => setTopicFormData({ ...topicFormData, name_es: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="F.eks. Sustantivos y artículos"
+                    placeholder={topicFormData.target_language === 'es' ? 'F.eks. Sustantivos y artículos' : 'F.eks. Substantivos e artigos'}
                     required
                   />
                 </div>
@@ -636,7 +747,7 @@ export default function ContentManagement() {
                     Beskrivelse (Dansk) *
                   </label>
                   <textarea
-                    value={topicFormData.description_da}
+                    value={topicFormData.description_da ?? ''}
                     onChange={(e) => setTopicFormData({ ...topicFormData, description_da: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -645,17 +756,17 @@ export default function ContentManagement() {
                   />
                 </div>
 
-                {/* Spanish Description */}
+                {/* Target Language Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Beskrivelse (Spansk)
+                    Beskrivelse ({topicFormData.target_language === 'es' ? 'Spansk' : 'Portugisisk'})
                   </label>
                   <textarea
-                    value={topicFormData.description_es}
+                    value={topicFormData.description_es ?? ''}
                     onChange={(e) => setTopicFormData({ ...topicFormData, description_es: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Descripción en español (opcional)"
+                    placeholder={topicFormData.target_language === 'es' ? 'Descripción en español (opcional)' : 'Descrição em português (opcional)'}
                   />
                 </div>
 
@@ -666,7 +777,7 @@ export default function ContentManagement() {
                   </label>
                   <input
                     type="number"
-                    value={topicFormData.order_index}
+                    value={topicFormData.order_index ?? 0}
                     onChange={(e) => setTopicFormData({ ...topicFormData, order_index: parseInt(e.target.value) || 0 })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="0"

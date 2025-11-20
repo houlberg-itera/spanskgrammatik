@@ -36,6 +36,9 @@ export default function ExerciseGeneratorAdmin() {
     { id: 'conjugation', name: 'Verb Conjugation', weight: 10 },
     { id: 'sentence_structure', name: 'Sentence Structure', weight: 5 }
   ]);
+  const [selectedExerciseTypes, setSelectedExerciseTypes] = useState<string[]>(
+    ['multiple_choice', 'fill_blank', 'translation', 'conjugation', 'sentence_structure']
+  );
   const [exercisesPerTopic, setExercisesPerTopic] = useState(100); // Increased from 25 to 100
   const [difficultyDistribution, setDifficultyDistribution] = useState({
     easy: 35,   // Slightly reduced from 40
@@ -180,6 +183,8 @@ export default function ExerciseGeneratorAdmin() {
     const preset = presets[presetKey];
     setExercisesPerTopic(preset.exercisesPerTopic);
     setDifficultyDistribution(preset.difficultyDistribution);
+    // Set all exercise types as selected when applying preset
+    setSelectedExerciseTypes(preset.exerciseTypes.map(et => et.id));
     console.log(`Applied preset: ${preset.name}`);
   };
 
@@ -383,8 +388,13 @@ export default function ExerciseGeneratorAdmin() {
       alert('Vælg venligst mindst ét emne');
       return;
     }
+    if (selectedExerciseTypes.length === 0) {
+      alert('Vælg venligst mindst én øvelsestype');
+      return;
+    }
 
     console.log('🌐 Starting bulk generation with target language:', targetLanguage);
+    console.log('📝 Selected exercise types:', selectedExerciseTypes);
 
     // Validate that all selected topics exist in the loaded topics
     const invalidTopics = selectedTopics.filter(topicId => !topics.find(t => t.id === topicId));
@@ -423,8 +433,16 @@ export default function ExerciseGeneratorAdmin() {
         continue;
       }
       
-      for (const exerciseType of exerciseTypes) {
-        const count = Math.ceil((exercisesPerTopic * exerciseType.weight) / 100);
+      // Filter exercise types based on user selection
+      const activeExerciseTypes = exerciseTypes.filter(et => selectedExerciseTypes.includes(et.id));
+      
+      // Calculate total weight of selected types for proper distribution
+      const totalWeight = activeExerciseTypes.reduce((sum, et) => sum + et.weight, 0);
+      
+      for (const exerciseType of activeExerciseTypes) {
+        // Recalculate count based on selected types' total weight
+        const normalizedWeight = totalWeight > 0 ? (exerciseType.weight / totalWeight) * 100 : 0;
+        const count = Math.ceil((exercisesPerTopic * normalizedWeight) / 100);
         if (count > 0) {
           jobs.push({
             id: `${topicId}-${exerciseType.id}`,
@@ -690,7 +708,7 @@ export default function ExerciseGeneratorAdmin() {
                 <div className="flex flex-col">
                   <label className="text-xs text-gray-500 mb-1">Hurtig Model Skift</label>
                   <select
-                    value={currentModel}
+                    value={currentModel ?? 'gpt-4o'}
                     onChange={(e) => {
                       const newModel = e.target.value;
                       setCurrentModel(newModel);
@@ -985,6 +1003,83 @@ export default function ExerciseGeneratorAdmin() {
                 Total: {difficultyDistribution.easy + difficultyDistribution.medium + difficultyDistribution.hard}%
               </div>
             </div>
+          </div>
+
+          {/* Exercise Type Selection */}
+          <div className="mb-6 md:mb-8">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Vælg Øvelsestyper
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {exerciseTypes.map(exerciseType => (
+                <label
+                  key={exerciseType.id}
+                  className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedExerciseTypes.includes(exerciseType.id)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedExerciseTypes.includes(exerciseType.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedExerciseTypes([...selectedExerciseTypes, exerciseType.id]);
+                      } else {
+                        setSelectedExerciseTypes(selectedExerciseTypes.filter(id => id !== exerciseType.id));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <span className="text-sm font-medium text-gray-900 block">{exerciseType.name}</span>
+                    <span className="text-xs text-gray-500">{exerciseType.weight}% vægt</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                {selectedExerciseTypes.length} af {exerciseTypes.length} typer valgt
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedExerciseTypes(exerciseTypes.map(et => et.id))}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Vælg alle
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => setSelectedExerciseTypes([])}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Fravælg alle
+                </button>
+              </div>
+            </div>
+            {selectedExerciseTypes.length > 0 && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs font-medium text-blue-700 mb-2">Estimeret fordeling per emne ({exercisesPerTopic} øvelser total):</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+                  {(() => {
+                    const activeTypes = exerciseTypes.filter(et => selectedExerciseTypes.includes(et.id));
+                    const totalWeight = activeTypes.reduce((sum, et) => sum + et.weight, 0);
+                    return activeTypes.map(et => {
+                      const normalizedWeight = totalWeight > 0 ? (et.weight / totalWeight) * 100 : 0;
+                      const count = Math.ceil((exercisesPerTopic * normalizedWeight) / 100);
+                      return (
+                        <div key={et.id} className="flex items-center justify-between bg-white p-2 rounded border border-blue-100">
+                          <span className="text-gray-700 truncate">{et.name.split(' ')[0]}</span>
+                          <span className="font-semibold text-blue-600 ml-1">{count}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Topic Selection */}

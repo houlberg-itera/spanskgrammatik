@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { generateExercise } from '@/lib/openai';
+import { generateAdvancedExercise } from '@/lib/openai-advanced';
 import { SpanishLevel } from '@/types/database';
 
 export async function POST(request: NextRequest) {
@@ -55,13 +55,20 @@ export async function POST(request: NextRequest) {
     console.log(`🎯 Parameters: Level=${topic.level}, Topic=${topic.name_da}, Type=${exerciseType}, Questions=5`);
     
     const generationStartTime = Date.now();
-    // Generate exercise content using OpenAI
-    const exerciseContent = await generateExercise({
+    
+    // Determine target language from topic or default to Spanish
+    const targetLanguage = (topic.target_language as 'es' | 'pt') || 'es';
+    
+    // Generate exercise content using OpenAI with advanced generator
+    const exerciseContent = await generateAdvancedExercise({
       level: topic.level as SpanishLevel,
       topic: topic.name_da,
       topicDescription: topic.description_da || '',
-      exerciseType,
+      exerciseType: exerciseType as 'multiple_choice' | 'fill_blank' | 'translation' | 'conjugation' | 'sentence_structure',
       questionCount: 5,
+      difficulty: 'medium',
+      existingQuestions: [],
+      target_language: targetLanguage,
     });
     
     const generationTime = Date.now() - generationStartTime;

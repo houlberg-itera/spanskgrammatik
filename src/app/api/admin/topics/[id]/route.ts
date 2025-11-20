@@ -87,7 +87,8 @@ export async function PUT(
       name_da, 
       name_es, 
       description_da, 
-      description_es, 
+      description_es,
+      target_language,
       order_index 
     } = body;
 
@@ -108,6 +109,14 @@ export async function PUT(
       );
     }
 
+    // Validate target_language if provided
+    if (target_language && !['es', 'pt'].includes(target_language)) {
+      return NextResponse.json(
+        { error: 'Invalid target_language. Must be "es" or "pt"' },
+        { status: 400 }
+      );
+    }
+
     // Check if topic exists
     const { data: existingTopic, error: existsError } = await supabase
       .from('topics')
@@ -123,11 +132,20 @@ export async function PUT(
     }
 
     // Check for duplicate names (excluding current topic)
-    const { data: duplicates, error: duplicateError } = await supabase
+    let duplicateQuery = supabase
       .from('topics')
-      .select('id, name_da, name_es')
-      .neq('id', topicId)
-      .or(`name_da.eq.${name_da},name_es.eq.${name_es}`);
+      .select('id, name_da, name_es, target_language')
+      .neq('id', topicId);
+    
+    // If target_language is being updated, check within that language
+    if (target_language) {
+      duplicateQuery = duplicateQuery.eq('target_language', target_language);
+    }
+    
+    // Check for duplicate names
+    duplicateQuery = duplicateQuery.or(`name_da.eq.${name_da},name_es.eq.${name_es}`);
+
+    const { data: duplicates, error: duplicateError } = await duplicateQuery;
 
     if (duplicateError) {
       console.error('Error checking for duplicates:', duplicateError);
@@ -151,13 +169,23 @@ export async function PUT(
     const updateData: any = {
       level: level as SpanishLevel,
       name_da,
-      name_es,
-      updated_at: new Date().toISOString()
+      name_es
     };
+
+    // Add target_language if provided
+    if (target_language !== undefined) {
+      updateData.target_language = target_language;
+      // Update generic name field based on target language
+      updateData.name = name_es; // Use name_es for generic name field
+    }
 
     // Add optional fields if provided
     if (description_da !== undefined) updateData.description_da = description_da;
-    if (description_es !== undefined) updateData.description_es = description_es;
+    if (description_es !== undefined) {
+      updateData.description_es = description_es;
+      // Update generic description field
+      updateData.description = description_es;
+    }
     if (order_index !== undefined) updateData.order_index = order_index;
 
     const { data: updatedTopic, error: updateError } = await supabase

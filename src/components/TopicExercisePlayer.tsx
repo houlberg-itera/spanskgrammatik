@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TargetLanguage } from '@/types/database';
+import { normalizeText, isAnswerCorrect } from '@/lib/utils/text-normalization';
 
 interface Exercise {
   id: number;
@@ -698,25 +699,6 @@ export default function TopicExercisePlayer({
     }
   };
 
-  function normalizeText(text: string) {
-    return text
-      .toLowerCase()
-      .trim()
-      // Normalize Spanish special characters to basic letters
-      .replace(/[áàâäã]/g, 'a')
-      .replace(/[éèêë]/g, 'e')
-      .replace(/[íìîï]/g, 'i')
-      .replace(/[óòôöõ]/g, 'o')
-      .replace(/[úùûü]/g, 'u')
-      .replace(/ñ/g, 'n')
-      .replace(/ç/g, 'c')
-      // Remove all punctuation and special characters
-      .replace(/[.,!?;:'"()\[\]{}¡¿]/g, '')
-      // Remove extra spaces
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
   if (loading) {
     return <div className="p-8 text-center">Loading exercises...</div>;
   }
@@ -784,6 +766,8 @@ export default function TopicExercisePlayer({
       id: currentQuestion.id,
       hasQuestionDa: !!currentQuestion.question_da,
       questionDa: currentQuestion.question_da,
+      hasQuestion: !!currentQuestion.question,
+      question: currentQuestion.question,
       questionType: currentQuestion.type,
       hasOptions: !!currentQuestion.options?.length
     } : 'currentQuestion is undefined'
@@ -866,10 +850,26 @@ export default function TopicExercisePlayer({
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Question */}
           <div className="mb-8">
-            {/* Target language question as main heading */}
+            {/* Danish instruction as heading */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {currentQuestion.question || currentQuestion.question_da}
+              {currentQuestion.question_da}
             </h2>
+            
+            {/* Target language sentence - show if question field exists and it's different from question_da */}
+            {currentQuestion.question && currentQuestion.question !== currentQuestion.question_da && (
+              <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <span className="text-amber-600 text-lg">🔤</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-amber-700 mb-2">
+                      {targetLanguage === 'pt' ? 'Portugisisk' : 'Spansk'} sætning:
+                    </p>
+                    <p className="text-lg font-semibold text-amber-900">{currentQuestion.question}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Danish translation as reference */}
             {currentQuestion.sentence_translation_da && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -909,7 +909,7 @@ export default function TopicExercisePlayer({
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   className="w-full p-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                  placeholder="Skriv dit svar på spansk..."
+                  placeholder={targetLanguage === 'pt' ? 'Skriv dit svar på portugisisk...' : 'Skriv dit svar på spansk...'}
                   disabled={isCorrect !== null}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && userAnswer.trim() && isCorrect === null) {

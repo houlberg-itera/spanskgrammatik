@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Question, ExerciseAttempt, SpanishLevel } from '@/types/database';
+import { normalizeText, compareAnswers, isAnswerCorrect as checkAnswer } from '@/lib/utils/text-normalization';
 
 interface ExerciseQuestionProps {
   question: Question;
@@ -11,6 +12,7 @@ interface ExerciseQuestionProps {
   disabled?: boolean;
   level?: SpanishLevel;
   enableAiFeedback?: boolean;
+  targetLanguage?: 'es' | 'pt';
 }
 
 export default function ExerciseQuestion({
@@ -21,6 +23,7 @@ export default function ExerciseQuestion({
   disabled = false,
   level = 'A1',
   enableAiFeedback = true,
+  targetLanguage = 'es',
 }: ExerciseQuestionProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | string[]>(userAnswer || '');
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
@@ -60,29 +63,24 @@ export default function ExerciseQuestion({
     onAnswer(question.id, answer);
     console.log('✅ Answer set and onAnswer called');
   };
-
-  // Helper function to normalize text for comparison
-  const normalizeText = (text: string): string => {
-    return text
-      .toLowerCase()
-      .trim()
-      // Normalize Spanish special characters to basic letters
-      .replace(/[áàâäã]/g, 'a')
-      .replace(/[éèêë]/g, 'e')
-      .replace(/[íìîï]/g, 'i')
-      .replace(/[óòôöõ]/g, 'o')
-      .replace(/[úùûü]/g, 'u')
-      .replace(/ñ/g, 'n')
-      .replace(/ç/g, 'c')
-      // Remove all punctuation and special characters
-      .replace(/[.,!?;:'"()\[\]{}¡¿]/g, '')
-      // Remove extra spaces
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
   // Helper function to render sentence translation
   const renderSentenceTranslation = () => {
+    // For translation exercises, show the target language sentence prominently
+    if (question.type === 'translation' && question.question) {
+      const languageName = targetLanguage === 'pt' ? 'Portugisisk' : 'Spansk';
+      return (
+        <div className="mb-3 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <span className="text-amber-600 text-lg">🔤</span>
+            <div className="flex-1">
+              <p className="text-xs font-medium text-amber-700 mb-2">{languageName} sætning:</p>
+              <p className="text-lg font-semibold text-amber-900">{question.question}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // Check if we have a direct Danish translation
     if (question.sentence_translation_da) {
       return (
@@ -126,60 +124,33 @@ export default function ExerciseQuestion({
     return null;
   };
 
-  // Helper function to compare answers with special character handling
-  const compareAnswers = (userAnswer: string, correctAnswer: string): boolean => {
-    const originalUserAnswer = userAnswer.toLowerCase().trim();
-    const originalCorrectAnswer = correctAnswer.toLowerCase().trim();
-    
-    // Check exact match first (case-insensitive only)
-    if (originalUserAnswer === originalCorrectAnswer) {
-      return true;
-    }
-
-    // Check normalized match (without special characters and punctuation)
-    const normalizedUserAnswer = normalizeText(userAnswer);
-    const normalizedCorrectAnswer = normalizeText(correctAnswer);
-    
-    return normalizedUserAnswer === normalizedCorrectAnswer;
-  };
-
-  // Helper function to check if answer is correct
-  const isAnswerCorrect = () => {
+  // Use imported utility functions for answer checking
+  const isCorrect = () => {
     if (!userAnswer || !question.correct_answer) return false;
-    
-    if (Array.isArray(question.correct_answer)) {
-      const userAnswerStr = Array.isArray(userAnswer) ? userAnswer.join(',') : String(userAnswer);
-      const correctAnswerStr = question.correct_answer.join(',');
-      return compareAnswers(userAnswerStr, correctAnswerStr);
-    }
-    
-    const userAnswerStr = Array.isArray(userAnswer) ? userAnswer.join(',') : String(userAnswer);
-    const correctAnswerStr = String(question.correct_answer);
-    
-    return compareAnswers(userAnswerStr, correctAnswerStr);
+    return checkAnswer(userAnswer, question.correct_answer, question.type);
   };
 
   // Helper function to render correct answer display
   const renderCorrectAnswerDisplay = () => {
     if (!showResult) return null;
     
-    const isCorrect = isAnswerCorrect();
+    const correct = isCorrect();
     const correctAnswerDisplay = Array.isArray(question.correct_answer) 
       ? question.correct_answer.join(', ') 
       : String(question.correct_answer);
     
     return (
-      <div className={`mt-3 p-3 rounded-lg border-2 ${isCorrect ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+      <div className={`mt-3 p-3 rounded-lg border-2 ${correct ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
         <div className="flex items-center space-x-2 mb-2">
-          <span className={`text-sm font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-            {isCorrect ? '✓ Korrekt!' : '✗ Forkert'}
+          <span className={`text-sm font-semibold ${correct ? 'text-green-700' : 'text-red-700'}`}>
+            {correct ? '✓ Korrekt!' : '✗ Forkert'}
           </span>
         </div>
         <div className="text-sm">
           <span className="font-medium text-gray-700">Korrekte svar: </span>
           <span className="font-semibold text-gray-900">{correctAnswerDisplay}</span>
         </div>
-        {!isCorrect && userAnswer && (
+        {!correct && userAnswer && (
           <div className="text-sm mt-1">
             <span className="font-medium text-gray-700">Dit svar: </span>
             <span className="text-red-600">{Array.isArray(userAnswer) ? userAnswer.join(', ') : String(userAnswer)}</span>
@@ -310,7 +281,7 @@ export default function ExerciseQuestion({
                   : 'border-red-300 bg-red-50'
                 : ''
             }`}
-            placeholder="Oversæt til spansk..."
+            placeholder={targetLanguage === 'pt' ? 'Oversæt til portugisisk...' : 'Oversæt til spansk...'}
           />
           {renderCorrectAnswerDisplay()}
         </div>
@@ -334,7 +305,7 @@ export default function ExerciseQuestion({
                   : 'border-red-300 bg-red-50'
                 : ''
             }`}
-            placeholder="Skriv dit svar her..."
+            placeholder={targetLanguage === 'pt' ? 'Skriv dit svar på portugisisk...' : 'Skriv dit svar på spansk...'}
           />
           {renderCorrectAnswerDisplay()}
         </div>
