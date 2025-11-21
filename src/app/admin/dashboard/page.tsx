@@ -25,6 +25,7 @@ interface ExerciseGeneration {
   currentCount: number;
   recommendedCount: number;
   priority: 'high' | 'medium' | 'low';
+  target_language: 'es' | 'pt';
 }
 
 export default function AdminDashboard() {
@@ -33,11 +34,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'users' | 'exercises' | 'analytics' | 'vocabulary'>('users');
+  const [exerciseLanguageFilter, setExerciseLanguageFilter] = useState<'all' | 'es' | 'pt'>('all');
+  const [analyticsLanguageFilter, setAnalyticsLanguageFilter] = useState<'all' | 'es' | 'pt'>('all');
   const [analytics, setAnalytics] = useState({
     totalUsers: 0,
     averageProgress: 0,
     levelDistribution: {} as Record<SpanishLevel, number>,
-    topWeakAreas: [] as Array<{area: string, count: number}>
+    topWeakAreas: [] as Array<{area: string, count: number}>,
+    totalExercises: 0,
+    totalTopics: 0,
+    totalCompletions: 0,
+    exercisesByLanguage: { es: 0, pt: 0 },
+    aiGeneratedCount: 0,
+    topicsByLanguage: { es: 0, pt: 0 },
+    usersByLanguage: { es: 0, pt: 0 },
+    completionsByLanguage: { es: 0, pt: 0 }
   });
 
   const supabase = createClient();
@@ -49,11 +60,13 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
+      // Load users and exercises in parallel
       await Promise.all([
         loadUserProficiencies(),
-        loadExerciseGenerationNeeds(),
-        loadAnalytics()
+        loadExerciseGenerationNeeds()
       ]);
+      // Load analytics after users are available
+      await loadAnalytics();
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -108,6 +121,7 @@ export default function AdminDashboard() {
         id,
         name_da,
         level,
+        target_language,
         exercises(id, ai_generated)
       `)
       .order('level', { ascending: true });
@@ -135,7 +149,8 @@ export default function AdminDashboard() {
         level: topic.level,
         currentCount,
         recommendedCount,
-        priority
+        priority,
+        target_language: topic.target_language || 'es'
       };
     });
 
@@ -143,18 +158,28 @@ export default function AdminDashboard() {
   };
 
   const loadAnalytics = async () => {
-    const totalUsers = users.length;
-    const averageProgress = users.reduce((sum, user) => sum + user.progressToNextLevel, 0) / totalUsers || 0;
+    // Get all users directly from database for accurate count
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('id, current_level, target_language');
     
+    // Calculate level distribution from database users
     const levelDistribution: Record<SpanishLevel, number> = {
       A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0
     };
     
-    users.forEach(user => {
-      levelDistribution[user.currentLevel]++;
+    allUsers?.forEach(user => {
+      if (user.current_level) {
+        levelDistribution[user.current_level]++;
+      }
     });
 
-    // Count weakness areas
+    // Use the users state for proficiency analysis if available
+    const averageProgress = users.length > 0 
+      ? users.reduce((sum, user) => sum + user.progressToNextLevel, 0) / users.length 
+      : 0;
+
+    // Count weakness areas from proficiency users
     const weaknessCount: Record<string, number> = {};
     users.forEach(user => {
       user.weaknessAreas.forEach(area => {
@@ -167,11 +192,44 @@ export default function AdminDashboard() {
       .slice(0, 5)
       .map(([area, count]) => ({ area, count }));
 
+    // Get database statistics
+    const { data: allExercises } = await supabase
+      .from('exercises')
+      .select('id, type, target_language, ai_generated');
+    
+    const { data: allTopics } = await supabase
+      .from('topics')
+      .select('id, level, target_language');
+    
+    const { data: allProgress } = await supabase
+      .from('user_progress')
+      .select('id, completed_at, target_language');
+
     setAnalytics({
-      totalUsers,
+      totalUsers: allUsers?.length || 0,
       averageProgress,
       levelDistribution,
-      topWeakAreas
+      topWeakAreas,
+      totalExercises: allExercises?.length || 0,
+      totalTopics: allTopics?.length || 0,
+      totalCompletions: allProgress?.length || 0,
+      exercisesByLanguage: {
+        es: allExercises?.filter(e => e.target_language === 'es').length || 0,
+        pt: allExercises?.filter(e => e.target_language === 'pt').length || 0
+      },
+      aiGeneratedCount: allExercises?.filter(e => e.ai_generated).length || 0,
+      topicsByLanguage: {
+        es: allTopics?.filter(t => t.target_language === 'es').length || 0,
+        pt: allTopics?.filter(t => t.target_language === 'pt').length || 0
+      },
+      usersByLanguage: {
+        es: allUsers?.filter(u => u.target_language === 'es').length || 0,
+        pt: allUsers?.filter(u => u.target_language === 'pt').length || 0
+      },
+      completionsByLanguage: {
+        es: allProgress?.filter(p => p.target_language === 'es').length || 0,
+        pt: allProgress?.filter(p => p.target_language === 'pt').length || 0
+      }
     });
   };
 
@@ -290,6 +348,7 @@ export default function AdminDashboard() {
       // Get topic details for better logging
       const topic = exerciseGenerations.find(g => g.topicId === topicId);
       const topicName = topic?.topicName || 'Unknown Topic';
+      const targetLanguage = topic?.target_language || 'es';
       
       const response = await fetch('/api/generate-bulk-exercises', {
         method: 'POST',
@@ -301,7 +360,8 @@ export default function AdminDashboard() {
           difficulty: 'medium',
           level: topic?.level || 'A1',
           topicName,
-          topicDescription: `AI-generated exercises for ${topicName}`
+          topicDescription: `AI-generated exercises for ${topicName}`,
+          target_language: targetLanguage
         })
       });
 
@@ -648,11 +708,53 @@ export default function AdminDashboard() {
               
               {/* Desktop Table View */}
               <div className="hidden lg:block overflow-x-auto">
+                {/* Language Filter */}
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <div className="flex items-center space-x-4">
+                    <span className="text-sm font-medium text-gray-700">Filtrer efter sprog:</span>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setExerciseLanguageFilter('all')}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          exerciseLanguageFilter === 'all'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        🌐 Alle
+                      </button>
+                      <button
+                        onClick={() => setExerciseLanguageFilter('es')}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          exerciseLanguageFilter === 'es'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        🇪🇸 Spansk
+                      </button>
+                      <button
+                        onClick={() => setExerciseLanguageFilter('pt')}
+                        className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                          exerciseLanguageFilter === 'pt'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        🇵🇹 Portugisisk
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Emne
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Sprog
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Niveau
@@ -673,6 +775,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {exerciseGenerations
+                      .filter(gen => exerciseLanguageFilter === 'all' || gen.target_language === exerciseLanguageFilter)
                       .sort((a, b) => {
                         const priorityOrder = { high: 3, medium: 2, low: 1 };
                         return priorityOrder[b.priority] - priorityOrder[a.priority];
@@ -683,6 +786,11 @@ export default function AdminDashboard() {
                           <div className="text-sm font-medium text-gray-900">
                             {generation.topicName}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-lg" title={generation.target_language === 'es' ? 'Spansk' : 'Portugisisk'}>
+                            {generation.target_language === 'es' ? '🇪🇸' : '🇵🇹'}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -733,7 +841,45 @@ export default function AdminDashboard() {
 
               {/* Mobile Card View */}
               <div className="lg:hidden p-4 space-y-4">
+                {/* Language Filter - Mobile */}
+                <div className="flex flex-col space-y-2 mb-4">
+                  <span className="text-sm font-medium text-gray-700">Filtrer efter sprog:</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setExerciseLanguageFilter('all')}
+                      className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                        exerciseLanguageFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🌐 Alle
+                    </button>
+                    <button
+                      onClick={() => setExerciseLanguageFilter('es')}
+                      className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                        exerciseLanguageFilter === 'es'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🇪🇸 Spansk
+                    </button>
+                    <button
+                      onClick={() => setExerciseLanguageFilter('pt')}
+                      className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                        exerciseLanguageFilter === 'pt'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🇵🇹 Portugisisk
+                    </button>
+                  </div>
+                </div>
+                
                 {exerciseGenerations
+                  .filter(gen => exerciseLanguageFilter === 'all' || gen.target_language === exerciseLanguageFilter)
                   .sort((a, b) => {
                     const priorityOrder = { high: 3, medium: 2, low: 1 };
                     return priorityOrder[b.priority] - priorityOrder[a.priority];
@@ -743,8 +889,13 @@ export default function AdminDashboard() {
                     <div className="flex flex-col space-y-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1 mr-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {generation.topicName}
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg" title={generation.target_language === 'es' ? 'Spansk' : 'Portugisisk'}>
+                              {generation.target_language === 'es' ? '🇪🇸' : '🇵🇹'}
+                            </span>
+                            <div className="text-sm font-medium text-gray-900">
+                              {generation.topicName}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -802,63 +953,351 @@ export default function AdminDashboard() {
         )}
 
         {viewMode === 'analytics' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                📊 Generel Statistik
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 text-sm sm:text-base">Total Brugere:</span>
-                  <span className="font-semibold text-sm sm:text-base">{analytics.totalUsers}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 text-sm sm:text-base">Gennemsnitlig Fremgang:</span>
-                  <span className="font-semibold text-sm sm:text-base">{analytics.averageProgress.toFixed(1)}%</span>
+          <div className="space-y-6">
+            {/* Language Filter */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <h3 className="text-lg font-semibold text-gray-900">Filtrer efter målsprog:</h3>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setAnalyticsLanguageFilter('all')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      analyticsLanguageFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    🌐 Alle Sprog
+                  </button>
+                  <button
+                    onClick={() => setAnalyticsLanguageFilter('es')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      analyticsLanguageFilter === 'es'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    🇪🇸 Spansk
+                  </button>
+                  <button
+                    onClick={() => setAnalyticsLanguageFilter('pt')}
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                      analyticsLanguageFilter === 'pt'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    🇵🇹 Portugisisk
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                📈 Niveau Fordeling
-              </h3>
-              <div className="space-y-2">
-                {Object.entries(analytics.levelDistribution).map(([level, count]) => (
-                  <div key={level} className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm sm:text-base">{level}:</span>
-                    <div className="flex items-center">
-                      <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2 mr-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${(count / analytics.totalUsers) * 100}%` }}
-                        ></div>
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-4 text-white">
+                <div className="text-2xl font-bold">
+                  {analyticsLanguageFilter === 'all' 
+                    ? analytics.totalUsers 
+                    : analytics.usersByLanguage[analyticsLanguageFilter]}
+                </div>
+                <div className="text-sm opacity-90">
+                  {analyticsLanguageFilter === 'all' ? 'Total Brugere' : 
+                   analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk Brugere' : '🇵🇹 Portugisisk Brugere'}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow p-4 text-white">
+                <div className="text-2xl font-bold">
+                  {analyticsLanguageFilter === 'all' 
+                    ? analytics.totalExercises 
+                    : analytics.exercisesByLanguage[analyticsLanguageFilter]}
+                </div>
+                <div className="text-sm opacity-90">
+                  {analyticsLanguageFilter === 'all' ? 'Total Øvelser' : 
+                   analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk Øvelser' : '🇵🇹 Portugisisk Øvelser'}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow p-4 text-white">
+                <div className="text-2xl font-bold">
+                  {analyticsLanguageFilter === 'all' 
+                    ? analytics.totalTopics 
+                    : analytics.topicsByLanguage[analyticsLanguageFilter]}
+                </div>
+                <div className="text-sm opacity-90">
+                  {analyticsLanguageFilter === 'all' ? 'Total Emner' : 
+                   analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk Emner' : '🇵🇹 Portugisisk Emner'}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow p-4 text-white">
+                <div className="text-2xl font-bold">
+                  {analyticsLanguageFilter === 'all' 
+                    ? analytics.totalCompletions 
+                    : analytics.completionsByLanguage[analyticsLanguageFilter]}
+                </div>
+                <div className="text-sm opacity-90">
+                  {analyticsLanguageFilter === 'all' ? 'Total Gennemførelser' : 
+                   analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk Gennemførelser' : '🇵🇹 Portugisisk Gennemførelser'}
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  📊 Bruger Statistik {analyticsLanguageFilter !== 'all' && (
+                    <span className="text-sm font-normal text-gray-500">
+                      ({analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk' : '🇵🇹 Portugisisk'})
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Brugere:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {analyticsLanguageFilter === 'all' 
+                        ? analytics.totalUsers 
+                        : analytics.usersByLanguage[analyticsLanguageFilter]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Gennemsnitlig Fremgang:</span>
+                    <span className="font-semibold text-sm sm:text-base">{analytics.averageProgress.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Gennemførelser:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {analyticsLanguageFilter === 'all' 
+                        ? analytics.totalCompletions 
+                        : analytics.completionsByLanguage[analyticsLanguageFilter]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Gns. per Bruger:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {(() => {
+                        const users = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalUsers 
+                          : analytics.usersByLanguage[analyticsLanguageFilter];
+                        const completions = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalCompletions 
+                          : analytics.completionsByLanguage[analyticsLanguageFilter];
+                        return users > 0 ? Math.round(completions / users) : 0;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  📚 Øvelser & Emner {analyticsLanguageFilter !== 'all' && (
+                    <span className="text-sm font-normal text-gray-500">
+                      ({analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk' : '🇵🇹 Portugisisk'})
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Øvelser:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {analyticsLanguageFilter === 'all' 
+                        ? analytics.totalExercises 
+                        : analytics.exercisesByLanguage[analyticsLanguageFilter]}
+                    </span>
+                  </div>
+                  {analyticsLanguageFilter === 'all' && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm sm:text-base">🇪🇸 Spansk:</span>
+                        <span className="font-semibold text-sm sm:text-base">{analytics.exercisesByLanguage.es}</span>
                       </div>
-                      <span className="font-semibold text-sm">{count}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm sm:text-base">🇵🇹 Portugisisk:</span>
+                        <span className="font-semibold text-sm sm:text-base">{analytics.exercisesByLanguage.pt}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">AI Genereret:</span>
+                    <span className="font-semibold text-sm sm:text-base">{analytics.aiGeneratedCount}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 text-sm sm:text-base">Emner:</span>
+                      <span className="font-semibold text-sm sm:text-base">
+                        {analyticsLanguageFilter === 'all' 
+                          ? analytics.totalTopics 
+                          : analytics.topicsByLanguage[analyticsLanguageFilter]}
+                      </span>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                🎯 Top Svagheder
-              </h3>
-              <div className="space-y-2">
-                {analytics.topWeakAreas.map(({ area, count }) => (
-                  <div key={area} className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm truncate mr-2">{area}</span>
-                    <span className="font-semibold text-red-600 text-sm flex-shrink-0">{count}</span>
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  🌐 Sprog Fordeling
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-600">🇪🇸 Spansk Emner</span>
+                      <span className="text-sm font-semibold">{analytics.topicsByLanguage.es}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${analytics.totalTopics > 0 ? (analytics.topicsByLanguage.es / analytics.totalTopics) * 100 : 0}%` }}
+                      ></div>
+                    </div>
                   </div>
-                ))}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-600">🇵🇹 Portugisisk Emner</span>
+                      <span className="text-sm font-semibold">{analytics.topicsByLanguage.pt}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${analytics.totalTopics > 0 ? (analytics.topicsByLanguage.pt / analytics.totalTopics) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Sprog Balancering</span>
+                      <span className="text-sm font-semibold">
+                        {analytics.totalTopics > 0 ? Math.abs(analytics.topicsByLanguage.es - analytics.topicsByLanguage.pt) : 0} forskel
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  📈 Niveau Fordeling
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(analytics.levelDistribution).map(([level, count]) => (
+                    <div key={level} className="flex justify-between items-center">
+                      <span className="text-gray-600 text-sm sm:text-base">{level}:</span>
+                      <div className="flex items-center">
+                        <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2 mr-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full" 
+                            style={{ width: `${analytics.totalUsers > 0 ? (count / analytics.totalUsers) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                        <span className="font-semibold text-sm">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  🎯 Top Svagheder
+                </h3>
+                <div className="space-y-2">
+                  {analytics.topWeakAreas.length > 0 ? (
+                    analytics.topWeakAreas.map(({ area, count }) => (
+                      <div key={area} className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm truncate mr-2">{area}</span>
+                        <span className="font-semibold text-red-600 text-sm flex-shrink-0">{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">Ingen svaghedsdata tilgængelig</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  💡 Database Sundhed {analyticsLanguageFilter !== 'all' && (
+                    <span className="text-sm font-normal text-gray-500">
+                      ({analyticsLanguageFilter === 'es' ? '🇪🇸 Spansk' : '🇵🇹 Portugisisk'})
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Øvelser/Emne:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {(() => {
+                        const topics = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalTopics 
+                          : analytics.topicsByLanguage[analyticsLanguageFilter];
+                        const exercises = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalExercises 
+                          : analytics.exercisesByLanguage[analyticsLanguageFilter];
+                        return topics > 0 ? Math.round(exercises / topics) : 0;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">AI Genereret %:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {(() => {
+                        const exercises = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalExercises 
+                          : analytics.exercisesByLanguage[analyticsLanguageFilter];
+                        return exercises > 0 ? Math.round((analytics.aiGeneratedCount / analytics.totalExercises) * 100) : 0;
+                      })()}%
+                    </span>
+                  </div>
+                  {analyticsLanguageFilter === 'all' && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm sm:text-base">Spansk Dækning:</span>
+                        <span className={`font-semibold text-sm sm:text-base ${
+                          analytics.topicsByLanguage.es > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {analytics.topicsByLanguage.es > 0 ? '✓ Aktiv' : '✗ Mangler'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm sm:text-base">Portugisisk Dækning:</span>
+                        <span className={`font-semibold text-sm sm:text-base ${
+                          analytics.topicsByLanguage.pt > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {analytics.topicsByLanguage.pt > 0 ? '✓ Aktiv' : '✗ Mangler'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {analyticsLanguageFilter !== 'all' && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 text-sm sm:text-base">Status:</span>
+                      <span className={`font-semibold text-sm sm:text-base ${
+                        analytics.topicsByLanguage[analyticsLanguageFilter] > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {analytics.topicsByLanguage[analyticsLanguageFilter] > 0 ? '✓ Aktiv' : '✗ Mangler'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 text-sm sm:text-base">Bruger Aktivitet:</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {(() => {
+                        const users = analyticsLanguageFilter === 'all' 
+                          ? analytics.totalUsers 
+                          : analytics.usersByLanguage[analyticsLanguageFilter];
+                        return users > 0 ? '✓ Aktiv' : '✗ Ingen';
+                      })()}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {viewMode === 'vocabulary' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-4 sm:p-6">
               <div className="mb-6">
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
@@ -869,24 +1308,21 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
-              <div className="space-y-6">
-                {/* Level Selection for Vocabulary Exercises */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
-                    <div key={level} className="bg-gray-50 rounded-lg p-4 border">
-                      <h4 className="font-semibold text-gray-900 mb-3 text-center lg:text-left">
-                        Niveau {level}
-                      </h4>
-                      <VocabularyExerciseGenerator 
-                        level={level}
-                        onExerciseGenerated={(exercise) => {
-                          console.log(`Generated ${level} vocabulary exercise:`, exercise);
-                          // You can add logic here to save the exercise to the database
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
+              {/* Level Selection for Vocabulary Exercises */}
+              <div className="grid grid-cols-1 gap-6">
+                {(['A1', 'A2', 'B1'] as SpanishLevel[]).map(level => (
+                  <div key={level} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      Niveau {level}
+                    </h4>
+                    <VocabularyExerciseGenerator 
+                      level={level}
+                      onExerciseGenerated={(exercise) => {
+                        console.log(`Generated ${level} vocabulary exercise:`, exercise);
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'DuckLingo - Lær spansk grammatik',
-  description: 'En dansk app til at lære spansk grammatik med AI-baserede øvelser',
+  title: 'DuckLingo - Sprogindlæring med AI',
+  description: 'DuckLingo - AI-baseret sprogindlæring tilpasset danske studerende',
   icons: {
     icon: [
       { url: '/duck.png', sizes: '32x32', type: 'image/png' },

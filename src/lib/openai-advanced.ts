@@ -26,13 +26,19 @@ async function retryWithBackoff<T>(
   baseDelay: number = 500, // OPTIMIZED: Reduced from 2000ms to 500ms for faster retries
   signal?: AbortSignal // Added signal parameter for aborting requests
 ): Promise<T> {
-  console.log(`🔄 Starting retry function with maxRetries: ${maxRetries}, baseDelay: ${baseDelay}ms`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔄 Starting retry function with maxRetries: ${maxRetries}, baseDelay: ${baseDelay}ms`);
+  }
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`🎯 Attempt ${attempt + 1}/${maxRetries + 1}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🎯 Attempt ${attempt + 1}/${maxRetries + 1}`);
+      }
       const result = await fn();
-      console.log(`✅ Attempt ${attempt + 1} successful`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ Attempt ${attempt + 1} successful`);
+      }
       return result;
     } catch (error: any) {
       console.error(`❌ Attempt ${attempt + 1} failed:`, {

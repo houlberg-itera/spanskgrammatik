@@ -506,6 +506,309 @@ const VOCABULARY_DATABASE: Record<string, VocabularyWord[]> = {
       ],
       difficulty: 'hard'
     }
+  ],
+
+  política: [
+    {
+      spanish: 'gobierno',
+      danish: 'regering',
+      gender: 'el',
+      examples: [
+        { spanish: 'El gobierno toma decisiones importantes', danish: 'Regeringen træffer vigtige beslutninger' },
+        { spanish: 'El nuevo gobierno implementa reformas', danish: 'Den nye regering implementerer reformer' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'democracia',
+      danish: 'demokrati',
+      gender: 'la',
+      examples: [
+        { spanish: 'La democracia es fundamental', danish: 'Demokrati er grundlæggende' },
+        { spanish: 'Vivimos en una democracia', danish: 'Vi lever i et demokrati' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'elecciones',
+      danish: 'valg',
+      examples: [
+        { spanish: 'Las elecciones son en noviembre', danish: 'Valget er i november' },
+        { spanish: 'Participar en las elecciones', danish: 'Deltage i valget' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'ciudadano',
+      danish: 'borger',
+      gender: 'el',
+      examples: [
+        { spanish: 'Todo ciudadano tiene derechos', danish: 'Enhver borger har rettigheder' },
+        { spanish: 'Los ciudadanos votan', danish: 'Borgerne stemmer' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'ley',
+      danish: 'lov',
+      gender: 'la',
+      examples: [
+        { spanish: 'La ley protege a todos', danish: 'Loven beskytter alle' },
+        { spanish: 'Es contra la ley', danish: 'Det er ulovligt' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'derechos',
+      danish: 'rettigheder',
+      examples: [
+        { spanish: 'Derechos humanos fundamentales', danish: 'Grundlæggende menneskerettigheder' },
+        { spanish: 'Defender los derechos', danish: 'Forsvare rettighederne' }
+      ],
+      difficulty: 'hard'
+    },
+    {
+      spanish: 'partido',
+      danish: 'parti',
+      gender: 'el',
+      examples: [
+        { spanish: 'El partido político ganó', danish: 'Det politiske parti vandt' },
+        { spanish: 'Miembro del partido', danish: 'Medlem af partiet' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'sociedad',
+      danish: 'samfund',
+      gender: 'la',
+      examples: [
+        { spanish: 'La sociedad moderna cambia rápido', danish: 'Det moderne samfund ændrer sig hurtigt' },
+        { spanish: 'Vivir en sociedad', danish: 'Leve i samfund' }
+      ],
+      difficulty: 'hard'
+    }
+  ],
+
+  medioambiente: [
+    {
+      spanish: 'medio ambiente',
+      danish: 'miljø',
+      gender: 'el',
+      examples: [
+        { spanish: 'Proteger el medio ambiente', danish: 'Beskytte miljøet' },
+        { spanish: 'El medio ambiente está en peligro', danish: 'Miljøet er i fare' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'contaminación',
+      danish: 'forurening',
+      gender: 'la',
+      examples: [
+        { spanish: 'La contaminación es un problema grave', danish: 'Forurening er et alvorligt problem' },
+        { spanish: 'Reducir la contaminación', danish: 'Reducere forurening' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'reciclaje',
+      danish: 'genbrug',
+      gender: 'el',
+      examples: [
+        { spanish: 'El reciclaje es importante', danish: 'Genbrug er vigtigt' },
+        { spanish: 'Hacer reciclaje en casa', danish: 'Genbruge derhjemme' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'cambio climático',
+      danish: 'klimaforandring',
+      gender: 'el',
+      examples: [
+        { spanish: 'El cambio climático afecta el planeta', danish: 'Klimaforandringer påvirker planeten' },
+        { spanish: 'Luchar contra el cambio climático', danish: 'Bekæmpe klimaforandringer' }
+      ],
+      difficulty: 'hard'
+    },
+    {
+      spanish: 'energía renovable',
+      danish: 'vedvarende energi',
+      gender: 'la',
+      examples: [
+        { spanish: 'Usar energía renovable', danish: 'Bruge vedvarende energi' },
+        { spanish: 'La energía renovable es sostenible', danish: 'Vedvarende energi er bæredygtig' }
+      ],
+      difficulty: 'hard'
+    },
+    {
+      spanish: 'naturaleza',
+      danish: 'natur',
+      gender: 'la',
+      examples: [
+        { spanish: 'Amar la naturaleza', danish: 'Elske naturen' },
+        { spanish: 'La naturaleza es hermosa', danish: 'Naturen er smuk' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'bosque',
+      danish: 'skov',
+      gender: 'el',
+      examples: [
+        { spanish: 'Pasear por el bosque', danish: 'Gå en tur i skoven' },
+        { spanish: 'Los bosques producen oxígeno', danish: 'Skovene producerer ilt' }
+      ],
+      difficulty: 'medium'
+    }
+  ],
+
+  cuerpo: [
+    {
+      spanish: 'cabeza',
+      danish: 'hoved',
+      gender: 'la',
+      examples: [
+        { spanish: 'Me duele la cabeza', danish: 'Jeg har hovedpine' },
+        { spanish: 'La cabeza es importante', danish: 'Hovedet er vigtigt' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'brazo',
+      danish: 'arm',
+      gender: 'el',
+      examples: [
+        { spanish: 'Me rompí el brazo', danish: 'Jeg brækkede armen' },
+        { spanish: 'Levantar el brazo', danish: 'Løfte armen' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'pierna',
+      danish: 'ben',
+      gender: 'la',
+      examples: [
+        { spanish: 'Me duele la pierna', danish: 'Mit ben gør ondt' },
+        { spanish: 'Cruzar las piernas', danish: 'Krydse benene' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'corazón',
+      danish: 'hjerte',
+      gender: 'el',
+      examples: [
+        { spanish: 'El corazón late rápido', danish: 'Hjertet banker hurtigt' },
+        { spanish: 'Cuidar el corazón', danish: 'Passe på hjertet' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'salud',
+      danish: 'sundhed',
+      gender: 'la',
+      examples: [
+        { spanish: 'La salud es importante', danish: 'Sundhed er vigtigt' },
+        { spanish: 'Cuidar la salud', danish: 'Tage sig af sundheden' }
+      ],
+      difficulty: 'medium'
+    }
+  ],
+
+  tiempo: [
+    {
+      spanish: 'sol',
+      danish: 'sol',
+      gender: 'el',
+      examples: [
+        { spanish: 'El sol brilla', danish: 'Solen skinner' },
+        { spanish: 'Hace sol hoy', danish: 'Der er solskin i dag' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'lluvia',
+      danish: 'regn',
+      gender: 'la',
+      examples: [
+        { spanish: 'La lluvia cae', danish: 'Regnen falder' },
+        { spanish: 'No me gusta la lluvia', danish: 'Jeg kan ikke lide regn' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'nieve',
+      danish: 'sne',
+      gender: 'la',
+      examples: [
+        { spanish: 'La nieve es blanca', danish: 'Sneen er hvid' },
+        { spanish: 'Está nevando', danish: 'Det sner' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'viento',
+      danish: 'vind',
+      gender: 'el',
+      examples: [
+        { spanish: 'Hace mucho viento', danish: 'Der er meget blæst' },
+        { spanish: 'El viento es fuerte', danish: 'Vinden er kraftig' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'temperatura',
+      danish: 'temperatur',
+      gender: 'la',
+      examples: [
+        { spanish: 'La temperatura sube', danish: 'Temperaturen stiger' },
+        { spanish: '¿Qué temperatura hace?', danish: 'Hvad er temperaturen?' }
+      ],
+      difficulty: 'medium'
+    }
+  ],
+
+  deportes: [
+    {
+      spanish: 'fútbol',
+      danish: 'fodbold',
+      gender: 'el',
+      examples: [
+        { spanish: 'Juego al fútbol', danish: 'Jeg spiller fodbold' },
+        { spanish: 'El fútbol es popular', danish: 'Fodbold er populært' }
+      ],
+      difficulty: 'easy'
+    },
+    {
+      spanish: 'natación',
+      danish: 'svømning',
+      gender: 'la',
+      examples: [
+        { spanish: 'Me gusta la natación', danish: 'Jeg kan lide at svømme' },
+        { spanish: 'Practicar natación', danish: 'Dyrke svømning' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'baloncesto',
+      danish: 'basketball',
+      gender: 'el',
+      examples: [
+        { spanish: 'Jugar al baloncesto', danish: 'Spille basketball' },
+        { spanish: 'El baloncesto es divertido', danish: 'Basketball er sjovt' }
+      ],
+      difficulty: 'medium'
+    },
+    {
+      spanish: 'entrenamiento',
+      danish: 'træning',
+      gender: 'el',
+      examples: [
+        { spanish: 'El entrenamiento es duro', danish: 'Træningen er hård' },
+        { spanish: 'Ir al entrenamiento', danish: 'Gå til træning' }
+      ],
+      difficulty: 'hard'
+    }
   ]
 };
 
@@ -536,7 +839,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { topic, level, exerciseType, questionCount = 5, difficulty = 'medium' } = body;
+    const { topic, level, exerciseType, questionCount = 5, difficulty = 'medium', targetLanguage = 'es' } = body;
 
     console.log(`📝 Vocabulary request parameters [${requestId}]:`, {
       topic,
@@ -544,6 +847,7 @@ export async function POST(request: NextRequest) {
       exerciseType,
       questionCount,
       difficulty,
+      targetLanguage,
       timestamp: new Date().toISOString()
     });
 
@@ -587,7 +891,7 @@ export async function POST(request: NextRequest) {
 
     // Generate exercise using OpenAI
     
-    const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount);
+    const prompt = createVocabularyPrompt(selectedWords, exerciseType, level, topic, questionCount, targetLanguage);
     const openaiStartTime = Date.now();
     
     const openaiResponse = await openai.chat.completions.create({
@@ -595,11 +899,19 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `Du er en ekspert spansk sproglærer, der skaber ordforrådsøvelser for danske studerende. 
+          content: `Du er en ekspert sproglærer, der skaber ordforrådsøvelser for danske studerende.
+Målsprog: ${targetLanguage === 'es' ? 'Spansk (Español)' : 'Portugisisk (Português)'}
+          
+          VIGTIGT - SPROGBRUG:
+          - question_da: Skal ALTID være på DANSK som oversættelse/forklaring
+          - question_es: Skal være spørgsmålet på ${targetLanguage === 'es' ? 'SPANSK' : 'PORTUGISISK'}
+          - For fill_blank: Sætningen skal være på ${targetLanguage === 'es' ? 'spansk' : 'portugisisk'} med ______ hvor ordet mangler
+          - correct_answer: Ordet på ${targetLanguage === 'es' ? 'spansk' : 'portugisisk'}
+          
           Du skal:
           1. Skabe ${questionCount} ${exerciseType} spørgsmål på ${level} niveau
           2. Bruge kun de givne ord fra ordforråd-databasen
-          3. Inkludere danske instruktioner
+          3. Spørgsmål skal være på ${targetLanguage === 'es' ? 'spansk' : 'portugisisk'}, forklaringer på dansk
           4. Sikre, at sværhedsgraden matcher ${difficulty}
           5. Tilføje uddybende forklaringer på dansk
 
@@ -706,8 +1018,11 @@ function createVocabularyPrompt(
   exerciseType: string, 
   level: SpanishLevel, 
   topic: string, 
-  questionCount: number
+  questionCount: number,
+  targetLanguage: 'es' | 'pt' = 'es'
 ): string {
+  const langName = targetLanguage === 'es' ? 'spansk' : 'portugisisk';
+  const langNameCap = targetLanguage === 'es' ? 'Spansk' : 'Portugisisk';
   const wordList = words.map(word => 
     `- ${word.spanish} (${word.gender || ''}) = ${word.danish}
      Eksempler: ${word.examples.map(ex => `"${ex.spanish}" = "${ex.danish}"`).join(', ')}`
@@ -732,9 +1047,9 @@ function createVocabularyPrompt(
   };
 
   const exerciseTypeInstructions: Record<string, string> = {
-    multiple_choice: 'Vælg det rigtige svar blandt de fire muligheder',
-    fill_blank: 'Udfyld det manglende ord i sætningen', 
-    translation: 'Oversæt mellem dansk og spansk'
+    multiple_choice: `Vælg det rigtige ${langName}e ord blandt de fire muligheder`,
+    fill_blank: `Udfyld det manglende ${langName}e ord i sætningen`, 
+    translation: `Oversæt mellem dansk og ${langName}`
   };
 
   return `Skab en ordforrådsøvelse for ${level}-niveau studerende om emnet "${topicNames[topic] || topic}".
@@ -750,12 +1065,22 @@ Hver opgave skal:
 1. Bruge kun ord fra den givne liste
 2. Inkludere køn (el/la) hvor relevant
 3. Være på passende niveau for ${level}
-4. Have klare danske instruktioner
-5. Inkludere forklaringer der hjælper med forståelse
+4. Spørgsmålet (question_es) skal være på ${langNameCap}
+5. Danish oversættelse/forklaring i question_da
+6. Inkludere forklaringer på dansk der hjælper med forståelse
 
-For multiple choice: Giv 4 valgmuligheder hvor 3 er plausible afledninger
-For fill_blank: Skab naturlige sætninger med et manglende ord
-For translation: Veksle mellem dansk→spansk og spansk→dansk
+For multiple choice: Giv 4 ${langName}e valgmuligheder hvor 3 er plausible afledninger
+For fill_blank: Skab naturlige ${langName}e sætninger med ______ hvor ordet mangler. question_da skal være den KOMPLETTE danske sætning UDEN blanke
+For translation: Veksle mellem dansk→${langName} og ${langName}→dansk
+
+EKSEMPEL for fill_blank:
+{
+  "question_es": "En un ______ los ciudadanos tienen derecho a votar.",
+  "question_da": "I et demokrati har borgerne ret til at stemme.",
+  "correct_answer": "democracia"
+}
+
+VIGTIGT: question_da skal ALTID være den komplette sætning på dansk uden ______ så brugeren kan se betydningen.
 
 Fokuser på praktisk anvendelse og kulturel kontekst.`;
 }

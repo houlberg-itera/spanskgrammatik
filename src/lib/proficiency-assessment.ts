@@ -74,7 +74,9 @@ const DIFFICULTY_WEIGHTS = {
 export async function analyzeProficiency(userId: string): Promise<ProficiencyAnalysis> {
   const supabase = await createClient();
 
-  console.log('🔍 Analyzing proficiency for user:', userId);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Analyzing proficiency for user:', userId);
+  }
 
   // Get user's exercise performance
   const { data: performances, error } = await supabase

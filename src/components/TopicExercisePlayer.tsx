@@ -252,7 +252,7 @@ export default function TopicExercisePlayer({
         }))
       });
 
-      // 🎯 FIX: For review mode, expand multi-question exercises into individual questions
+      // 🎯 FIX: For ALL modes, expand multi-question exercises into individual questions
       const expandedExercises: Exercise[] = [];
       
       exercisesToShow.forEach(dbExercise => {
@@ -275,8 +275,8 @@ export default function TopicExercisePlayer({
           return;
         }
         
-        if (reviewMode && questions.length > 1) {
-          // 🔄 REVIEW MODE: Expand all questions from multi-question exercise
+        if (questions.length > 1) {
+          // 🔄 ALL MODES: Expand all questions from multi-question exercise
           questions.forEach((question, questionIndex) => {
             // ✅ NULL CHECK: Ensure question has required fields
             if (!question || !question.question_da) {
@@ -303,29 +303,19 @@ export default function TopicExercisePlayer({
               questionIndex: questionIndex
             } as Exercise);
           });
-        } else {
-          // 🔄 NORMAL/RETRY MODE or single-question exercise: Use first question only
-          const firstQuestion = questions[0] || dbExercise.content;
+        } else if (questions.length === 1) {
+          // 🔄 Single-question exercise: Add the one question
+          const firstQuestion = questions[0];
           
-          // ✅ NULL CHECK: Ensure first question has required fields
-          if (!firstQuestion || !firstQuestion.question_da) {
-            console.log('⚠️ SKIPPING EXERCISE: First question missing required fields', { 
-              exerciseId: dbExercise.id,
-              hasFirstQuestion: !!firstQuestion,
-              hasQuestionDa: !!firstQuestion?.question_da
-            });
-            return;
-          }
-
           expandedExercises.push({
             id: dbExercise.id,
-            question_da: firstQuestion?.question_da || dbExercise.content?.question_da || '',
-            question: firstQuestion?.question || dbExercise.content?.question || '',
-            correct_answer: firstQuestion?.correct_answer || dbExercise.content?.correct_answer || '',
-            options: firstQuestion?.options || dbExercise.content?.options || [],
-            type: firstQuestion?.type || dbExercise.content?.type || 'translation',
-            explanation_da: firstQuestion?.explanation_da || dbExercise.content?.explanation_da || '',
-            sentence_translation_da: firstQuestion?.sentence_translation_da || dbExercise.content?.sentence_translation_da || '',
+            question_da: firstQuestion.question_da,
+            question: firstQuestion.question || '',
+            correct_answer: firstQuestion.correct_answer || '',
+            options: firstQuestion.options || [],
+            type: firstQuestion.type || 'translation',
+            explanation_da: firstQuestion.explanation_da || '',
+            sentence_translation_da: firstQuestion.sentence_translation_da || '',
             // Store original exercise info for progress saving
             originalExerciseId: dbExercise.content?.originalExerciseId || dbExercise.id,
             questionIndex: dbExercise.content?.questionIndex || 0
@@ -355,16 +345,17 @@ export default function TopicExercisePlayer({
       setExercises(expandedExercises);
       
       // ✅ FIX: Proper progress calculation for each mode
+      // IMPORTANT: Use expandedExercises.length (actual question count) not original exercise count
       let totalForProgress: number;
       if (reviewMode) {
-        // Review mode: use all exercises
-        totalForProgress = allData?.length || 0;
+        // Review mode: use expanded questions count
+        totalForProgress = expandedExercises.length;
       } else if (retryMode) {
-        // Retry mode: use wrong answer exercises
-        totalForProgress = wrongAnswerExerciseIds.length;
+        // Retry mode: use expanded questions count (not original exercise count)
+        totalForProgress = expandedExercises.length;
       } else {
-        // Normal mode: use all exercises
-        totalForProgress = allData?.length || 0;
+        // Normal mode: use expanded questions count
+        totalForProgress = expandedExercises.length;
       }
       
       const safeTotal = Math.max(totalForProgress, 1); // Ensure minimum of 1
@@ -465,8 +456,8 @@ export default function TopicExercisePlayer({
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
       
-      // ✅ FIX: Prevent division by zero in progress calculation
-      const totalForProgress = (retryMode || reviewMode) ? wrongAnswerExerciseIds.length : exercises.length;
+      // ✅ FIX: Use actual exercises.length (expanded questions) for all modes
+      const totalForProgress = exercises.length;
       const safeTotal = Math.max(totalForProgress, 1); // Ensure minimum of 1
       const safeNextIndex = Math.min(nextIndex + 1, totalForProgress);
       const newProgress = totalForProgress > 0 ? Math.min((safeNextIndex / safeTotal) * 100, 100) : 100;
@@ -647,13 +638,31 @@ export default function TopicExercisePlayer({
         console.log('➕ Added new question, total questions now:', questionResults.length);
       }
 
+      // ✅ FIX: Calculate score based on ALL questions answered, not just current one
+      const totalQuestionsAnswered = questionResults.length;
+      const correctQuestionsCount = questionResults.filter(r => r.correct).length;
+      const calculatedScore = totalQuestionsAnswered > 0 
+        ? Math.round((correctQuestionsCount / totalQuestionsAnswered) * 100) 
+        : 0;
+      
+      // Exercise is "completed" if all questions have been answered correctly
+      const allQuestionsCorrect = totalQuestionsAnswered > 0 && correctQuestionsCount === totalQuestionsAnswered;
+
+      console.log('📊 SCORE CALCULATION:', {
+        totalQuestionsAnswered,
+        correctQuestionsCount,
+        calculatedScore,
+        allQuestionsCorrect,
+        exerciseId: exerciseIdForSaving
+      });
+
       const upsertData = {
         user_id: session.user.id,
         exercise_id: exercises[index].originalExerciseId || exercises[index].id, // Use original exercise ID for database
-        completed: correct,
-        score: correct ? 100 : 0,
+        completed: allQuestionsCorrect,
+        score: calculatedScore,
         attempts: 1,
-        completed_at: correct ? new Date().toISOString() : null,
+        completed_at: allQuestionsCorrect ? new Date().toISOString() : null,
         question_results: questionResults  // Now an array of all answered questions
       };
 

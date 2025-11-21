@@ -242,8 +242,20 @@ export default function ExerciseQuestion({
     case 'fill_in_blank':
       return (
         <div className="p-6 border rounded-lg">
-          <h3 className="text-lg font-medium mb-4">{question.question_da}</h3>
-          {renderSentenceTranslation()}
+          {/* Show Spanish/Portuguese sentence with blank */}
+          <h3 className="text-lg font-medium mb-2">{question.question || question.question_da}</h3>
+          {/* Show Danish translation below */}
+          {question.question_da && question.question_da !== question.question && (
+            <div className="mt-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <span className="text-blue-600 text-sm">💡</span>
+                <div>
+                  <p className="text-xs font-medium text-blue-700 mb-1">Dansk:</p>
+                  <p className="text-sm text-blue-800">{question.question_da}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <input
             type="text"
             value={selectedAnswer as string}
@@ -257,7 +269,7 @@ export default function ExerciseQuestion({
                   : 'border-red-300 bg-red-50'
                 : ''
             }`}
-            placeholder="Udfyld det manglende ord..."
+            placeholder={targetLanguage === 'pt' ? 'Skriv dit svar på portugisisk...' : 'Skriv dit svar på spansk...'}
           />
           {renderCorrectAnswerDisplay()}
         </div>
