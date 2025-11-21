@@ -5,6 +5,25 @@ import { createClient } from '@/lib/supabase/client';
 import { Topic, Exercise, UserProgress, SpanishLevel } from '@/types/database';
 import { calculateXP } from '@/lib/rewards';
 
+// Helper function to adjust color brightness
+function adjustColor(color: string, amount: number): string {
+  // Remove # if present
+  const hex = color.replace('#', '');
+  
+  // Convert to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Adjust each component
+  const newR = Math.max(0, Math.min(255, r + amount));
+  const newG = Math.max(0, Math.min(255, g + amount));
+  const newB = Math.max(0, Math.min(255, b + amount));
+  
+  // Convert back to hex
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+}
+
 interface LearningPathProps {
   level: SpanishLevel;
   topics: Topic[];
@@ -573,15 +592,31 @@ export default function LearningPath({ level, topics, exercises, userProgress }:
               )}
 
               <div
-                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl border-4 transition-all duration-300 relative ${
-                  node.unlocked ? 'border-white hover:shadow-2xl' : 'border-gray-400'
-                } ${node.completedCount >= node.exerciseCount && node.exerciseCount > 0 ? 'ring-4 ring-green-300' : ''}`}
+                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl border-4 transition-all duration-300 relative overflow-hidden ${
+                  node.unlocked ? 'border-white hover:shadow-2xl hover:scale-110' : 'border-gray-400'
+                } ${node.completedCount >= node.exerciseCount && node.exerciseCount > 0 ? 'ring-4 ring-green-400' : ''}`}
                 style={{
-                  backgroundColor: node.unlocked ? node.color : '#9CA3AF',
+                  background: node.unlocked 
+                    ? `linear-gradient(135deg, ${node.color} 0%, ${adjustColor(node.color, -20)} 100%)`
+                    : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
                   opacity: node.unlocked ? 1 : 0.6,
-                  boxShadow: `0 8px 20px ${getNodeShadow(node)}`
+                  boxShadow: `0 10px 25px ${getNodeShadow(node)}`
                 }}
               >
+                {/* Decorative pattern overlay */}
+                <div className="absolute inset-0 opacity-20" 
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      45deg,
+                      transparent,
+                      transparent 10px,
+                      rgba(255,255,255,0.1) 10px,
+                      rgba(255,255,255,0.1) 20px
+                    )`
+                  }}
+                />
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent" />
                 <span className="text-white text-2xl sm:text-3xl font-bold" style={{ 
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)'

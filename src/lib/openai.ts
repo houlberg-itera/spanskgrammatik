@@ -31,7 +31,9 @@ async function retryWithBackoff<T>(
       
       // Calculate delay with exponential backoff and jitter for rate limits  
       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;  // OPTIMIZED: Reduced jitter from 2000ms to 500ms
-      console.log(`Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1}) - OPTIMIZED DELAYS`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Rate limit hit, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1}) - OPTIMIZED DELAYS`);
+      }
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));

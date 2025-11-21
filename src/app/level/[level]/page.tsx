@@ -49,7 +49,9 @@ export default function LevelPage() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('Page became visible, refreshing data...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Page became visible, refreshing data...');
+        }
         fetchData();
       }
     };

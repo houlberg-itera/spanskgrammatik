@@ -14,15 +14,17 @@ interface VocabularyExercise {
 
 interface SaveRequest {
   topic: string;
+  topicNameDa?: string; // Proper Danish name for display
   level: 'A1' | 'A2' | 'B1';
   exercises: VocabularyExercise[];
   exerciseType: 'multiple_choice' | 'fill_blank' | 'translation';
+  targetLanguage?: 'es' | 'pt';
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRequest = await request.json();
-    const { topic, level, exercises, exerciseType } = body;
+    const { topic, topicNameDa, level, exercises, exerciseType, targetLanguage = 'es' } = body;
 
     if (!topic || !level || !exercises || !Array.isArray(exercises) || exercises.length === 0) {
       return NextResponse.json(
@@ -30,6 +32,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Use proper Danish name if provided, otherwise use topic key
+    const displayNameDa = topicNameDa || topic;
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,8 +52,9 @@ export async function POST(request: NextRequest) {
     const { data: existingTopic } = await supabase
       .from('topics')
       .select('id')
-      .eq('name_da', topic)
+      .eq('name_da', displayNameDa)
       .eq('level', level)
+      .eq('target_language', targetLanguage)
       .single();
 
     if (existingTopic) {
@@ -58,11 +64,12 @@ export async function POST(request: NextRequest) {
       const { data: newTopic, error: topicError } = await supabase
         .from('topics')
         .insert({
-          name_da: topic,
-          name_es: topic,
+          name_da: displayNameDa,
+          name: topic, // Use the key as the target language name
           level,
-          description_da: `AI-genererede ordforrådsøvelser for ${topic}`,
-          description_es: `Ejercicios de vocabulario generados por IA para ${topic}`,
+          target_language: targetLanguage,
+          description_da: `AI-genererede ordforrådsøvelser for ${displayNameDa}`,
+          description: `Ejercicios de vocabulario generados por IA para ${topic}`,
           order_index: 999 // Place at end
         })
         .select('id')
@@ -71,7 +78,7 @@ export async function POST(request: NextRequest) {
       if (topicError) {
         console.error('Error creating topic:', topicError);
         return NextResponse.json(
-          { error: 'Failed to create topic' },
+          { error: 'Failed to create topic', details: topicError.message },
           { status: 500 }
         );
       }
@@ -79,58 +86,55 @@ export async function POST(request: NextRequest) {
       topicRecord = newTopic;
     }
 
-    // Save exercises to database
-    const exerciseInserts = exercises.map((exercise, index) => {
-      const content: any = {
+    // Build the exercise content with all questions
+    const exerciseContent: any = {
+      questions: exercises.map((exercise, index) => ({
+        id: index + 1,
         question_da: exercise.question_da,
-        question_es: exercise.question_es || exercise.question_da,
-        correct_answer: exercise.correct_answer
-      };
+        question: exercise.question_es || exercise.question_da, // Target language question
+        correct_answer: exercise.correct_answer,
+        options: exerciseType === 'multiple_choice' ? exercise.options : undefined,
+        explanation_da: exercise.explanation_da,
+        explanation: exercise.explanation_es,
+        type: exerciseType
+      })),
+      instructions_da: `Ordforrådsøvelse for ${displayNameDa}`,
+      instructions: `Ejercicio de vocabulario para ${topic}`
+    };
 
-      // Add options for multiple choice
-      if (exerciseType === 'multiple_choice' && exercise.options) {
-        content.options = exercise.options;
-      }
-
-      // Add explanation if provided
-      if (exercise.explanation_da) {
-        content.explanation_da = exercise.explanation_da;
-      }
-      if (exercise.explanation_es) {
-        content.explanation_es = exercise.explanation_es;
-      }
-
-      return {
-        topic_id: topicRecord.id,
-        level,
-        type: 'vocabulary', // Using the exercise_type enum
-        title_da: `Ordforråd: ${topic} - Øvelse ${index + 1}`,
-        title_es: `Vocabulario: ${topic} - Ejercicio ${index + 1}`,
-        description_da: `AI-genereret ordforrådsøvelse for ${topic}`,
-        description_es: `Ejercicio de vocabulario generado por IA para ${topic}`,
-        content,
-        ai_generated: true
-      };
-    });
+    // Create a single exercise with all questions
+    const exerciseInsert = {
+      topic_id: topicRecord.id,
+      level,
+      target_language: targetLanguage,
+      type: 'vocabulary' as const,
+      title_da: `Ordforråd: ${displayNameDa}`,
+      title: `Vocabulario: ${topic}`,
+      description_da: `AI-genereret ordforrådsøvelse for ${displayNameDa}`,
+      description: `Ejercicio de vocabulario generado por IA para ${topic}`,
+      content: exerciseContent,
+      ai_generated: true
+    };
 
     const { data: savedExercises, error: exerciseError } = await supabase
       .from('exercises')
-      .insert(exerciseInserts)
+      .insert([exerciseInsert])
       .select('id');
 
     if (exerciseError) {
       console.error('Error saving exercises:', exerciseError);
       return NextResponse.json(
-        { error: 'Failed to save exercises' },
+        { error: 'Failed to save exercises', details: exerciseError.message },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully saved ${exercises.length} vocabulary exercises`,
+      message: `Successfully saved vocabulary exercise with ${exercises.length} questions`,
       topicId: topicRecord.id,
-      exerciseIds: savedExercises?.map(e => e.id) || []
+      exerciseId: savedExercises?.[0]?.id,
+      questionCount: exercises.length
     });
 
   } catch (error) {

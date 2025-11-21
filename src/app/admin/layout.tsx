@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center text-sm text-gray-500">
             <div>
-              DuckLingo Admin Panel - AI-drevet spansk læring for danske talere
+              DuckLingo Admin Panel - AI-drevet sprogindlæring for danske talere
             </div>
             <div>
               Udviklet med Next.js, Supabase og OpenAI

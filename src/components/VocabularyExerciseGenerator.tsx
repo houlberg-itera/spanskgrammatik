@@ -12,6 +12,7 @@ interface VocabularyTopic {
 
 interface VocabularyExerciseGeneratorProps {
   level: SpanishLevel;
+  targetLanguage?: 'es' | 'pt';
   onExerciseGenerated?: (exercise: any) => void;
 }
 
@@ -42,7 +43,8 @@ const VOCABULARY_TOPICS: Record<SpanishLevel, VocabularyTopic[]> = {
   C2: [],
 };
 
-export default function VocabularyExerciseGenerator({ level, onExerciseGenerated }: VocabularyExerciseGeneratorProps) {
+export default function VocabularyExerciseGenerator({ level, targetLanguage: initialLanguage, onExerciseGenerated }: VocabularyExerciseGeneratorProps) {
+  const [targetLanguage, setTargetLanguage] = useState<'es' | 'pt'>(initialLanguage || 'es');
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [exerciseType, setExerciseType] = useState<'multiple_choice' | 'fill_blank' | 'translation'>('multiple_choice');
   const [questionCount, setQuestionCount] = useState(5);
@@ -71,6 +73,7 @@ export default function VocabularyExerciseGenerator({ level, onExerciseGenerated
         exerciseType,
         questionCount,
         difficulty,
+        targetLanguage
       };
       
       console.log('🚀 Sending vocabulary request:', requestBody);
@@ -120,16 +123,22 @@ export default function VocabularyExerciseGenerator({ level, onExerciseGenerated
     setError(null);
 
     try {
+      // Find the topic object to get the proper Danish name
+      const topicObj = topics.find(t => t.key === selectedTopic);
+      const topicNameDa = topicObj?.name || selectedTopic;
+
       const response = await fetch('/api/save-vocabulary-exercise', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          topic: selectedTopic,
+          topic: selectedTopic, // key for matching vocabulary database
+          topicNameDa, // Danish name for display
           level: level,
           exercises: exercise.questions || [],
           exerciseType: exerciseType,
+          targetLanguage
         }),
       });
 
@@ -158,14 +167,30 @@ export default function VocabularyExerciseGenerator({ level, onExerciseGenerated
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          🗣️ Ordforråds Generator - Niveau {level}
-        </h2>
-        <p className="text-gray-600">
-          Generer skræddersyede ordforrådsøvelser inden for forskellige emner
-        </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setTargetLanguage('es')}
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+              targetLanguage === 'es'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🇪🇸 Spansk
+          </button>
+          <button
+            onClick={() => setTargetLanguage('pt')}
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+              targetLanguage === 'pt'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🇵🇹 Portugisisk
+          </button>
+        </div>
       </div>
 
       {!generatedExercise ? (
@@ -230,7 +255,9 @@ export default function VocabularyExerciseGenerator({ level, onExerciseGenerated
                 }`}
               >
                 <div className="font-semibold">Oversættelse</div>
-                <div className="text-sm text-gray-600 mt-1">Oversæt mellem dansk og spansk</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Oversæt mellem dansk og {targetLanguage === 'es' ? 'spansk' : 'portugisisk'}
+                </div>
               </button>
             </div>
           </div>
@@ -373,7 +400,7 @@ export default function VocabularyExerciseGenerator({ level, onExerciseGenerated
               </div>
 
               {generatedExercise.vocabulary_metadata && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-md">
+              <div className="mt-4 p-3 bg-blue-50 rounded-md">
                   <h4 className="font-medium text-blue-900">Ordforråd brugt:</h4>
                   <div className="text-sm text-blue-700 mt-1">
                     {generatedExercise.vocabulary_metadata.words_used && 

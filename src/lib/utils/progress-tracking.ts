@@ -28,12 +28,14 @@ export async function saveExerciseProgress(
   questionResult: QuestionResult,
   isCorrect: boolean
 ): Promise<any> {
-  console.log('💾 Saving exercise progress:', {
-    userId,
-    exerciseId,
-    isCorrect,
-    questionText: questionResult.question_text
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('💾 Saving exercise progress:', {
+      userId,
+      exerciseId,
+      isCorrect,
+      questionText: questionResult.question_text
+    });
+  }
 
   const supabase = createClient();
 
@@ -84,7 +86,9 @@ export async function saveExerciseProgress(
       throw upsertError;
     }
 
-    console.log('✅ Progress saved successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Progress saved successfully');
+    }
     return upsertResult;
 
   } catch (error: any) {

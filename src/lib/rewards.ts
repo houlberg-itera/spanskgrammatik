@@ -52,7 +52,9 @@ export function calculateXP(correctAnswers: number, perfectScores: number = 0): 
 export function getCurrentMedal(userStats: UserStats): MedalType {
   const { total_xp, correct_answers, accuracy_percentage } = userStats;
   
-  console.log('🏅 MEDAL DEBUG - Input stats:', { total_xp, correct_answers, accuracy_percentage });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🏅 MEDAL DEBUG - Input stats:', { total_xp, correct_answers, accuracy_percentage });
+  }
   
   // Check from highest to lowest medal - FIXED: Use correct_answers instead of questions_answered
   for (let i = MEDAL_ORDER.length - 1; i >= 0; i--) {
@@ -63,15 +65,21 @@ export function getCurrentMedal(userStats: UserStats): MedalType {
     const meetsQuestions = correct_answers >= requirements.questions;
     const meetsAccuracy = accuracy_percentage >= requirements.accuracy;
     
-    console.log(`🏅 MEDAL DEBUG - Checking ${medal}: XP(${total_xp}>=${requirements.xp})=${meetsXP}, Questions(${correct_answers}>=${requirements.questions})=${meetsQuestions}, Accuracy(${accuracy_percentage}>=${requirements.accuracy})=${meetsAccuracy}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🏅 MEDAL DEBUG - Checking ${medal}: XP(${total_xp}>=${requirements.xp})=${meetsXP}, Questions(${correct_answers}>=${requirements.questions})=${meetsQuestions}, Accuracy(${accuracy_percentage}>=${requirements.accuracy})=${meetsAccuracy}`);
+    }
     
     if (meetsXP && meetsQuestions && meetsAccuracy) {
-      console.log(`🏅 MEDAL DEBUG - QUALIFIED for ${medal}!`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🏅 MEDAL DEBUG - QUALIFIED for ${medal}!`);
+      }
       return medal;
     }
   }
   
-  console.log('🏅 MEDAL DEBUG - NO MEDAL QUALIFIED, returning "none"');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🏅 MEDAL DEBUG - NO MEDAL QUALIFIED, returning "none"');
+  }
   // FIXED: Return 'none' instead of 'bronze' for users who don't meet requirements
   return 'none' as MedalType;
 }
