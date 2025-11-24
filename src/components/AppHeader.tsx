@@ -84,7 +84,7 @@ export default function AppHeader({ showUserInfo = true, pageTitle }: AppHeaderP
                   DuckLingo
                 </h1>
                 <p className="text-xs text-gray-500 font-medium">
-                  {pageTitle || "Lær spansk grammatik nemt"}
+                  {pageTitle || "Lær spansk & portugisisk grammatik"}
                 </p>
               </div>
             </div>

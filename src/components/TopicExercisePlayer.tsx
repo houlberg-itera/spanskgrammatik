@@ -533,6 +533,8 @@ export default function TopicExercisePlayer({
   const saveProgress = async (index: number, correct: boolean) => {
     // Save user progress to Supabase using correct user_progress table
     console.log('🔥 STARTING PROGRESS SAVE OPERATION');
+    console.log('📱 User Agent:', navigator.userAgent);
+    console.log('🍪 All cookies:', document.cookie);
     
     // Prevent unnecessary saves in retry/review mode when all questions already mastered
     if ((retryMode || reviewMode) && wrongAnswerExerciseIds.length === 0) {
@@ -541,9 +543,30 @@ export default function TopicExercisePlayer({
     }
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // First try to get session
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log('🔍 Initial session check:', {
+        hasSession: !!session,
+        sessionError: sessionError?.message,
+        userId: session?.user?.id
+      });
+      
+      // If no session found, try to refresh it (important for mobile)
       if (!session) {
-        console.log('❌ No session found - aborting save');
+        console.log('🔄 No session found, attempting to refresh...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        session = refreshData?.session || null;
+        console.log('🔄 Refresh result:', {
+          hasSession: !!session,
+          refreshError: refreshError?.message,
+          userId: session?.user?.id
+        });
+      }
+      
+      if (!session) {
+        console.error('❌ No session found after refresh - aborting save');
+        console.error('🚨 This might be a cookie storage issue on mobile');
         return;
       }
 
@@ -627,11 +650,25 @@ export default function TopicExercisePlayer({
         
         if (existingIndex !== -1) {
           console.log(`🔄 RETRY MODE: Replacing wrong answer at index ${existingIndex} with correct answer for question ${questionIndexForSaving}`);
+          console.log('📋 Old result:', questionResults[existingIndex]);
+          console.log('📋 New result:', newQuestionResult);
           questionResults[existingIndex] = newQuestionResult;
         } else {
           console.log('🔄 RETRY MODE: No existing wrong answer found for this specific question, adding new result');
+          console.log('🔍 Searched for question_id:', exercises[index].id);
+          console.log('🔍 Searched for original_exercise_id + question_index:', exerciseIdForSaving, questionIndexForSaving);
+          console.log('🔍 Existing results:', questionResults.map(r => ({ 
+            question_id: r.question_id, 
+            original_exercise_id: r.original_exercise_id, 
+            question_index: r.question_index,
+            correct: r.correct
+          })));
           questionResults.push(newQuestionResult);
         }
+      } else if (retryMode && !correct) {
+        // In retry mode with wrong answer - still need to track this attempt
+        console.log('🔄 RETRY MODE: Wrong answer again, not updating (will retry)');
+        // Don't add or modify - user will retry this question
       } else {
         // Normal mode or wrong answer - append new question result
         questionResults.push(newQuestionResult);

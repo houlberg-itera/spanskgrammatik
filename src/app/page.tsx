@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { UserReward, LeaderboardEntry } from '@/types/rewards';
-import { getMedalDisplay } from '@/lib/rewards';
-import Leaderboard from '@/components/Leaderboard';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -50,7 +47,7 @@ export default function Home() {
             🦆 DuckLingo
           </h1>
           <p className="text-lg sm:text-xl text-gray-700 mb-8 sm:mb-12 max-w-3xl mx-auto px-4">
-            Lær spansk grammatik med AI-baserede øvelser tilpasset danske studerende. 
+            Lær spansk eller portugisisk grammatik med AI-baserede øvelser tilpasset danske studerende. 
             Arbejd dig op gennem niveauerne A1, A2 og B1 med interaktive øvelser og øjeblikkelig feedback.
           </p>
 
@@ -98,21 +95,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Ranking Section - NO BUTTON, ALWAYS VISIBLE */}
-        <div className="mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">🏅 Rangliste</h2>
-          <div className="bg-white rounded-lg shadow-md">
-            <Leaderboard limit={10} className="w-full" />
-          </div>
-        </div>
-        {/* Ranking Section - NO BUTTON, ALWAYS VISIBLE */}
-        <div className="mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">🏅 Rangliste</h2>
-          <div className="bg-white rounded-lg shadow-md">
-            <Leaderboard limit={10} className="w-full" />
-          </div>
-        </div>
-
         {/* Features Section */}
         <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6 text-gray-900">Hvorfor DuckLingo?</h2>
@@ -124,9 +106,9 @@ export default function Home() {
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-blue-600">🇩🇰 Tilpasset danske studerende</h3>
+              <h3 className="text-lg font-semibold mb-3 text-blue-600">🇩🇰 Instruktioner på dansk</h3>
               <p className="text-gray-600 text-sm sm:text-base">
-                Alle instruktioner og forklaringer er på dansk, så du kan fokusere på at lære spansk grammatik.
+                Alle instruktioner og forklaringer er på dansk, så du kan fokusere på at lære dit nye sprog.
               </p>
             </div>
             <div>

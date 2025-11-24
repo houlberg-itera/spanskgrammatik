@@ -6,7 +6,22 @@ export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request);
 
   // Refresh session if expired - required for Server Components
-  const { data: { session } } = await supabase.auth.getSession();
+  // Handle cases where refresh token is invalid/expired
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  // If there's an auth error (invalid refresh token), clear the session
+  if (error) {
+    console.error('Auth session error:', error.message);
+    // Clear invalid cookies and redirect to auth
+    const authUrl = new URL('/auth?message=session-expired', request.url);
+    const clearResponse = NextResponse.redirect(authUrl);
+    
+    // Clear Supabase auth cookies
+    clearResponse.cookies.delete('sb-access-token');
+    clearResponse.cookies.delete('sb-refresh-token');
+    
+    return clearResponse;
+  }
 
   // Admin routes that require admin authentication
   const adminPaths = ['/admin'];
