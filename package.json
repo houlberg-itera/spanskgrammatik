@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test-gpt5": "node test-gpt5-fix.js"
+    "test-gpt5": "node test-gpt5-fix.js",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@jridgewell/gen-mapping": "^0.3.13",
@@ -21,6 +26,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/node": "^20",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
